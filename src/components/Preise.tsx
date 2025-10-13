@@ -1,8 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, User, MapPin, Award, Clock, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Preise = () => {
+  const navigate = useNavigate();
+  
   return (
     <section id="preise" className="relative py-24 overflow-hidden">
       {/* Animated background gradient */}
@@ -331,6 +334,7 @@ const Preise = () => {
             <Button 
               size="lg" 
               className="relative font-black text-lg px-12 py-7 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-105"
+              onClick={() => navigate("/buchung")}
             >
               Kurs jetzt buchen
             </Button>

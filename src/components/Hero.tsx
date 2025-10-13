@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-malbun.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+  
   const scrollToPreise = () => {
     const element = document.getElementById("preise");
     if (element) {
@@ -32,7 +35,7 @@ const Hero = () => {
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button size="lg" className="text-lg px-8 py-6 font-bold shadow-lg hover:shadow-xl transition-shadow">
+          <Button size="lg" className="text-lg px-8 py-6 font-bold shadow-lg hover:shadow-xl transition-shadow" onClick={() => navigate("/buchung")}>
             Jetzt buchen
           </Button>
           <Button

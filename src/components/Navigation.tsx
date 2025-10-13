@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo-malbun.jpg";
 
 const Navigation = () => {
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -73,7 +75,7 @@ const Navigation = () => {
             >
               Kontakt
             </button>
-            <Button size="lg" className="font-semibold">
+            <Button size="lg" className="font-semibold" onClick={() => navigate("/buchung")}>
               Jetzt buchen
             </Button>
           </div>
@@ -116,7 +118,7 @@ const Navigation = () => {
             >
               Kontakt
             </button>
-            <Button size="lg" className="font-semibold w-full">
+            <Button size="lg" className="font-semibold w-full" onClick={() => navigate("/buchung")}>
               Jetzt buchen
             </Button>
           </div>
