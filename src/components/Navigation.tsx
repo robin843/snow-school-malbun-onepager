@@ -28,7 +28,7 @@ const Navigation = () => {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background border-b shadow-sm" : "bg-transparent"
+        isScrolled ? "bg-background/95 backdrop-blur-sm shadow-md" : "bg-transparent"
       }`}
     >
       <div className="container mx-auto px-4">
@@ -36,7 +36,7 @@ const Navigation = () => {
           <div className="flex items-center gap-3">
             <img src={logo} alt="Schneesportschule Malbun" className="h-12 w-12 object-contain" />
             <span className={`font-bold text-lg hidden sm:inline transition-colors ${
-              isScrolled ? "text-foreground" : "text-white"
+              isScrolled ? "text-primary" : "text-white"
             }`}>
               Schneesportschule Malbun
             </span>
@@ -45,7 +45,7 @@ const Navigation = () => {
           <div className="hidden md:flex items-center gap-6">
             <button
               onClick={() => scrollToSection("preise")}
-              className={`hover:text-primary transition-colors font-medium ${
+              className={`hover:text-accent transition-colors font-medium ${
                 isScrolled ? "text-foreground" : "text-white"
               }`}
             >
@@ -53,7 +53,7 @@ const Navigation = () => {
             </button>
             <button
               onClick={() => scrollToSection("team")}
-              className={`hover:text-primary transition-colors font-medium ${
+              className={`hover:text-accent transition-colors font-medium ${
                 isScrolled ? "text-foreground" : "text-white"
               }`}
             >
@@ -61,7 +61,7 @@ const Navigation = () => {
             </button>
             <button
               onClick={() => scrollToSection("jobs")}
-              className={`hover:text-primary transition-colors font-medium ${
+              className={`hover:text-accent transition-colors font-medium ${
                 isScrolled ? "text-foreground" : "text-white"
               }`}
             >
@@ -69,13 +69,13 @@ const Navigation = () => {
             </button>
             <button
               onClick={() => scrollToSection("kontakt")}
-              className={`hover:text-primary transition-colors font-medium ${
+              className={`hover:text-accent transition-colors font-medium ${
                 isScrolled ? "text-foreground" : "text-white"
               }`}
             >
               Kontakt
             </button>
-            <Button size="lg" onClick={() => navigate("/buchung")}>
+            <Button size="lg" className="font-semibold" onClick={() => navigate("/buchung")}>
               Jetzt buchen
             </Button>
           </div>
@@ -92,7 +92,7 @@ const Navigation = () => {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-background border-t">
+        <div className="md:hidden bg-background border-t border-border">
           <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
             <button
               onClick={() => scrollToSection("preise")}
@@ -118,7 +118,7 @@ const Navigation = () => {
             >
               Kontakt
             </button>
-            <Button size="lg" className="w-full" onClick={() => navigate("/buchung")}>
+            <Button size="lg" className="font-semibold w-full" onClick={() => navigate("/buchung")}>
               Jetzt buchen
             </Button>
           </div>
