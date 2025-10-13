@@ -33,7 +33,9 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Schneesportschule Malbun" className="h-12 w-12 object-contain" />
-            <span className="font-bold text-lg text-primary hidden sm:inline">
+            <span className={`font-bold text-lg hidden sm:inline transition-colors ${
+              isScrolled ? "text-primary" : "text-white"
+            }`}>
               Schneesportschule Malbun
             </span>
           </div>
@@ -41,25 +43,33 @@ const Navigation = () => {
           <div className="hidden md:flex items-center gap-6">
             <button
               onClick={() => scrollToSection("preise")}
-              className="text-foreground hover:text-primary transition-colors font-medium"
+              className={`hover:text-accent transition-colors font-medium ${
+                isScrolled ? "text-foreground" : "text-white"
+              }`}
             >
               Preise
             </button>
             <button
               onClick={() => scrollToSection("team")}
-              className="text-foreground hover:text-primary transition-colors font-medium"
+              className={`hover:text-accent transition-colors font-medium ${
+                isScrolled ? "text-foreground" : "text-white"
+              }`}
             >
               Über uns
             </button>
             <button
               onClick={() => scrollToSection("jobs")}
-              className="text-foreground hover:text-primary transition-colors font-medium"
+              className={`hover:text-accent transition-colors font-medium ${
+                isScrolled ? "text-foreground" : "text-white"
+              }`}
             >
               Jobs
             </button>
             <button
               onClick={() => scrollToSection("kontakt")}
-              className="text-foreground hover:text-primary transition-colors font-medium"
+              className={`hover:text-accent transition-colors font-medium ${
+                isScrolled ? "text-foreground" : "text-white"
+              }`}
             >
               Kontakt
             </button>
@@ -69,7 +79,9 @@ const Navigation = () => {
           </div>
 
           <button
-            className="md:hidden text-foreground"
+            className={`md:hidden transition-colors ${
+              isScrolled ? "text-foreground" : "text-white"
+            }`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}

@@ -57,25 +57,25 @@ const Preise = () => {
           {kurse.map((kurs, index) => (
             <Card
               key={index}
-              className="hover:shadow-xl transition-shadow duration-300 animate-fade-in border-2"
+              className="hover:shadow-xl transition-all duration-300 animate-fade-in border-0 overflow-hidden hover:-translate-y-1"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <CardHeader>
-                <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <kurs.icon className="w-7 h-7 text-primary" />
+              <CardHeader className="bg-gradient-to-br from-primary to-secondary text-primary-foreground pb-8">
+                <div className="w-14 h-14 bg-white/20 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
+                  <kurs.icon className="w-7 h-7 text-white" />
                 </div>
-                <CardTitle className="text-2xl">{kurs.title}</CardTitle>
-                <CardDescription className="text-base">{kurs.description}</CardDescription>
+                <CardTitle className="text-2xl text-white">{kurs.title}</CardTitle>
+                <CardDescription className="text-base text-white/90">{kurs.description}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <div className="space-y-3">
                   {kurs.preise.map((item, idx) => (
                     <div
                       key={idx}
-                      className="flex justify-between items-center pb-2 border-b border-border last:border-0"
+                      className="flex justify-between items-center pb-3 border-b border-border last:border-0"
                     >
-                      <span className="text-muted-foreground">{item.dauer}</span>
-                      <span className="font-bold text-primary">{item.preis}</span>
+                      <span className="text-muted-foreground font-medium">{item.dauer}</span>
+                      <span className="font-bold text-primary text-lg">{item.preis}</span>
                     </div>
                   ))}
                 </div>
