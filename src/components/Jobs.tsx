@@ -55,38 +55,43 @@ const Jobs = () => {
           ))}
         </div>
 
-        <div className="max-w-3xl mx-auto bg-background rounded-2xl shadow-xl p-8 md:p-12">
-          <div className="transform rotate-1 bg-primary/10 p-1 inline-block mb-6">
-            <h3 className="text-2xl font-bold text-primary px-4 py-2">
-              Offene Stellen
-            </h3>
-          </div>
-          <div className="space-y-6 text-foreground">
-            <div>
-              <h4 className="text-xl font-semibold mb-2">Ski- und Snowboardlehrer (m/w/d)</h4>
-              <p className="text-muted-foreground mb-3">
-                Wir suchen motivierte und qualifizierte Instruktoren für die kommende Wintersaison.
+        <div className="max-w-4xl mx-auto space-y-8">
+          <Card className="bg-gradient-to-br from-primary to-secondary text-white border-0 shadow-xl overflow-hidden">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl md:text-3xl">Skilehrer/in (Voll- und/oder Teilzeit)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-white/90 leading-relaxed">
+                Du bist sportlich, gerne draussen und hast Freude am Umgang mit Kindern. Mit deiner offenen Art und guten Deutschkenntnissen passt du gut ins Team. Eine Ausbildung ab Kids Instructor bringst du mit - oder bist bereit, sie während der Saison zu absolvieren.
               </p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>Anerkannte Skilehrer- oder Snowboardlehrer-Ausbildung</li>
-                <li>Freude am Umgang mit Menschen aller Altersgruppen</li>
-                <li>Deutschkenntnisse erforderlich, weitere Sprachen von Vorteil</li>
-                <li>Teamfähigkeit und Zuverlässigkeit</li>
-              </ul>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="pt-6 border-t border-border">
-              <h4 className="text-xl font-semibold mb-2">Praktikum in der Skischule</h4>
-              <p className="text-muted-foreground">
-                Sammle wertvolle Erfahrungen in unserem Team und erhalte Einblicke in den Alltag
-                einer Schneesportschule.
+          <Card className="bg-gradient-to-br from-secondary to-primary text-white border-0 shadow-xl overflow-hidden">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl md:text-3xl">Kinderbetreuer/in auf Ski (Teilzeit)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-white/90 leading-relaxed">
+                Du bist flexibel, gerne draussen und hast Grundkenntnisse im Skifahren. Der Umgang mit Menschen, besonders Kindern, macht dir Freude. Du sprichst gut Deutsch und bist bereit, an einem internen Ausbildungskurs teilzunehmen.
               </p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="mt-8 text-center">
-            <Button size="lg" className="font-bold text-lg px-8 py-6">
-              Bewerbung senden
+          <Card className="bg-gradient-to-br from-accent to-primary text-white border-0 shadow-xl overflow-hidden">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl md:text-3xl">Büroangestellte/r (Voll- und/oder Teilzeit)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-white/90 leading-relaxed">
+                Du hast eine kaufmännische Ausbildung oder vergleichbare Erfahrung und arbeitest strukturiert sowie selbständig. Mit MS-Office kennst du dich aus, sprichst Deutsch und Englisch und hast Freude am Kundenkontakt. Teamarbeit liegt dir - idealerweise bist du für mehrere Saisons verfügbar.
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="text-center pt-8">
+            <Button size="lg" className="font-bold text-lg px-10 py-6 bg-destructive hover:bg-destructive/90 text-white shadow-lg">
+              Noch Fragen / Bewerben
             </Button>
           </div>
         </div>

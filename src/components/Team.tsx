@@ -1,4 +1,5 @@
 import wappen from "@/assets/wappen-malbun.jpg";
+import teamPhotos from "@/assets/team-photos.jpg";
 
 const Team = () => {
   return (
@@ -15,7 +16,18 @@ const Team = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-12 items-start max-w-6xl mx-auto mb-16">
+          <div className="flex justify-center animate-fade-in">
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 to-secondary/20 transform -rotate-2 rounded-2xl"></div>
+              <img
+                src={teamPhotos}
+                alt="Christoph und Engelbert Bühler"
+                className="relative rounded-2xl shadow-2xl w-full object-cover"
+              />
+            </div>
+          </div>
+
           <div className="animate-slide-in">
             <div className="transform -rotate-2 bg-primary/10 p-1 inline-block mb-6">
               <h3 className="text-2xl font-bold text-primary px-4 py-2">
@@ -41,8 +53,24 @@ const Team = () => {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="flex justify-center animate-fade-in">
+        <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+          <div className="animate-slide-in order-2 md:order-1">
+            <div className="transform rotate-1 bg-accent/90 px-6 py-2 inline-block mb-4">
+              <h3 className="text-2xl font-bold text-accent-foreground">
+                Christoph Bühler
+              </h3>
+            </div>
+            <p className="text-lg leading-relaxed text-foreground">
+              Der zertifizierte Skischulleiter und Snowboardcoach und sein engagiertes Team begeistern
+              mit ihrer Motivation aus den strahlenden und lächelnden Gesichtern seiner Gäste. Als
+              stolzer Nachfolger freut er sich deshalb jeden Tag aufs Neue, seine Leidenschaft zu
+              teilen.
+            </p>
+          </div>
+
+          <div className="flex justify-center animate-fade-in order-1 md:order-2">
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 to-accent/20 transform rotate-3 rounded-2xl"></div>
               <img
@@ -52,20 +80,6 @@ const Team = () => {
               />
             </div>
           </div>
-        </div>
-
-        <div className="mt-16 text-center bg-muted/50 rounded-2xl p-8 max-w-4xl mx-auto">
-          <div className="transform -rotate-1 bg-accent/90 px-6 py-2 inline-block mb-4">
-            <h3 className="text-xl font-bold text-accent-foreground">
-              Christoph Bühler
-            </h3>
-          </div>
-          <p className="text-lg leading-relaxed text-foreground">
-            Der zertifizierte Skischulleiter und Snowboardcoach und sein engagiertes Team begeistern
-            mit ihrer Motivation aus den strahlenden und lächelnden Gesichtern seiner Gäste. Als
-            stolzer Nachfolger freut er sich deshalb jeden Tag aufs Neue, seine Leidenschaft zu
-            teilen.
-          </p>
         </div>
       </div>
     </section>
