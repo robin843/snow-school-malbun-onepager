@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Building2, Smartphone, Check, ArrowLeft } from "lucide-react";
+import { CreditCard, Building2, Check, ArrowLeft, Heart, Users, Calendar, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import twintLogo from "@/assets/twint-logo.svg";
 
 const Buchung = () => {
   const navigate = useNavigate();
@@ -24,8 +25,8 @@ const Buchung = () => {
     // Simulate payment processing
     setTimeout(() => {
       toast({
-        title: "Buchung erfolgreich!",
-        description: "Sie erhalten eine Bestätigung per E-Mail.",
+        title: "Vielen Dank für Ihre Buchung!",
+        description: "Wir freuen uns darauf, Sie bald im Schnee zu sehen! 🎿",
       });
       setIsSubmitting(false);
     }, 2000);
@@ -34,21 +35,24 @@ const Buchung = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/5">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-secondary py-6 shadow-xl">
+      <div className="bg-gradient-to-r from-primary to-secondary py-8 shadow-xl">
         <div className="container mx-auto px-4">
           <Button 
             variant="ghost" 
             onClick={() => navigate("/")}
-            className="text-white hover:bg-white/20 mb-4"
+            className="text-white hover:bg-white/20 mb-6"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Zurück zur Startseite
           </Button>
-          <h1 className="text-4xl md:text-5xl font-black text-white">
-            Kurs buchen
-          </h1>
-          <p className="text-white/90 text-lg mt-2">
-            Wählen Sie Ihren Kurs und Ihre bevorzugte Zahlungsmethode
+          <div className="flex items-center gap-4 mb-3">
+            <Heart className="w-10 h-10 text-white" />
+            <h1 className="text-4xl md:text-5xl font-bold text-white">
+              Bereit für Ihr Schneeerlebnis?
+            </h1>
+          </div>
+          <p className="text-white/95 text-lg">
+            Nur noch wenige Schritte bis zu Ihrem unvergesslichen Skikurs in Malbun
           </p>
         </div>
       </div>
@@ -61,26 +65,30 @@ const Buchung = () => {
               {/* Kursauswahl */}
               <Card className="border-2 border-primary/20 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10">
-                  <CardTitle className="text-2xl font-black">Kursauswahl</CardTitle>
-                  <CardDescription>Wählen Sie Ihren gewünschten Kurs</CardDescription>
+                  <div className="flex items-center gap-3">
+                    <Users className="w-6 h-6 text-primary" />
+                    <div>
+                      <CardTitle className="text-2xl font-bold">Welcher Kurs passt zu Ihnen?</CardTitle>
+                      <CardDescription>Wählen Sie die Option, die am besten zu Ihren Wünschen passt</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   <div className="space-y-4">
-                    <Label className="text-base font-bold">Kurstyp</Label>
                     <RadioGroup value={kurstyp} onValueChange={setKurstyp} className="space-y-3">
-                      <div className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${kurstyp === 'privat' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
+                      <div className={`flex items-center space-x-3 p-5 rounded-xl border-2 transition-all cursor-pointer ${kurstyp === 'privat' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
                         <RadioGroupItem value="privat" id="privat" />
                         <Label htmlFor="privat" className="flex-1 cursor-pointer">
-                          <span className="font-bold block">Privatkurs</span>
-                          <span className="text-sm text-muted-foreground">Individueller Unterricht</span>
+                          <span className="font-bold text-lg block mb-1">Privatkurs – Ganz persönlich</span>
+                          <span className="text-sm text-muted-foreground">Unser Lehrer konzentriert sich voll und ganz auf Sie oder Ihre Gruppe</span>
                         </Label>
                         <span className="font-bold text-primary">ab CHF 75.-</span>
                       </div>
-                      <div className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${kurstyp === 'gruppe' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
+                      <div className={`flex items-center space-x-3 p-5 rounded-xl border-2 transition-all cursor-pointer ${kurstyp === 'gruppe' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}>
                         <RadioGroupItem value="gruppe" id="gruppe" />
                         <Label htmlFor="gruppe" className="flex-1 cursor-pointer">
-                          <span className="font-bold block">Gruppenkurs</span>
-                          <span className="text-sm text-muted-foreground">5 Tage à 4 Stunden</span>
+                          <span className="font-bold text-lg block mb-1">Gruppenkurs – Gemeinsam Spass haben</span>
+                          <span className="text-sm text-muted-foreground">Neue Freunde finden und zusammen die Pisten erobern</span>
                         </Label>
                         <span className="font-bold text-primary">CHF 320.-</span>
                       </div>
@@ -89,11 +97,17 @@ const Buchung = () => {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="datum">Startdatum</Label>
+                      <Label htmlFor="datum" className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        Wann möchten Sie starten?
+                      </Label>
                       <Input type="date" id="datum" required className="border-2" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="teilnehmer">Anzahl Teilnehmer</Label>
+                      <Label htmlFor="teilnehmer" className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-primary" />
+                        Wie viele Personen nehmen teil?
+                      </Label>
                       <Select defaultValue="1">
                         <SelectTrigger className="border-2">
                           <SelectValue />
@@ -113,27 +127,29 @@ const Buchung = () => {
               {/* Kontaktdaten */}
               <Card className="border-2 border-primary/20 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10">
-                  <CardTitle className="text-2xl font-black">Kontaktdaten</CardTitle>
-                  <CardDescription>Ihre persönlichen Informationen</CardDescription>
+                  <CardTitle className="text-2xl font-bold">Wie können wir Sie erreichen?</CardTitle>
+                  <CardDescription>Damit wir Ihnen alle wichtigen Informationen zukommen lassen können</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="vorname">Vorname *</Label>
-                      <Input id="vorname" required className="border-2" placeholder="Max" />
+                      <Label htmlFor="vorname">Ihr Vorname *</Label>
+                      <Input id="vorname" required className="border-2" placeholder="z.B. Anna" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="nachname">Nachname *</Label>
-                      <Input id="nachname" required className="border-2" placeholder="Mustermann" />
+                      <Label htmlFor="nachname">Ihr Nachname *</Label>
+                      <Input id="nachname" required className="border-2" placeholder="z.B. Müller" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">E-Mail *</Label>
-                    <Input id="email" type="email" required className="border-2" placeholder="max@beispiel.com" />
+                    <Label htmlFor="email">Ihre E-Mail-Adresse *</Label>
+                    <Input id="email" type="email" required className="border-2" placeholder="anna.mueller@beispiel.com" />
+                    <p className="text-xs text-muted-foreground">Hierhin senden wir Ihre Buchungsbestätigung</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="telefon">Telefon *</Label>
+                    <Label htmlFor="telefon">Ihre Telefonnummer *</Label>
                     <Input id="telefon" type="tel" required className="border-2" placeholder="+41 79 123 45 67" />
+                    <p className="text-xs text-muted-foreground">Für Rückfragen oder falls wir Sie kurzfristig erreichen müssen</p>
                   </div>
                 </CardContent>
               </Card>
@@ -141,31 +157,36 @@ const Buchung = () => {
               {/* Zahlungsmethode */}
               <Card className="border-2 border-secondary/20 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-secondary/10 to-primary/10">
-                  <CardTitle className="text-2xl font-black">Zahlungsmethode</CardTitle>
-                  <CardDescription>Wählen Sie Ihre bevorzugte Zahlungsart</CardDescription>
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-6 h-6 text-secondary" />
+                    <div>
+                      <CardTitle className="text-2xl font-bold">Wie möchten Sie bezahlen?</CardTitle>
+                      <CardDescription>Alle Zahlungsmethoden sind sicher und verschlüsselt</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   <RadioGroup value={zahlungsmethode} onValueChange={setZahlungsmethode} className="space-y-3">
                     {/* TWINT */}
-                    <div className={`group relative overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${zahlungsmethode === 'twint' ? 'border-secondary bg-secondary/10' : 'border-border hover:border-secondary/50'}`}>
+                    <div className={`group relative overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${zahlungsmethode === 'twint' ? 'border-[#FFED00] bg-[#FFED00]/10' : 'border-border hover:border-[#FFED00]/50'}`}>
                       <div className="flex items-center space-x-4 p-5">
                         <RadioGroupItem value="twint" id="twint" />
-                        <div className="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center">
-                          <Smartphone className="w-6 h-6 text-secondary" />
+                        <div className="w-16 h-12 flex items-center justify-center">
+                          <img src={twintLogo} alt="TWINT" className="h-10 w-auto" />
                         </div>
                         <Label htmlFor="twint" className="flex-1 cursor-pointer">
-                          <span className="font-bold text-lg block">TWINT</span>
-                          <span className="text-sm text-muted-foreground">Schnell & sicher mit TWINT bezahlen</span>
+                          <span className="font-bold text-lg block mb-1">Mit TWINT bezahlen</span>
+                          <span className="text-sm text-muted-foreground">Einfach QR-Code scannen – fertig in Sekunden</span>
                         </Label>
                         {zahlungsmethode === 'twint' && (
-                          <Check className="w-6 h-6 text-secondary" />
+                          <Check className="w-6 h-6 text-[#FFED00]" />
                         )}
                       </div>
                       {zahlungsmethode === 'twint' && (
-                        <div className="px-5 pb-5 space-y-3 bg-secondary/5">
+                        <div className="px-5 pb-5 space-y-3 bg-[#FFED00]/5">
                           <Separator />
-                          <p className="text-sm text-muted-foreground">
-                            Sie erhalten nach der Buchung einen QR-Code per E-Mail, den Sie mit der TWINT-App scannen können.
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Nach Ihrer Buchung erhalten Sie einen QR-Code per E-Mail. Einfach mit der TWINT-App scannen und bezahlen – ganz bequem vom Handy aus.
                           </p>
                         </div>
                       )}
@@ -179,8 +200,8 @@ const Buchung = () => {
                           <CreditCard className="w-6 h-6 text-primary" />
                         </div>
                         <Label htmlFor="kreditkarte" className="flex-1 cursor-pointer">
-                          <span className="font-bold text-lg block">Kreditkarte</span>
-                          <span className="text-sm text-muted-foreground">Visa, Mastercard, American Express</span>
+                          <span className="font-bold text-lg block mb-1">Kreditkarte</span>
+                          <span className="text-sm text-muted-foreground">Visa, Mastercard oder American Express</span>
                         </Label>
                         {zahlungsmethode === 'kreditkarte' && (
                           <Check className="w-6 h-6 text-secondary" />
@@ -217,8 +238,8 @@ const Buchung = () => {
                           <Building2 className="w-6 h-6 text-accent" />
                         </div>
                         <Label htmlFor="ueberweisung" className="flex-1 cursor-pointer">
-                          <span className="font-bold text-lg block">Banküberweisung</span>
-                          <span className="text-sm text-muted-foreground">Überweisung auf unser Bankkonto</span>
+                          <span className="font-bold text-lg block mb-1">Banküberweisung</span>
+                          <span className="text-sm text-muted-foreground">Klassisch per Überweisung auf unser Konto</span>
                         </Label>
                         {zahlungsmethode === 'ueberweisung' && (
                           <Check className="w-6 h-6 text-secondary" />
@@ -227,8 +248,8 @@ const Buchung = () => {
                       {zahlungsmethode === 'ueberweisung' && (
                         <div className="px-5 pb-5 space-y-3 bg-secondary/5">
                           <Separator />
-                          <p className="text-sm text-muted-foreground">
-                            Sie erhalten nach der Buchung eine Rechnung mit unseren Bankverbindungsdaten per E-Mail.
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Wir schicken Ihnen eine Rechnung mit allen Bankdaten per E-Mail. Sie können dann in Ruhe überweisen.
                           </p>
                         </div>
                       )}
@@ -242,8 +263,8 @@ const Buchung = () => {
                           <Building2 className="w-6 h-6 text-[#FFCC00]" />
                         </div>
                         <Label htmlFor="postfinance" className="flex-1 cursor-pointer">
-                          <span className="font-bold text-lg block">PostFinance</span>
-                          <span className="text-sm text-muted-foreground">Bezahlen mit PostFinance</span>
+                          <span className="font-bold text-lg block mb-1">PostFinance</span>
+                          <span className="text-sm text-muted-foreground">Direkt mit Ihrem PostFinance-Konto bezahlen</span>
                         </Label>
                         {zahlungsmethode === 'postfinance' && (
                           <Check className="w-6 h-6 text-secondary" />
@@ -252,8 +273,8 @@ const Buchung = () => {
                       {zahlungsmethode === 'postfinance' && (
                         <div className="px-5 pb-5 space-y-3 bg-secondary/5">
                           <Separator />
-                          <p className="text-sm text-muted-foreground">
-                            Sie werden zu PostFinance weitergeleitet, um die Zahlung abzuschließen.
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Sie werden sicher zu PostFinance weitergeleitet und können dort wie gewohnt bezahlen.
                           </p>
                         </div>
                       )}
@@ -267,7 +288,7 @@ const Buchung = () => {
             <div className="lg:col-span-1">
               <Card className="sticky top-6 border-2 border-accent/30 shadow-2xl">
                 <CardHeader className="bg-gradient-to-br from-accent/20 to-accent/10">
-                  <CardTitle className="text-2xl font-black">Zusammenfassung</CardTitle>
+                  <CardTitle className="text-2xl font-bold">Ihre Buchung im Überblick</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   <div className="space-y-3">
@@ -298,24 +319,24 @@ const Buchung = () => {
                   <Button 
                     type="submit" 
                     size="lg" 
-                    className="w-full font-black text-lg py-6 bg-gradient-to-r from-secondary to-primary hover:from-secondary/90 hover:to-primary/90 shadow-xl"
+                    className="w-full font-bold text-lg py-6 bg-gradient-to-r from-secondary to-primary hover:from-secondary/90 hover:to-primary/90 shadow-xl"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Wird bearbeitet...' : 'Jetzt kostenpflichtig buchen'}
+                    {isSubmitting ? 'Einen Moment bitte...' : 'Verbindlich buchen'}
                   </Button>
 
                   <div className="space-y-2 pt-4 text-xs text-muted-foreground">
                     <p className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      Sichere Zahlung mit SSL-Verschlüsselung
+                      <Heart className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                      Ihre Daten sind bei uns sicher
                     </p>
                     <p className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      Sofortige Bestätigung per E-Mail
+                      Sie erhalten sofort eine Bestätigung
                     </p>
                     <p className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      Kostenlose Stornierung bis 24h vorher
+                      Kostenlos stornieren bis 24 Stunden vorher
                     </p>
                   </div>
                 </CardContent>
