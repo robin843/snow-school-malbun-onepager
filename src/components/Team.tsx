@@ -79,7 +79,9 @@ const Team = () => {
               <div className="transform rotate-1 bg-secondary/10 p-1 inline-block mt-6">
                 <p className="text-lg font-semibold text-secondary px-4 py-2">
                   "Strahlende und glückliche Gäste sind unsere grösste Motivation"
-            </p>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -125,35 +127,6 @@ const Team = () => {
             <CarouselPrevious className="left-0" />
             <CarouselNext className="right-0" />
           </Carousel>
-        </div>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-          <div className="animate-slide-in order-2 md:order-1">
-            <div className="transform rotate-1 bg-accent/90 px-6 py-2 inline-block mb-4">
-              <h3 className="text-2xl font-bold text-accent-foreground">
-                Christoph Bühler
-              </h3>
-            </div>
-            <p className="text-lg leading-relaxed text-foreground">
-              Der zertifizierte Skischulleiter und Snowboardcoach und sein engagiertes Team begeistern
-              mit ihrer Motivation aus den strahlenden und lächelnden Gesichtern seiner Gäste. Als
-              stolzer Nachfolger freut er sich deshalb jeden Tag aufs Neue, seine Leidenschaft zu
-              teilen.
-            </p>
-          </div>
-
-          <div className="flex justify-center animate-fade-in order-1 md:order-2">
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 to-accent/20 transform rotate-3 rounded-2xl"></div>
-              <img
-                src={wappen}
-                alt="Schweizer Skischule Malbun Wappen"
-                className="relative rounded-2xl shadow-2xl w-80 h-80 object-contain bg-background p-8"
-              />
-            </div>
-          </div>
         </div>
       </div>
     </section>
