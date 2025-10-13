@@ -38,6 +38,13 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
+    /* Custom design tokens */
+    --gradient-premium: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    --gradient-shimmer: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent);
+    --shadow-premium: 0 20px 60px -15px hsl(var(--primary) / 0.3);
+    --shadow-card: 0 8px 32px -8px hsl(var(--foreground) / 0.15);
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
