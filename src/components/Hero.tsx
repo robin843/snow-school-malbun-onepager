@@ -15,42 +15,65 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative h-screen flex items-center overflow-hidden">
+    <section className="relative h-screen flex items-end overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${heroImage})` }}
       >
-        <div className="absolute inset-0 bg-primary/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/20" />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 md:px-8">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          {/* Text Content */}
-          <div className="text-white">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              Deine Skischule in Malbun
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 font-light">
-              Ski- und Snowboardkurse für alle Altersgruppen und Könnerstufen
-            </p>
-            <Button 
-              size="lg" 
-              className="text-lg px-8 py-6 font-semibold" 
-              onClick={() => navigate("/buchung")}
-            >
-              Jetzt buchen
-            </Button>
-          </div>
+      {/* Red Button Top Right */}
+      <div className="absolute top-24 right-8 z-20 animate-fade-in">
+        <Button 
+          size="lg"
+          className="bg-destructive hover:bg-destructive/90 text-white font-bold px-6 py-6 shadow-xl"
+          onClick={() => navigate("/buchung")}
+        >
+          Lass dich 24/7 Beraten
+        </Button>
+      </div>
 
-          {/* Snowlie Mascot */}
-          <div className="hidden md:flex justify-center items-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl"></div>
+      <div className="relative z-10 w-full pb-12">
+        <div className="container mx-auto px-4">
+          <div className="relative flex items-end">
+            {/* Snowlie Bottom Left */}
+            <div className="hidden md:block w-48 lg:w-64 mr-8 animate-fade-in">
               <img 
                 src={snowlie} 
-                alt="Snowlie - Unser Maskottchen" 
-                className="relative h-96 w-auto object-contain drop-shadow-2xl animate-fade-in"
+                alt="Snowlie" 
+                className="w-full h-auto object-contain drop-shadow-2xl"
               />
+            </div>
+
+            {/* Angled Text Boxes */}
+            <div className="flex-1 space-y-4 mb-8">
+              {/* Main Title Box - White */}
+              <div className="bg-white transform -skew-y-2 shadow-2xl inline-block">
+                <div className="transform skew-y-2 px-8 py-6">
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary">
+                    Skischule Malbun
+                  </h1>
+                </div>
+              </div>
+
+              {/* Subtitle Box - White */}
+              <div className="bg-white transform -skew-y-2 shadow-2xl inline-block">
+                <div className="transform skew-y-2 px-8 py-4">
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-primary">
+                    Mit Freude auf der Piste
+                  </h2>
+                </div>
+              </div>
+
+              {/* Season Info Box - Blue */}
+              <div className="bg-primary transform -skew-y-2 shadow-2xl inline-block">
+                <div className="transform skew-y-2 px-8 py-3">
+                  <p className="text-xl md:text-2xl font-semibold text-white">
+                    Kurse & Wintererlebnisse 26/27
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -58,7 +81,7 @@ const Hero = () => {
 
       <button
         onClick={scrollToPreise}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white animate-bounce cursor-pointer"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white animate-bounce cursor-pointer z-20"
         aria-label="Scroll down"
       >
         <ChevronDown size={40} />
