@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import heroVillage from "@/assets/hero-village.jpg";
 import heroPanorama from "@/assets/hero-panorama.jpg";
 import heroChildren from "@/assets/hero-children.jpg";
 import heroInstructor from "@/assets/hero-instructor.jpg";
@@ -20,6 +21,7 @@ const Hero = () => {
   };
 
   const heroImages = [
+    heroVillage,
     heroPanorama,
     heroChildren,
     heroInstructor,
