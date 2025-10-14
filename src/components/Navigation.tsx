@@ -28,16 +28,14 @@ const Navigation = () => {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background/95 backdrop-blur-sm shadow-md" : "bg-transparent"
+        isScrolled ? "bg-background/95 backdrop-blur-sm shadow-md" : "bg-white/95 backdrop-blur-sm"
       }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Schneesportschule Malbun" className="h-12 w-12 object-contain" />
-            <span className={`font-bold text-lg hidden sm:inline transition-colors ${
-              isScrolled ? "text-primary" : "text-white"
-            }`}>
+            <span className="font-bold text-lg hidden sm:inline text-primary">
               Schneesportschule Malbun
             </span>
           </div>
@@ -45,33 +43,25 @@ const Navigation = () => {
           <div className="hidden md:flex items-center gap-6">
             <button
               onClick={() => scrollToSection("preise")}
-              className={`hover:text-accent transition-colors font-medium ${
-                isScrolled ? "text-foreground" : "text-white"
-              }`}
+              className="text-foreground hover:text-accent transition-colors font-medium"
             >
               Preise
             </button>
             <button
               onClick={() => scrollToSection("team")}
-              className={`hover:text-accent transition-colors font-medium ${
-                isScrolled ? "text-foreground" : "text-white"
-              }`}
+              className="text-foreground hover:text-accent transition-colors font-medium"
             >
               Über uns
             </button>
             <button
               onClick={() => scrollToSection("jobs")}
-              className={`hover:text-accent transition-colors font-medium ${
-                isScrolled ? "text-foreground" : "text-white"
-              }`}
+              className="text-foreground hover:text-accent transition-colors font-medium"
             >
               Jobs
             </button>
             <button
               onClick={() => scrollToSection("kontakt")}
-              className={`hover:text-accent transition-colors font-medium ${
-                isScrolled ? "text-foreground" : "text-white"
-              }`}
+              className="text-foreground hover:text-accent transition-colors font-medium"
             >
               Kontakt
             </button>
@@ -81,9 +71,7 @@ const Navigation = () => {
           </div>
 
           <button
-            className={`md:hidden transition-colors ${
-              isScrolled ? "text-foreground" : "text-white"
-            }`}
+            className="md:hidden text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}

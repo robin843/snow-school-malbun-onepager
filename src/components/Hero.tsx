@@ -52,14 +52,14 @@ const Hero = () => {
           loop: true,
         }}
       >
-        <CarouselContent>
+        <CarouselContent className="transition-opacity duration-1000">
           {heroImages.map((image, index) => (
             <CarouselItem key={index}>
               <div
                 className="h-screen bg-cover bg-center"
                 style={{ backgroundImage: `url(${image})` }}
               >
-                <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-background/80" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/60" />
               </div>
             </CarouselItem>
           ))}
