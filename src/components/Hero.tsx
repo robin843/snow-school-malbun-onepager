@@ -2,12 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselApi,
-} from "@/components/ui/carousel";
 import heroPanorama from "@/assets/hero-panorama.jpg";
 import heroChildren from "@/assets/hero-children.jpg";
 import heroInstructor from "@/assets/hero-instructor.jpg";
@@ -16,7 +10,7 @@ import heroChairlift from "@/assets/hero-chairlift.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
-  const [api, setApi] = useState<CarouselApi>();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   const scrollToPreise = () => {
     const element = document.getElementById("preise");
@@ -34,37 +28,26 @@ const Hero = () => {
   ];
 
   useEffect(() => {
-    if (!api) return;
-
     const intervalId = setInterval(() => {
-      api.scrollNext();
-    }, 4000);
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
+    }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [api]);
+  }, [heroImages.length]);
 
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      <Carousel
-        setApi={setApi}
-        className="absolute inset-0"
-        opts={{
-          loop: true,
-        }}
-      >
-        <CarouselContent className="transition-opacity duration-1000">
-          {heroImages.map((image, index) => (
-            <CarouselItem key={index}>
-              <div
-                className="h-screen bg-cover bg-center"
-                style={{ backgroundImage: `url(${image})` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/60" />
-              </div>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
+      {heroImages.map((image, index) => (
+        <div
+          key={index}
+          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
+            index === currentImageIndex ? "opacity-100" : "opacity-0"
+          }`}
+          style={{ backgroundImage: `url(${image})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/60" />
+        </div>
+      ))}
 
       <div className="relative z-10 container mx-auto px-4 text-center animate-fade-in">
         <div className="inline-block mb-6 transform -rotate-2 bg-primary/90 px-8 py-4 backdrop-blur-sm">
