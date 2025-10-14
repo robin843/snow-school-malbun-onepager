@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -6,8 +6,8 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  CarouselApi,
 } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
 import heroPanorama from "@/assets/hero-panorama.jpg";
 import heroChildren from "@/assets/hero-children.jpg";
 import heroInstructor from "@/assets/hero-instructor.jpg";
@@ -16,10 +16,7 @@ import heroChairlift from "@/assets/hero-chairlift.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
-  
-  const plugin = useRef(
-    Autoplay({ delay: 4000, stopOnInteraction: true })
-  );
+  const [api, setApi] = useState<CarouselApi>();
   
   const scrollToPreise = () => {
     const element = document.getElementById("preise");
@@ -36,14 +33,24 @@ const Hero = () => {
     heroChairlift,
   ];
 
+  useEffect(() => {
+    if (!api) return;
+
+    const intervalId = setInterval(() => {
+      api.scrollNext();
+    }, 4000);
+
+    return () => clearInterval(intervalId);
+  }, [api]);
+
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
       <Carousel
+        setApi={setApi}
         className="absolute inset-0"
         opts={{
           loop: true,
         }}
-        plugins={[plugin.current]}
       >
         <CarouselContent>
           {heroImages.map((image, index) => (
