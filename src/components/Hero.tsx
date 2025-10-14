@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +16,10 @@ import heroChairlift from "@/assets/hero-chairlift.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
+  
+  const plugin = useRef(
+    Autoplay({ delay: 4000, stopOnInteraction: true })
+  );
   
   const scrollToPreise = () => {
     const element = document.getElementById("preise");
@@ -38,11 +43,7 @@ const Hero = () => {
         opts={{
           loop: true,
         }}
-        plugins={[
-          Autoplay({
-            delay: 4000,
-          }),
-        ]}
+        plugins={[plugin.current]}
       >
         <CarouselContent>
           {heroImages.map((image, index) => (
