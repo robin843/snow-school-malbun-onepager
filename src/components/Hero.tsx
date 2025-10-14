@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import VoiceBot from "@/components/VoiceBot";
 import heroVillage from "@/assets/hero-village.jpg";
 import heroPanorama from "@/assets/hero-panorama.jpg";
 import heroChildren from "@/assets/hero-children.jpg";
@@ -12,6 +13,7 @@ import heroChairlift from "@/assets/hero-chairlift.jpg";
 const Hero = () => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   
   const scrollToPreise = () => {
     const element = document.getElementById("preise");
@@ -34,7 +36,16 @@ const Hero = () => {
       setCurrentImageIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
     }, 5000);
 
-    return () => clearInterval(intervalId);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, [heroImages.length]);
 
   return (
@@ -84,6 +95,8 @@ const Hero = () => {
       >
         <ChevronDown size={32} />
       </button>
+
+      <VoiceBot isScrolled={isScrolled} />
     </section>
   );
 };
