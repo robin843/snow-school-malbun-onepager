@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Vapi from "@vapi-ai/web";
 import { Phone, PhoneOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import teamPhotos from "@/assets/team-photos.jpg";
+import christophPortrait from "@/assets/christoph-portrait.png";
 
 const vapi = new Vapi("b682d2e8-903c-43bd-9801-91836de8b403");
 
@@ -85,7 +85,7 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
       {!isCallActive && !isScrolled && (
         <div className="bg-card/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border border-border animate-fade-in">
           <p className="text-sm font-medium text-foreground whitespace-nowrap">
-            💬 Frag mich etwas!
+            💬 Sprich mit Christoph
           </p>
         </div>
       )}
@@ -103,9 +103,9 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
         `}
         aria-label={isCallActive ? "Gespräch beenden" : "Mit Christoph sprechen"}
       >
-        <div className="relative w-20 h-20 rounded-full overflow-hidden">
+        <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
           <img
-            src={teamPhotos}
+            src={christophPortrait}
             alt="Christoph"
             className="w-full h-full object-cover"
           />
