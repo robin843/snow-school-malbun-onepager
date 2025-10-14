@@ -186,10 +186,17 @@ const Preise = () => {
                         }`}
                       >
                         <div className="flex justify-between items-center relative z-10">
-                          <div>
-                            <span className={`text-base font-bold block ${item.highlight ? 'text-secondary' : 'text-foreground'}`}>
-                              {item.tage}
-                            </span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-base font-bold ${item.highlight ? 'text-secondary' : 'text-foreground'}`}>
+                                {item.tage}
+                              </span>
+                              {item.highlight && (
+                                <span className="text-xs font-bold px-3 py-1 bg-accent rounded-full text-accent-foreground shadow-lg">
+                                  Beliebt
+                                </span>
+                              )}
+                            </div>
                             <span className="text-xs text-muted-foreground font-medium">{item.stunden}</span>
                           </div>
                           <div className="flex flex-col items-end">
@@ -199,13 +206,6 @@ const Preise = () => {
                             <span className="text-xs text-muted-foreground font-medium">EUR {item.eur}.-</span>
                           </div>
                         </div>
-                        {item.highlight && (
-                          <div className="absolute top-2 right-2">
-                            <span className="text-xs font-bold px-2 py-1 bg-accent rounded-full text-accent-foreground">
-                              Beliebt
-                            </span>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
