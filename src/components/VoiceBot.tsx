@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import Vapi from "@vapi-ai/web";
-import { Mic, MicOff, Phone } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Phone, PhoneOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import teamPhotos from "@/assets/team-photos.jpg";
 
 const vapi = new Vapi("b682d2e8-903c-43bd-9801-91836de8b403");
 
@@ -73,29 +73,63 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
   };
 
   return (
-    <Button
-      onClick={toggleCall}
-      size="lg"
+    <div
       className={`
         ${isScrolled 
-          ? "fixed bottom-8 right-8 z-50 shadow-lg" 
+          ? "fixed bottom-8 right-8 z-50" 
           : "absolute bottom-24 right-8 z-20"
         }
-        ${isCallActive 
-          ? "bg-destructive hover:bg-destructive/90" 
-          : "bg-primary hover:bg-primary/90"
-        }
-        ${isSpeaking ? "animate-pulse" : ""}
-        rounded-full w-16 h-16 p-0 transition-all duration-300
+        flex flex-col items-end gap-3 transition-all duration-300
       `}
-      aria-label={isCallActive ? "Gespräch beenden" : "Gespräch starten"}
     >
-      {isCallActive ? (
-        isSpeaking ? <MicOff size={28} /> : <Phone size={28} />
-      ) : (
-        <Mic size={28} />
+      {!isCallActive && !isScrolled && (
+        <div className="bg-card/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border border-border animate-fade-in">
+          <p className="text-sm font-medium text-foreground whitespace-nowrap">
+            💬 Frag mich etwas!
+          </p>
+        </div>
       )}
-    </Button>
+      
+      <button
+        onClick={toggleCall}
+        className={`
+          relative group
+          ${isCallActive 
+            ? "ring-4 ring-destructive/50" 
+            : "ring-4 ring-primary/50 hover:ring-primary/70"
+          }
+          ${isSpeaking ? "animate-pulse" : ""}
+          rounded-full transition-all duration-300 hover:scale-105 shadow-premium
+        `}
+        aria-label={isCallActive ? "Gespräch beenden" : "Mit Christoph sprechen"}
+      >
+        <div className="relative w-20 h-20 rounded-full overflow-hidden">
+          <img
+            src={teamPhotos}
+            alt="Christoph"
+            className="w-full h-full object-cover"
+          />
+          <div className={`
+            absolute inset-0 flex items-center justify-center
+            ${isCallActive 
+              ? "bg-destructive/90" 
+              : "bg-primary/0 group-hover:bg-primary/20"
+            }
+            transition-all duration-300
+          `}>
+            {isCallActive && (
+              <PhoneOff className="text-white" size={32} />
+            )}
+          </div>
+          
+          {!isCallActive && (
+            <div className="absolute bottom-0 right-0 bg-primary rounded-full p-2 shadow-lg">
+              <Phone className="text-primary-foreground" size={16} />
+            </div>
+          )}
+        </div>
+      </button>
+    </div>
   );
 };
 
