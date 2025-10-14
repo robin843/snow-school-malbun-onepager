@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Users, User, MapPin, Award, Clock, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import privatBg from "@/assets/privatkurse-bg.jpg";
+import gruppenBg from "@/assets/gruppenkurse-bg.jpg";
 
 const Preise = () => {
   const navigate = useNavigate();
@@ -38,10 +40,16 @@ const Preise = () => {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-2xl opacity-20 group-hover:opacity-40 blur-xl transition-opacity duration-500" />
             
             <Card className="relative bg-card/80 backdrop-blur-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-2xl h-full">
+              {/* Background Image */}
+              <div className="absolute inset-0 opacity-15">
+                <img src={privatBg} alt="Privatkurse" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/80 to-primary" />
+              </div>
+              
               {/* Shimmer effect */}
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
               
-              <CardHeader className="relative pb-8 pt-8 px-8 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground">
+              <CardHeader className="relative pb-8 pt-8 px-8 bg-gradient-to-br from-primary/90 via-primary/90 to-primary/70 text-primary-foreground">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-20 translate-x-20 blur-3xl" />
                 
                 <div className="relative flex items-start gap-4">
@@ -139,10 +147,16 @@ const Preise = () => {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-secondary to-primary rounded-2xl opacity-20 group-hover:opacity-40 blur-xl transition-opacity duration-500" />
             
             <Card className="relative bg-card/80 backdrop-blur-xl border-2 border-secondary/20 hover:border-secondary/40 transition-all duration-500 overflow-hidden shadow-2xl h-full">
+              {/* Background Image */}
+              <div className="absolute inset-0 opacity-15">
+                <img src={gruppenBg} alt="Gruppenkurse" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-b from-secondary/60 via-secondary/80 to-secondary" />
+              </div>
+              
               {/* Shimmer effect */}
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
               
-              <CardHeader className="relative pb-8 pt-8 px-8 bg-gradient-to-br from-secondary via-secondary to-secondary/80 text-primary-foreground">
+              <CardHeader className="relative pb-8 pt-8 px-8 bg-gradient-to-br from-secondary/90 via-secondary/90 to-secondary/70 text-primary-foreground">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-20 translate-x-20 blur-3xl" />
                 
                 <div className="relative flex items-start gap-4">
