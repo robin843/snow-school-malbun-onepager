@@ -60,7 +60,13 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
       if (isCallActive) {
         vapi.stop();
       } else {
-        await vapi.start("b682d2e8-903c-43bd-9801-91836de8b403");
+        await vapi.start({
+          transcriber: {
+            provider: "deepgram",
+            model: "nova-2",
+            language: "de"
+          }
+        });
       }
     } catch (error) {
       console.error("Error toggling call:", error);
