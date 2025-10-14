@@ -83,8 +83,8 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
       `}
     >
       {!isCallActive && !isScrolled && (
-        <div className="bg-card/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border border-border animate-fade-in">
-          <p className="text-sm font-medium text-foreground whitespace-nowrap">
+        <div className="bg-card/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-lg border border-border animate-fade-in">
+          <p className="text-base font-semibold text-foreground whitespace-nowrap">
             💬 Sprich mit Christoph
           </p>
         </div>
@@ -95,15 +95,15 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
         className={`
           relative group
           ${isCallActive 
-            ? "ring-4 ring-destructive/50" 
-            : "ring-4 ring-primary/50 hover:ring-primary/70"
+            ? "ring-6 ring-destructive/50" 
+            : "ring-6 ring-primary/50 hover:ring-primary/70"
           }
           ${isSpeaking ? "animate-pulse" : ""}
           rounded-full transition-all duration-300 hover:scale-105 shadow-premium
         `}
         aria-label={isCallActive ? "Gespräch beenden" : "Mit Christoph sprechen"}
       >
-        <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
+        <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
           <img
             src={christophPortrait}
             alt="Christoph"
@@ -123,8 +123,8 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
           </div>
           
           {!isCallActive && (
-            <div className="absolute bottom-0 right-0 bg-primary rounded-full p-2 shadow-lg">
-              <Phone className="text-primary-foreground" size={16} />
+            <div className="absolute bottom-1 right-1 bg-primary rounded-full p-3 shadow-lg">
+              <Phone className="text-primary-foreground" size={20} />
             </div>
           )}
         </div>
