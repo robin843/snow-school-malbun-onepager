@@ -1,7 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import heroImage from "@/assets/hero-malbun.jpg";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+import heroPanorama from "@/assets/hero-panorama.jpg";
+import heroChildren from "@/assets/hero-children.jpg";
+import heroInstructor from "@/assets/hero-instructor.jpg";
+import heroTeaching from "@/assets/hero-teaching.jpg";
+import heroChairlift from "@/assets/hero-chairlift.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -13,14 +23,40 @@ const Hero = () => {
     }
   };
 
+  const heroImages = [
+    heroPanorama,
+    heroChildren,
+    heroInstructor,
+    heroTeaching,
+    heroChairlift,
+  ];
+
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroImage})` }}
+      <Carousel
+        className="absolute inset-0"
+        opts={{
+          loop: true,
+        }}
+        plugins={[
+          Autoplay({
+            delay: 4000,
+          }),
+        ]}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-background/80" />
-      </div>
+        <CarouselContent>
+          {heroImages.map((image, index) => (
+            <CarouselItem key={index}>
+              <div
+                className="h-screen bg-cover bg-center"
+                style={{ backgroundImage: `url(${image})` }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary/20 to-background/80" />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
 
       <div className="relative z-10 container mx-auto px-4 text-center animate-fade-in">
         <div className="inline-block mb-6 transform -rotate-2 bg-primary/90 px-8 py-4 backdrop-blur-sm">
