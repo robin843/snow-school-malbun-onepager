@@ -76,8 +76,10 @@ const Preise = () => {
                   
                   <div className="space-y-3">
                     {[
-                      { zeit: "09:00-10:00 & 12:00-14:00", chf: "75", eur: "79" },
-                      { zeit: "10:00-12:00 & 14:00-16:00", chf: "85", eur: "90" },
+                      { zeit: "Einzellektion (55 Min.)", chf: "75", eur: "83" },
+                      { zeit: "Doppellektion 10–12 (115 Min.)", chf: "190", eur: "208" },
+                      { zeit: "Doppellektion 12–14 (115 Min.)", chf: "150", eur: "164" },
+                      { zeit: "Doppellektion 14–16 (115 Min.)", chf: "170", eur: "186" },
                     ].map((tarif, idx) => (
                       <div key={idx} className="group/item relative overflow-hidden rounded-xl bg-gradient-to-r from-muted/50 to-muted/30 p-4 hover:from-primary/5 hover:to-secondary/5 transition-all duration-300 border border-border/50">
                         <div className="flex justify-between items-center relative z-10">
@@ -95,11 +97,11 @@ const Preise = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="text-sm font-bold text-foreground block">Weitere Person</span>
-                          <span className="text-xs text-muted-foreground">max. 4 Personen</span>
+                          <span className="text-xs text-muted-foreground">max. 5 Personen total</span>
                         </div>
                         <div className="flex flex-col items-end">
-                          <span className="text-2xl font-black text-secondary">CHF 20.-</span>
-                          <span className="text-xs text-muted-foreground font-medium">EUR 21.-</span>
+                          <span className="text-2xl font-black text-secondary">CHF 20 / 40.-</span>
+                          <span className="text-xs text-muted-foreground font-medium">Einzel / Doppel</span>
                         </div>
                       </div>
                     </div>
@@ -127,11 +129,11 @@ const Preise = () => {
                   <div className="space-y-2">
                     <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
                       <p className="font-bold text-xs text-primary mb-1">HOCHSAISON</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">20.12.2025 - 11.01.2026<br/>31.01.2026 - 08.03.2026</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">19.12.2026 – 10.01.2027<br/>23.01.2027 – 07.03.2027</p>
                     </div>
                     <div className="p-3 rounded-lg bg-muted/30 border border-border">
                       <p className="font-bold text-xs text-foreground mb-1">NEBENSAISON</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">12.01.2026 - 30.01.2026<br/>09.03.2026 - 06.04.2026</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">11.01.2027 – 22.01.2027<br/>08.03.2027 – 05.04.2027</p>
                     </div>
                   </div>
                 </div>
@@ -181,11 +183,11 @@ const Preise = () => {
                   
                   <div className="space-y-3">
                     {[
-                      { tage: "1 Tag", stunden: "1 x 4 Stunden", chf: "150", eur: "158", highlight: false },
-                      { tage: "2 Tage", stunden: "2 x 4 Stunden", chf: "200", eur: "210", highlight: false },
-                      { tage: "3 Tage", stunden: "3 x 4 Stunden", chf: "245", eur: "258", highlight: false },
-                      { tage: "4 Tage", stunden: "4 x 4 Stunden", chf: "285", eur: "300", highlight: false },
-                      { tage: "5 Tage", stunden: "5 x 4 Stunden", chf: "320", eur: "336", highlight: true },
+                      { tage: "1 Tag", stunden: "1 x 4 Stunden", chf: "150", eur: "165", highlight: false },
+                      { tage: "2 Tage", stunden: "2 x 4 Stunden", chf: "200", eur: "220", highlight: false },
+                      { tage: "3 Tage", stunden: "3 x 4 Stunden", chf: "245", eur: "268", highlight: false },
+                      { tage: "4 Tage", stunden: "4 x 4 Stunden", chf: "285", eur: "312", highlight: false },
+                      { tage: "5 Tage", stunden: "5 x 4 Stunden", chf: "320", eur: "350", highlight: true },
                     ].map((item, idx) => (
                       <div 
                         key={idx} 
@@ -235,7 +237,7 @@ const Preise = () => {
                         <span className="text-sm font-medium text-foreground">pro Tag/Kind</span>
                         <div className="flex flex-col items-end">
                           <span className="text-xl font-black text-primary">CHF 30.-</span>
-                          <span className="text-xs text-muted-foreground font-medium">EUR 32.-</span>
+                          <span className="text-xs text-muted-foreground font-medium">EUR 33.-</span>
                         </div>
                       </div>
                     </div>
