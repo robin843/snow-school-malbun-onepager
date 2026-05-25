@@ -14,7 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      submitted_bookings: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          payload: Json
+          retry_count: number
+          status: string
+          updated_at: string
+          yeti_customer_id: string | null
+          yeti_response: Json | null
+          yeti_ticket_id: string | null
+          yeti_ticket_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          payload: Json
+          retry_count?: number
+          status?: string
+          updated_at?: string
+          yeti_customer_id?: string | null
+          yeti_response?: Json | null
+          yeti_ticket_id?: string | null
+          yeti_ticket_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          payload?: Json
+          retry_count?: number
+          status?: string
+          updated_at?: string
+          yeti_customer_id?: string | null
+          yeti_response?: Json | null
+          yeti_ticket_id?: string | null
+          yeti_ticket_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
