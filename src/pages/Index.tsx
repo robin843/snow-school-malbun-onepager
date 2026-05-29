@@ -1,7 +1,6 @@
 import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
-import Preise from "@/components/Preise";
-import Kurse from "@/components/Kurse";
+import Kursuebersicht from "@/components/Kursuebersicht";
 import Team from "@/components/Team";
 import Jobs from "@/components/Jobs";
 import Kontakt from "@/components/Kontakt";
@@ -13,8 +12,7 @@ const Index = () => {
     <div className="min-h-screen">
       <Navigation />
       <Hero />
-      <Preise />
-      <Kurse />
+      <Kursuebersicht />
       <Team />
       <Jobs />
       <Kontakt />
