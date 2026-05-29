@@ -25,8 +25,7 @@ const Navigation = () => {
   };
 
   const links = [
-    { id: "preise", label: "Preise" },
-    { id: "kurse", label: "Alle Kurse" },
+    { id: "kurse", label: "Kursübersicht" },
     { id: "team", label: "Über uns" },
     { id: "jobs", label: "Jobs" },
     { id: "faq", label: "FAQ" },
