@@ -20,22 +20,22 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Kurse</h4>
             <ul className="space-y-2 text-sm text-primary-foreground/80">
               <li>
-                <a href="#preise" className="hover:text-accent transition-colors">
+                <a href="#kurse" className="hover:text-accent transition-colors">
                   Privatkurse
                 </a>
               </li>
               <li>
-                <a href="#preise" className="hover:text-accent transition-colors">
+                <a href="#kurse" className="hover:text-accent transition-colors">
                   Gruppenkurse
                 </a>
               </li>
               <li>
-                <a href="#preise" className="hover:text-accent transition-colors">
+                <a href="#kurse" className="hover:text-accent transition-colors">
                   Samstagskurse
                 </a>
               </li>
               <li>
-                <a href="#preise" className="hover:text-accent transition-colors">
+                <a href="#kurse" className="hover:text-accent transition-colors">
                   Snowboard
                 </a>
               </li>
