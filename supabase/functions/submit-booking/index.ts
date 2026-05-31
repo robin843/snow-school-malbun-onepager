@@ -53,13 +53,6 @@ const PayloadSchema = z.object({
   consent: ConsentSchema,
 });
 
-const createWebsiteTicketNumber = (attempt: number) => {
-  const now = new Date();
-  const stamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-  const random = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
-  return `WEB-${stamp}-${random}-A${attempt}`;
-};
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -156,62 +149,28 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 2. Forward to YETI
+  // 2. Forward to YETI — YETI generates the ticket number (T-2026-XXXXX) itself.
   let yetiStatus = 0;
   let yetiJson: any = null;
   let errorMessage: string | null = null;
-  let attempts = 0;
-  const MAX_ATTEMPTS = 5;
 
-  while (attempts < MAX_ATTEMPTS) {
-    attempts++;
-    yetiStatus = 0;
-    yetiJson = null;
-    errorMessage = null;
-    const websiteTicketNumber = createWebsiteTicketNumber(attempts);
-    const attemptPayload = {
-      ...yetiPayload,
-      ticket_number: websiteTicketNumber,
-      external_ticket_number: websiteTicketNumber,
-      website_ticket_number: websiteTicketNumber,
-      metadata: {
-        ...yetiPayload.metadata,
-        ticket_source: 'website',
-        ticket_number: websiteTicketNumber,
-        external_ticket_number: websiteTicketNumber,
-        attempt: attempts,
+  try {
+    const yetiRes = await fetch(YETI_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+        'X-Idempotency-Key': idempotencyKey,
       },
-    };
-    try {
-      const yetiRes = await fetch(YETI_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-          'X-Idempotency-Key': `${idempotencyKey}-${attempts}`,
-        },
-        body: JSON.stringify(attemptPayload),
-      });
-      yetiStatus = yetiRes.status;
-      yetiJson = await yetiRes.json().catch(() => null);
-      if (!yetiRes.ok) {
-        errorMessage = `YETI ${yetiStatus}: ${JSON.stringify(yetiJson)}`;
-      }
-    } catch (e) {
-      errorMessage = `Network error: ${(e as Error).message}`;
+      body: JSON.stringify(yetiPayload),
+    });
+    yetiStatus = yetiRes.status;
+    yetiJson = await yetiRes.json().catch(() => null);
+    if (!yetiRes.ok) {
+      errorMessage = `YETI ${yetiStatus}: ${JSON.stringify(yetiJson)}`;
     }
-
-    // Retry only on YETI's ticket_number duplicate-key race condition
-    const isDuplicateTicketNumber =
-      yetiStatus === 500 &&
-      typeof yetiJson?.message === 'string' &&
-      yetiJson.message.includes('tickets_ticket_number_key');
-
-    if (!isDuplicateTicketNumber) break;
-
-    console.warn(`YETI duplicate ticket_number, retry ${attempts}/${MAX_ATTEMPTS}`);
-    // small backoff with jitter so YETI's sequence advances
-    await new Promise((r) => setTimeout(r, 150 + Math.floor(Math.random() * 250)));
+  } catch (e) {
+    errorMessage = `Network error: ${(e as Error).message}`;
   }
 
   const success = yetiStatus === 201 && yetiJson?.success;
@@ -225,7 +184,7 @@ Deno.serve(async (req) => {
       yeti_customer_id: yetiJson?.customer_id ?? null,
       yeti_response: yetiJson,
       error_message: errorMessage,
-      retry_count: attempts - 1,
+      retry_count: 0,
     })
     .eq('id', backup.id);
 
