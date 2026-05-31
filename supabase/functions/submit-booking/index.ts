@@ -100,6 +100,14 @@ Deno.serve(async (req) => {
 
   const yetiPayload = {
     source: 'website' as const,
+    metadata: {
+      channel: 'website',
+      origin: 'skischule-malbun.li',
+      submitted_at: new Date().toISOString(),
+      referrer: req.headers.get('referer') ?? null,
+      user_agent: userAgent ?? null,
+      ip_address: ip ?? null,
+    },
     customer: data.customer,
     participants: data.participants,
     booking: data.booking,
