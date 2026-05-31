@@ -53,6 +53,13 @@ const PayloadSchema = z.object({
   consent: ConsentSchema,
 });
 
+const createWebsiteTicketNumber = (attempt: number) => {
+  const now = new Date();
+  const stamp = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+  const random = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  return `WEB-${stamp}-${random}-A${attempt}`;
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -161,6 +168,20 @@ Deno.serve(async (req) => {
     yetiStatus = 0;
     yetiJson = null;
     errorMessage = null;
+    const websiteTicketNumber = createWebsiteTicketNumber(attempts);
+    const attemptPayload = {
+      ...yetiPayload,
+      ticket_number: websiteTicketNumber,
+      external_ticket_number: websiteTicketNumber,
+      website_ticket_number: websiteTicketNumber,
+      metadata: {
+        ...yetiPayload.metadata,
+        ticket_source: 'website',
+        ticket_number: websiteTicketNumber,
+        external_ticket_number: websiteTicketNumber,
+        attempt: attempts,
+      },
+    };
     try {
       const yetiRes = await fetch(YETI_URL, {
         method: 'POST',
@@ -169,7 +190,7 @@ Deno.serve(async (req) => {
           'X-API-Key': apiKey,
           'X-Idempotency-Key': `${idempotencyKey}-${attempts}`,
         },
-        body: JSON.stringify(yetiPayload),
+        body: JSON.stringify(attemptPayload),
       });
       yetiStatus = yetiRes.status;
       yetiJson = await yetiRes.json().catch(() => null);
