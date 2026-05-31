@@ -145,23 +145,44 @@ Deno.serve(async (req) => {
   let yetiStatus = 0;
   let yetiJson: any = null;
   let errorMessage: string | null = null;
+  let attempts = 0;
+  const MAX_ATTEMPTS = 5;
 
-  try {
-    const yetiRes = await fetch(YETI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey,
-      },
-      body: JSON.stringify(yetiPayload),
-    });
-    yetiStatus = yetiRes.status;
-    yetiJson = await yetiRes.json().catch(() => null);
-    if (!yetiRes.ok) {
-      errorMessage = `YETI ${yetiStatus}: ${JSON.stringify(yetiJson)}`;
+  while (attempts < MAX_ATTEMPTS) {
+    attempts++;
+    yetiStatus = 0;
+    yetiJson = null;
+    errorMessage = null;
+    try {
+      const yetiRes = await fetch(YETI_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+          'X-Idempotency-Key': `${idempotencyKey}-${attempts}`,
+        },
+        body: JSON.stringify(yetiPayload),
+      });
+      yetiStatus = yetiRes.status;
+      yetiJson = await yetiRes.json().catch(() => null);
+      if (!yetiRes.ok) {
+        errorMessage = `YETI ${yetiStatus}: ${JSON.stringify(yetiJson)}`;
+      }
+    } catch (e) {
+      errorMessage = `Network error: ${(e as Error).message}`;
     }
-  } catch (e) {
-    errorMessage = `Network error: ${(e as Error).message}`;
+
+    // Retry only on YETI's ticket_number duplicate-key race condition
+    const isDuplicateTicketNumber =
+      yetiStatus === 500 &&
+      typeof yetiJson?.message === 'string' &&
+      yetiJson.message.includes('tickets_ticket_number_key');
+
+    if (!isDuplicateTicketNumber) break;
+
+    console.warn(`YETI duplicate ticket_number, retry ${attempts}/${MAX_ATTEMPTS}`);
+    // small backoff with jitter so YETI's sequence advances
+    await new Promise((r) => setTimeout(r, 150 + Math.floor(Math.random() * 250)));
   }
 
   const success = yetiStatus === 201 && yetiJson?.success;
@@ -175,6 +196,7 @@ Deno.serve(async (req) => {
       yeti_customer_id: yetiJson?.customer_id ?? null,
       yeti_response: yetiJson,
       error_message: errorMessage,
+      retry_count: attempts - 1,
     })
     .eq('id', backup.id);
 
