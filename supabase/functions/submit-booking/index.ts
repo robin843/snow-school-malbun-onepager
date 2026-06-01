@@ -3,6 +3,9 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3.23.8';
 
 const YETI_URL = 'https://pgrlrsrjwyixndmrzhct.supabase.co/functions/v1/intake-booking';
+const SAFE_BOOKING_ERROR = 'Die Buchung konnte gerade nicht übertragen werden. Bitte versuche es in 1–2 Minuten erneut.';
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 const CustomerSchema = z.object({
   salutation: z.string().optional(),
@@ -14,7 +17,7 @@ const CustomerSchema = z.object({
   zip: z.string().min(1).max(20),
   city: z.string().min(1).max(100),
   country: z.string().min(2).max(3),
-});
+}).strict();
 
 const ParticipantSchema = z.object({
   first_name: z.string().min(1).max(100),
@@ -22,12 +25,18 @@ const ParticipantSchema = z.object({
   birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   discipline: z.enum(['ski', 'snowboard']),
   skill_level: z.string().optional(),
-});
+}).strict();
 
 const DateSlotSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
   end_time: z.string().regex(/^\d{2}:\d{2}$/),
+}).strict().refine((slot) => slot.date >= todayISO(), {
+  message: 'Date must not be in the past',
+  path: ['date'],
+}).refine((slot) => slot.end_time > slot.start_time, {
+  message: 'End time must be after start time',
+  path: ['end_time'],
 });
 
 const BookingSchema = z.object({
@@ -37,20 +46,28 @@ const BookingSchema = z.object({
   participant_count: z.number().int().min(1).max(20),
   notes: z.string().max(2000).optional(),
   payment_method: z.enum(['twint', 'kreditkarte', 'ueberweisung', 'postfinance']).optional(),
-});
+}).strict();
 
 const ConsentSchema = z.object({
   agb_accepted: z.literal(true),
   agb_version: z.string(),
   privacy_accepted: z.literal(true),
   privacy_version: z.string(),
-});
+}).strict();
 
 const PayloadSchema = z.object({
   customer: CustomerSchema,
   participants: z.array(ParticipantSchema).min(1).max(20),
   booking: BookingSchema,
   consent: ConsentSchema,
+}).strict().superRefine((payload, ctx) => {
+  if (payload.booking.participant_count !== payload.participants.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['booking', 'participant_count'],
+      message: 'participant_count must match participants length',
+    });
+  }
 });
 
 Deno.serve(async (req) => {
