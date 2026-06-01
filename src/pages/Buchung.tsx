@@ -178,6 +178,7 @@ const Buchung = () => {
     if (!validateStep1() || !validateStep2() || !validateStep3()) return;
     submittingRef.current = true;
     setSubmitting(true);
+    let submittedSuccessfully = false;
     try {
       const payload = {
         source: "website" as const,
@@ -207,6 +208,7 @@ const Buchung = () => {
           ? `Ticket-Nr. ${data.ticket_number}. Bestätigung folgt per E-Mail.`
           : "Die Buchung wurde übertragen. Bestätigung folgt per E-Mail.",
       });
+      submittedSuccessfully = true;
       setTimeout(() => navigate("/"), 2500);
     } catch (err: any) {
       console.error("Booking submit error:", err);
@@ -216,8 +218,10 @@ const Buchung = () => {
         variant: "destructive",
       });
     } finally {
-      submittingRef.current = false;
-      setSubmitting(false);
+      if (!submittedSuccessfully) {
+        submittingRef.current = false;
+        setSubmitting(false);
+      }
     }
   };
 
