@@ -56,6 +56,7 @@ const ConsentSchema = z.object({
 }).strict();
 
 const PayloadSchema = z.object({
+  source: z.literal('website').optional().default('website'),
   customer: CustomerSchema,
   participants: z.array(ParticipantSchema).min(1).max(20),
   booking: BookingSchema,
@@ -117,7 +118,7 @@ Deno.serve(async (req) => {
   const acceptedAt = new Date().toISOString();
 
   const yetiPayload = {
-    source: 'website' as const,
+    source: data.source,
     customer: data.customer,
     participants: data.participants,
     booking: data.booking,
