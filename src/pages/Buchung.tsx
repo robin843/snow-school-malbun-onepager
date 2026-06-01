@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,7 @@ const Buchung = () => {
   const { toast } = useToast();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const [productType, setProductType] = useState<ProductType>("private");
   const [sport, setSport] = useState<Discipline>("ski");
@@ -128,7 +129,7 @@ const Buchung = () => {
   }, [productType, participantCount, dates.length]);
 
   const validateStep1 = () => {
-    if (dates.some((d) => !d.date || d.date < todayISO())) {
+    if (dates.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d.date) || d.date < todayISO())) {
       toast({ title: "Ungültiges Datum", description: "Bitte ein gültiges, zukünftiges Datum wählen.", variant: "destructive" });
       return false;
     }
@@ -140,6 +141,10 @@ const Buchung = () => {
   };
 
   const validateStep2 = () => {
+    if (participantCount !== participants.length) {
+      toast({ title: "Teilnehmerzahl stimmt nicht", description: "Bitte die Anzahl der Teilnehmer prüfen.", variant: "destructive" });
+      return false;
+    }
     for (const p of participants) {
       if (!p.first_name || !p.last_name || !p.birth_date) {
         toast({ title: "Teilnehmer unvollständig", description: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
@@ -168,7 +173,9 @@ const Buchung = () => {
   };
 
   const submit = async () => {
-    if (!validateStep3()) return;
+    if (submittingRef.current) return;
+    if (!validateStep1() || !validateStep2() || !validateStep3()) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const payload = {
@@ -201,10 +208,11 @@ const Buchung = () => {
       console.error("Booking submit error:", err);
       toast({
         title: "Buchung fehlgeschlagen",
-        description: err?.message ?? "Bitte später erneut versuchen.",
+        description: "Die Buchung konnte gerade nicht übertragen werden. Bitte versuche es in 1–2 Minuten erneut.",
         variant: "destructive",
       });
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
