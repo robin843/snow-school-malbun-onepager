@@ -6,29 +6,34 @@ const YETI_URL = 'https://pgrlrsrjwyixndmrzhct.supabase.co/functions/v1/intake-b
 const SAFE_BOOKING_ERROR = 'Die Buchung konnte gerade nicht übertragen werden. Bitte versuche es in 1–2 Minuten erneut.';
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const requiredString = (max: number) => z.string().trim().min(1).max(max);
+const isValidISODate = (value: string) => {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+};
 
 const CustomerSchema = z.object({
-  salutation: z.string().optional(),
-  first_name: z.string().min(1).max(100),
-  last_name: z.string().min(1).max(100),
-  email: z.string().email().max(255),
-  phone: z.string().min(5).max(50),
-  street: z.string().min(1).max(200),
-  zip: z.string().min(1).max(20),
-  city: z.string().min(1).max(100),
-  country: z.string().min(2).max(3),
+  salutation: z.string().trim().max(30).optional(),
+  first_name: requiredString(100),
+  last_name: requiredString(100),
+  email: z.string().trim().email().max(255),
+  phone: z.string().trim().min(5).max(50),
+  street: requiredString(200),
+  zip: requiredString(20),
+  city: requiredString(100),
+  country: z.string().trim().min(2).max(3),
 }).strict();
 
 const ParticipantSchema = z.object({
-  first_name: z.string().min(1).max(100),
-  last_name: z.string().min(1).max(100),
-  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  first_name: requiredString(100),
+  last_name: requiredString(100),
+  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isValidISODate),
   discipline: z.enum(['ski', 'snowboard']),
-  skill_level: z.string().optional(),
+  skill_level: z.string().trim().max(100).optional(),
 }).strict();
 
 const DateSlotSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isValidISODate),
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
   end_time: z.string().regex(/^\d{2}:\d{2}$/),
 }).strict().refine((slot) => slot.date >= todayISO(), {
