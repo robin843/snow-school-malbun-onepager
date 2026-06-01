@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,12 +53,18 @@ const PRICES = {
 } as const;
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const isISODate = (value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+};
 
 const Buchung = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const [productType, setProductType] = useState<ProductType>("private");
   const [sport, setSport] = useState<Discipline>("ski");
@@ -128,7 +134,7 @@ const Buchung = () => {
   }, [productType, participantCount, dates.length]);
 
   const validateStep1 = () => {
-    if (dates.some((d) => !d.date || d.date < todayISO())) {
+    if (dates.some((d) => !isISODate(d.date) || d.date < todayISO())) {
       toast({ title: "Ungültiges Datum", description: "Bitte ein gültiges, zukünftiges Datum wählen.", variant: "destructive" });
       return false;
     }
@@ -140,8 +146,12 @@ const Buchung = () => {
   };
 
   const validateStep2 = () => {
+    if (participantCount !== participants.length) {
+      toast({ title: "Teilnehmerzahl stimmt nicht", description: "Bitte die Anzahl der Teilnehmer prüfen.", variant: "destructive" });
+      return false;
+    }
     for (const p of participants) {
-      if (!p.first_name || !p.last_name || !p.birth_date) {
+      if (!p.first_name.trim() || !p.last_name.trim() || !isISODate(p.birth_date) || p.birth_date > todayISO()) {
         toast({ title: "Teilnehmer unvollständig", description: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
         return false;
       }
@@ -150,7 +160,7 @@ const Buchung = () => {
   };
 
   const validateStep3 = () => {
-    if (!firstName || !lastName || !email || phone.length < 5 || !street || !zip || !city) {
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || phone.trim().length < 5 || !street.trim() || !zip.trim() || !city.trim()) {
       toast({ title: "Kontaktdaten unvollständig", description: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
       return false;
     }
@@ -168,10 +178,14 @@ const Buchung = () => {
   };
 
   const submit = async () => {
-    if (!validateStep3()) return;
+    if (submittingRef.current) return;
+    if (!validateStep1() || !validateStep2() || !validateStep3()) return;
+    submittingRef.current = true;
     setSubmitting(true);
+    let submittedSuccessfully = false;
     try {
       const payload = {
+        source: "website" as const,
         customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
         participants: participants.map((p) => ({
           first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
@@ -194,18 +208,24 @@ const Buchung = () => {
 
       toast({
         title: "Buchung erfolgreich!",
-        description: `Ticket-Nr. ${data?.ticket_number ?? "—"}. Bestätigung folgt per E-Mail.`,
+        description: data?.ticket_number
+          ? `Ticket-Nr. ${data.ticket_number}. Bestätigung folgt per E-Mail.`
+          : "Die Buchung wurde übertragen. Bestätigung folgt per E-Mail.",
       });
+      submittedSuccessfully = true;
       setTimeout(() => navigate("/"), 2500);
     } catch (err: any) {
       console.error("Booking submit error:", err);
       toast({
         title: "Buchung fehlgeschlagen",
-        description: err?.message ?? "Bitte später erneut versuchen.",
+        description: "Die Buchung konnte gerade nicht übertragen werden. Bitte versuche es in 1–2 Minuten erneut.",
         variant: "destructive",
       });
     } finally {
-      setSubmitting(false);
+      if (!submittedSuccessfully) {
+        submittingRef.current = false;
+        setSubmitting(false);
+      }
     }
   };
 

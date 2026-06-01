@@ -3,31 +3,45 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3.23.8';
 
 const YETI_URL = 'https://pgrlrsrjwyixndmrzhct.supabase.co/functions/v1/intake-booking';
+const SAFE_BOOKING_ERROR = 'Die Buchung konnte gerade nicht übertragen werden. Bitte versuche es in 1–2 Minuten erneut.';
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const requiredString = (max: number) => z.string().trim().min(1).max(max);
+const isValidISODate = (value: string) => {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+};
 
 const CustomerSchema = z.object({
-  salutation: z.string().optional(),
-  first_name: z.string().min(1).max(100),
-  last_name: z.string().min(1).max(100),
-  email: z.string().email().max(255),
-  phone: z.string().min(5).max(50),
-  street: z.string().min(1).max(200),
-  zip: z.string().min(1).max(20),
-  city: z.string().min(1).max(100),
-  country: z.string().min(2).max(3),
-});
+  salutation: z.string().trim().max(30).optional(),
+  first_name: requiredString(100),
+  last_name: requiredString(100),
+  email: z.string().trim().email().max(255),
+  phone: z.string().trim().min(5).max(50),
+  street: requiredString(200),
+  zip: requiredString(20),
+  city: requiredString(100),
+  country: z.string().trim().min(2).max(3),
+}).strict();
 
 const ParticipantSchema = z.object({
-  first_name: z.string().min(1).max(100),
-  last_name: z.string().min(1).max(100),
-  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  first_name: requiredString(100),
+  last_name: requiredString(100),
+  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isValidISODate),
   discipline: z.enum(['ski', 'snowboard']),
-  skill_level: z.string().optional(),
-});
+  skill_level: z.string().trim().max(100).optional(),
+}).strict();
 
 const DateSlotSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isValidISODate),
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
   end_time: z.string().regex(/^\d{2}:\d{2}$/),
+}).strict().refine((slot) => slot.date >= todayISO(), {
+  message: 'Date must not be in the past',
+  path: ['date'],
+}).refine((slot) => slot.end_time > slot.start_time, {
+  message: 'End time must be after start time',
+  path: ['end_time'],
 });
 
 const BookingSchema = z.object({
@@ -37,20 +51,29 @@ const BookingSchema = z.object({
   participant_count: z.number().int().min(1).max(20),
   notes: z.string().max(2000).optional(),
   payment_method: z.enum(['twint', 'kreditkarte', 'ueberweisung', 'postfinance']).optional(),
-});
+}).strict();
 
 const ConsentSchema = z.object({
   agb_accepted: z.literal(true),
   agb_version: z.string(),
   privacy_accepted: z.literal(true),
   privacy_version: z.string(),
-});
+}).strict();
 
 const PayloadSchema = z.object({
+  source: z.literal('website').optional().default('website'),
   customer: CustomerSchema,
   participants: z.array(ParticipantSchema).min(1).max(20),
   booking: BookingSchema,
   consent: ConsentSchema,
+}).strict().superRefine((payload, ctx) => {
+  if (payload.booking.participant_count !== payload.participants.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['booking', 'participant_count'],
+      message: 'participant_count must match participants length',
+    });
+  }
 });
 
 Deno.serve(async (req) => {
@@ -97,17 +120,10 @@ Deno.serve(async (req) => {
     req.headers.get('cf-connecting-ip') ||
     undefined;
   const userAgent = req.headers.get('user-agent') ?? undefined;
+  const acceptedAt = new Date().toISOString();
 
   const yetiPayload = {
-    source: 'website' as const,
-    metadata: {
-      channel: 'website',
-      origin: 'skischule-malbun.li',
-      submitted_at: new Date().toISOString(),
-      referrer: req.headers.get('referer') ?? null,
-      user_agent: userAgent ?? null,
-      ip_address: ip ?? null,
-    },
+    source: data.source,
     customer: data.customer,
     participants: data.participants,
     booking: data.booking,
@@ -116,9 +132,6 @@ Deno.serve(async (req) => {
       agb_version: data.consent.agb_version,
       privacy_accepted: true,
       privacy_version: data.consent.privacy_version,
-      accepted_at: new Date().toISOString(),
-      ip_address: ip,
-      user_agent: userAgent,
     },
   };
 
@@ -134,7 +147,14 @@ Deno.serve(async (req) => {
     .from('submitted_bookings')
     .insert({
       idempotency_key: idempotencyKey,
-      payload: yetiPayload,
+      payload: {
+        source: 'website',
+        submitted_at: acceptedAt,
+        referrer: req.headers.get('referer') ?? null,
+        user_agent: userAgent ?? null,
+        ip_address: ip ?? null,
+        yeti_payload: yetiPayload,
+      },
       status: 'pending',
       customer_email: data.customer.email,
     })
@@ -189,12 +209,11 @@ Deno.serve(async (req) => {
     .eq('id', backup.id);
 
   if (!success) {
-    console.error('YETI submission failed:', errorMessage);
+    console.error('YETI submission failed:', { backup_id: backup.id, status: yetiStatus, error: errorMessage, response: yetiJson });
     return new Response(
       JSON.stringify({
         error: 'Booking submission failed',
-        details: yetiJson?.details ?? errorMessage,
-        backup_id: backup.id,
+        message: SAFE_BOOKING_ERROR,
       }),
       { status: yetiStatus >= 400 && yetiStatus < 500 ? yetiStatus : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
