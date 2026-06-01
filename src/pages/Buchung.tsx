@@ -179,6 +179,7 @@ const Buchung = () => {
     setSubmitting(true);
     try {
       const payload = {
+        source: "website" as const,
         customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
         participants: participants.map((p) => ({
           first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
@@ -201,7 +202,9 @@ const Buchung = () => {
 
       toast({
         title: "Buchung erfolgreich!",
-        description: `Ticket-Nr. ${data?.ticket_number ?? "—"}. Bestätigung folgt per E-Mail.`,
+        description: data?.ticket_number
+          ? `Ticket-Nr. ${data.ticket_number}. Bestätigung folgt per E-Mail.`
+          : "Die Buchung wurde übertragen. Bestätigung folgt per E-Mail.",
       });
       setTimeout(() => navigate("/"), 2500);
     } catch (err: any) {
