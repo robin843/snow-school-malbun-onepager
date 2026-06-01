@@ -214,7 +214,6 @@ Deno.serve(async (req) => {
       JSON.stringify({
         error: 'Booking submission failed',
         message: SAFE_BOOKING_ERROR,
-        backup_id: backup.id,
       }),
       { status: yetiStatus >= 400 && yetiStatus < 500 ? yetiStatus : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
