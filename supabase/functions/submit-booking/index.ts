@@ -206,11 +206,11 @@ Deno.serve(async (req) => {
     .eq('id', backup.id);
 
   if (!success) {
-    console.error('YETI submission failed:', errorMessage);
+    console.error('YETI submission failed:', { backup_id: backup.id, status: yetiStatus, error: errorMessage, response: yetiJson });
     return new Response(
       JSON.stringify({
         error: 'Booking submission failed',
-        details: yetiJson?.details ?? errorMessage,
+        message: SAFE_BOOKING_ERROR,
         backup_id: backup.id,
       }),
       { status: yetiStatus >= 400 && yetiStatus < 500 ? yetiStatus : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
