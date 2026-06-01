@@ -53,6 +53,7 @@ const PRICES = {
 } as const;
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const isISODate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime());
 
 const Buchung = () => {
   const navigate = useNavigate();
@@ -129,7 +130,7 @@ const Buchung = () => {
   }, [productType, participantCount, dates.length]);
 
   const validateStep1 = () => {
-    if (dates.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d.date) || d.date < todayISO())) {
+    if (dates.some((d) => !isISODate(d.date) || d.date < todayISO())) {
       toast({ title: "Ungültiges Datum", description: "Bitte ein gültiges, zukünftiges Datum wählen.", variant: "destructive" });
       return false;
     }
@@ -146,7 +147,7 @@ const Buchung = () => {
       return false;
     }
     for (const p of participants) {
-      if (!p.first_name || !p.last_name || !p.birth_date) {
+      if (!p.first_name.trim() || !p.last_name.trim() || !isISODate(p.birth_date) || p.birth_date > todayISO()) {
         toast({ title: "Teilnehmer unvollständig", description: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
         return false;
       }
@@ -155,7 +156,7 @@ const Buchung = () => {
   };
 
   const validateStep3 = () => {
-    if (!firstName || !lastName || !email || phone.length < 5 || !street || !zip || !city) {
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || phone.trim().length < 5 || !street.trim() || !zip.trim() || !city.trim()) {
       toast({ title: "Kontaktdaten unvollständig", description: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
       return false;
     }
