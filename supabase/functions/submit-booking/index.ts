@@ -114,17 +114,10 @@ Deno.serve(async (req) => {
     req.headers.get('cf-connecting-ip') ||
     undefined;
   const userAgent = req.headers.get('user-agent') ?? undefined;
+  const acceptedAt = new Date().toISOString();
 
   const yetiPayload = {
     source: 'website' as const,
-    metadata: {
-      channel: 'website',
-      origin: 'skischule-malbun.li',
-      submitted_at: new Date().toISOString(),
-      referrer: req.headers.get('referer') ?? null,
-      user_agent: userAgent ?? null,
-      ip_address: ip ?? null,
-    },
     customer: data.customer,
     participants: data.participants,
     booking: data.booking,
@@ -133,7 +126,7 @@ Deno.serve(async (req) => {
       agb_version: data.consent.agb_version,
       privacy_accepted: true,
       privacy_version: data.consent.privacy_version,
-      accepted_at: new Date().toISOString(),
+      accepted_at: acceptedAt,
       ip_address: ip,
       user_agent: userAgent,
     },
@@ -151,7 +144,14 @@ Deno.serve(async (req) => {
     .from('submitted_bookings')
     .insert({
       idempotency_key: idempotencyKey,
-      payload: yetiPayload,
+      payload: {
+        source: 'website',
+        submitted_at: acceptedAt,
+        referrer: req.headers.get('referer') ?? null,
+        user_agent: userAgent ?? null,
+        ip_address: ip ?? null,
+        yeti_payload: yetiPayload,
+      },
       status: 'pending',
       customer_email: data.customer.email,
     })
