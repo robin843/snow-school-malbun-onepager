@@ -197,7 +197,9 @@ Deno.serve(async (req) => {
     errorMessage = `Network error: ${(e as Error).message}`;
   }
 
-  const success = yetiStatus === 201 && yetiJson?.success;
+  const success = yetiStatus >= 200 && yetiStatus < 300 && (
+    yetiJson?.success === true || Boolean(yetiJson?.ticket_id || yetiJson?.ticket_number)
+  );
 
   await supabase
     .from('submitted_bookings')
