@@ -65,7 +65,6 @@ const Buchung = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
-  const submissionIdRef = useRef<string | null>(null);
 
   const [productType, setProductType] = useState<ProductType>("private");
   const [sport, setSport] = useState<Discipline>("ski");
@@ -186,7 +185,7 @@ const Buchung = () => {
     let submittedSuccessfully = false;
     try {
       const payload = {
-        submission_id: submissionIdRef.current ?? crypto.randomUUID(),
+        submission_id: crypto.randomUUID(),
         source: "website" as const,
         customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
         participants: participants.map((p) => ({
@@ -205,7 +204,6 @@ const Buchung = () => {
         },
       };
 
-      submissionIdRef.current = payload.submission_id;
       const { data, error } = await supabase.functions.invoke("submit-booking", { body: payload });
       if (error) throw error;
       if (data?.fallback || data?.success === false) {
@@ -219,7 +217,6 @@ const Buchung = () => {
           : "Die Buchung wurde übertragen. Bestätigung folgt per E-Mail.",
       });
       submittedSuccessfully = true;
-      submissionIdRef.current = null;
       setTimeout(() => navigate("/"), 2500);
     } catch (err: any) {
       console.error("Booking submit error:", err);
