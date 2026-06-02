@@ -132,6 +132,9 @@ Deno.serve(async (req) => {
       agb_version: data.consent.agb_version,
       privacy_accepted: true,
       privacy_version: data.consent.privacy_version,
+      accepted_at: acceptedAt,
+      ip_address: ip ?? 'unknown',
+      user_agent: userAgent ?? 'unknown',
     },
   };
 
