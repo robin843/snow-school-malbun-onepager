@@ -185,6 +185,7 @@ const Buchung = () => {
     let submittedSuccessfully = false;
     try {
       const payload = {
+        submission_id: crypto.randomUUID(),
         source: "website" as const,
         customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
         participants: participants.map((p) => ({
@@ -205,6 +206,9 @@ const Buchung = () => {
 
       const { data, error } = await supabase.functions.invoke("submit-booking", { body: payload });
       if (error) throw error;
+      if (data?.fallback || data?.success === false) {
+        throw new Error(data?.message || "Booking submission failed");
+      }
 
       toast({
         title: "Buchung erfolgreich!",
