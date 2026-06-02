@@ -61,6 +61,7 @@ const ConsentSchema = z.object({
 }).strict();
 
 const PayloadSchema = z.object({
+  submission_id: z.string().uuid().optional(),
   source: z.literal('website').optional().default('website'),
   customer: CustomerSchema,
   participants: z.array(ParticipantSchema).min(1).max(20),
@@ -138,7 +139,7 @@ Deno.serve(async (req) => {
     },
   };
 
-  const idempotencyKey = crypto.randomUUID();
+  const idempotencyKey = data.submission_id ?? crypto.randomUUID();
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -215,10 +216,12 @@ Deno.serve(async (req) => {
     console.error('YETI submission failed:', { backup_id: backup.id, status: yetiStatus, error: errorMessage, response: yetiJson });
     return new Response(
       JSON.stringify({
+        success: false,
+        fallback: true,
         error: 'Booking submission failed',
         message: SAFE_BOOKING_ERROR,
       }),
-      { status: yetiStatus >= 400 && yetiStatus < 500 ? yetiStatus : 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 
