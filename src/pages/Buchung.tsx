@@ -393,23 +393,40 @@ const Buchung = () => {
                         )}
                       </div>
                       {dates.map((d, idx) => (
-                        <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-2 items-end p-3 border rounded-lg">
+                        <div
+                          key={idx}
+                          className={cn(
+                            "grid grid-cols-1 gap-2 items-end p-3 border rounded-lg",
+                            productType === "private" && "md:grid-cols-[1fr_auto_auto_auto]"
+                          )}
+                        >
                           <div className="space-y-1">
                             <Label className="text-xs">Datum</Label>
-                            <Input type="date" value={d.date} min={todayISO()} onChange={(e) => updateDate(idx, { date: e.target.value })} />
+                            <DateField
+                              value={d.date}
+                              onChange={(v) => updateDate(idx, { date: v })}
+                              minDate={new Date()}
+                              fromYear={new Date().getFullYear()}
+                              toYear={new Date().getFullYear() + 2}
+                              placeholder="Datum wählen"
+                            />
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Start</Label>
-                            <Input type="time" value={d.start_time} min="09:00" max="16:00" onChange={(e) => updateDate(idx, { start_time: e.target.value })} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Ende</Label>
-                            <Input type="time" value={d.end_time} min="09:00" max="16:00" readOnly={productType === "private"} onChange={(e) => updateDate(idx, { end_time: e.target.value })} />
-                          </div>
-                          {productType === "private" && dates.length > 1 && (
-                            <Button type="button" size="icon" variant="ghost" onClick={() => removeDate(idx)}>
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
+                          {productType === "private" && (
+                            <>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Start</Label>
+                                <Input type="time" value={d.start_time} min="09:00" max="16:00" onChange={(e) => updateDate(idx, { start_time: e.target.value })} />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Ende</Label>
+                                <Input type="time" value={d.end_time} min="09:00" max="16:00" readOnly onChange={(e) => updateDate(idx, { end_time: e.target.value })} />
+                              </div>
+                              {dates.length > 1 && (
+                                <Button type="button" size="icon" variant="ghost" onClick={() => removeDate(idx)}>
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       ))}
@@ -444,7 +461,14 @@ const Buchung = () => {
                           </div>
                           <div className="space-y-1">
                             <Label>Geburtsdatum *</Label>
-                            <Input type="date" max={todayISO()} value={p.birth_date} onChange={(e) => setParticipants(participants.map((x, i) => i === idx ? { ...x, birth_date: e.target.value } : x))} />
+                            <DateField
+                              value={p.birth_date}
+                              onChange={(v) => setParticipants(participants.map((x, i) => i === idx ? { ...x, birth_date: v } : x))}
+                              maxDate={new Date()}
+                              fromYear={1920}
+                              toYear={new Date().getFullYear()}
+                              placeholder="Geburtsdatum wählen"
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label>Disziplin *</Label>
