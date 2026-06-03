@@ -105,6 +105,16 @@ const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeh
           defaultMonth={selected ?? maxDate ?? minDate ?? new Date()}
           initialFocus
           className={cn("p-3 pointer-events-auto")}
+          classNames={{
+            caption: "flex justify-center pt-1 relative items-center",
+            caption_label: "hidden",
+            caption_dropdowns: "flex gap-2 items-center",
+            dropdown:
+              "bg-background border border-input rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring",
+            dropdown_month: "relative",
+            dropdown_year: "relative",
+            vhidden: "sr-only",
+          }}
         />
       </PopoverContent>
     </Popover>
