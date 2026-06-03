@@ -9,6 +9,12 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Building2 } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, parseISO } from "date-fns";
+import { de } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +63,52 @@ const isISODate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+};
+
+const toISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+interface DateFieldProps {
+  value: string;
+  onChange: (v: string) => void;
+  minDate?: Date;
+  maxDate?: Date;
+  fromYear?: number;
+  toYear?: number;
+  placeholder?: string;
+}
+
+const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeholder }: DateFieldProps) => {
+  const selected = value && isISODate(value) ? parseISO(value) : undefined;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn("w-full justify-start text-left font-normal h-10", !value && "text-muted-foreground")}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {selected ? format(selected, "dd.MM.yyyy") : <span>{placeholder ?? "Datum wählen"}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          locale={de}
+          selected={selected}
+          onSelect={(d) => d && onChange(toISO(d))}
+          disabled={(d) => (minDate ? d < minDate : false) || (maxDate ? d > maxDate : false)}
+          captionLayout="dropdown-buttons"
+          fromYear={fromYear ?? 1920}
+          toYear={toYear ?? new Date().getFullYear() + 2}
+          defaultMonth={selected ?? maxDate ?? minDate ?? new Date()}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 const Buchung = () => {
@@ -138,9 +190,11 @@ const Buchung = () => {
       toast({ title: "Ungültiges Datum", description: "Bitte ein gültiges, zukünftiges Datum wählen.", variant: "destructive" });
       return false;
     }
-    if (dates.some((d) => d.start_time < "09:00" || d.end_time > "16:00" || d.end_time <= d.start_time)) {
-      toast({ title: "Ungültige Zeit", description: "Zeiten zwischen 09:00 und 16:00, Ende nach Start.", variant: "destructive" });
-      return false;
+    if (productType === "private") {
+      if (dates.some((d) => d.start_time < "09:00" || d.end_time > "16:00" || d.end_time <= d.start_time)) {
+        toast({ title: "Ungültige Zeit", description: "Zeiten zwischen 09:00 und 16:00, Ende nach Start.", variant: "destructive" });
+        return false;
+      }
     }
     return true;
   };
