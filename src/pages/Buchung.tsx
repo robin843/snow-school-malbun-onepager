@@ -9,6 +9,12 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Building2 } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, parseISO } from "date-fns";
+import { de } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +63,52 @@ const isISODate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+};
+
+const toISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+interface DateFieldProps {
+  value: string;
+  onChange: (v: string) => void;
+  minDate?: Date;
+  maxDate?: Date;
+  fromYear?: number;
+  toYear?: number;
+  placeholder?: string;
+}
+
+const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeholder }: DateFieldProps) => {
+  const selected = value && isISODate(value) ? parseISO(value) : undefined;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn("w-full justify-start text-left font-normal h-10", !value && "text-muted-foreground")}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {selected ? format(selected, "dd.MM.yyyy") : <span>{placeholder ?? "Datum wählen"}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          locale={de}
+          selected={selected}
+          onSelect={(d) => d && onChange(toISO(d))}
+          disabled={(d) => (minDate ? d < minDate : false) || (maxDate ? d > maxDate : false)}
+          captionLayout="dropdown-buttons"
+          fromYear={fromYear ?? 1920}
+          toYear={toYear ?? new Date().getFullYear() + 2}
+          defaultMonth={selected ?? maxDate ?? minDate ?? new Date()}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 const Buchung = () => {
@@ -138,9 +190,11 @@ const Buchung = () => {
       toast({ title: "Ungültiges Datum", description: "Bitte ein gültiges, zukünftiges Datum wählen.", variant: "destructive" });
       return false;
     }
-    if (dates.some((d) => d.start_time < "09:00" || d.end_time > "16:00" || d.end_time <= d.start_time)) {
-      toast({ title: "Ungültige Zeit", description: "Zeiten zwischen 09:00 und 16:00, Ende nach Start.", variant: "destructive" });
-      return false;
+    if (productType === "private") {
+      if (dates.some((d) => d.start_time < "09:00" || d.end_time > "16:00" || d.end_time <= d.start_time)) {
+        toast({ title: "Ungültige Zeit", description: "Zeiten zwischen 09:00 und 16:00, Ende nach Start.", variant: "destructive" });
+        return false;
+      }
     }
     return true;
   };
@@ -339,23 +393,40 @@ const Buchung = () => {
                         )}
                       </div>
                       {dates.map((d, idx) => (
-                        <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-2 items-end p-3 border rounded-lg">
+                        <div
+                          key={idx}
+                          className={cn(
+                            "grid grid-cols-1 gap-2 items-end p-3 border rounded-lg",
+                            productType === "private" && "md:grid-cols-[1fr_auto_auto_auto]"
+                          )}
+                        >
                           <div className="space-y-1">
                             <Label className="text-xs">Datum</Label>
-                            <Input type="date" value={d.date} min={todayISO()} onChange={(e) => updateDate(idx, { date: e.target.value })} />
+                            <DateField
+                              value={d.date}
+                              onChange={(v) => updateDate(idx, { date: v })}
+                              minDate={new Date()}
+                              fromYear={new Date().getFullYear()}
+                              toYear={new Date().getFullYear() + 2}
+                              placeholder="Datum wählen"
+                            />
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Start</Label>
-                            <Input type="time" value={d.start_time} min="09:00" max="16:00" onChange={(e) => updateDate(idx, { start_time: e.target.value })} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Ende</Label>
-                            <Input type="time" value={d.end_time} min="09:00" max="16:00" readOnly={productType === "private"} onChange={(e) => updateDate(idx, { end_time: e.target.value })} />
-                          </div>
-                          {productType === "private" && dates.length > 1 && (
-                            <Button type="button" size="icon" variant="ghost" onClick={() => removeDate(idx)}>
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
+                          {productType === "private" && (
+                            <>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Start</Label>
+                                <Input type="time" value={d.start_time} min="09:00" max="16:00" onChange={(e) => updateDate(idx, { start_time: e.target.value })} />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Ende</Label>
+                                <Input type="time" value={d.end_time} min="09:00" max="16:00" readOnly onChange={(e) => updateDate(idx, { end_time: e.target.value })} />
+                              </div>
+                              {dates.length > 1 && (
+                                <Button type="button" size="icon" variant="ghost" onClick={() => removeDate(idx)}>
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       ))}
@@ -390,7 +461,14 @@ const Buchung = () => {
                           </div>
                           <div className="space-y-1">
                             <Label>Geburtsdatum *</Label>
-                            <Input type="date" max={todayISO()} value={p.birth_date} onChange={(e) => setParticipants(participants.map((x, i) => i === idx ? { ...x, birth_date: e.target.value } : x))} />
+                            <DateField
+                              value={p.birth_date}
+                              onChange={(v) => setParticipants(participants.map((x, i) => i === idx ? { ...x, birth_date: v } : x))}
+                              maxDate={new Date()}
+                              fromYear={1920}
+                              toYear={new Date().getFullYear()}
+                              placeholder="Geburtsdatum wählen"
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label>Disziplin *</Label>
