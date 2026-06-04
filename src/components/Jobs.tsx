@@ -39,7 +39,7 @@ const Jobs = () => {
           {benefits.map((benefit, index) => (
             <Card
               key={index}
-              className="text-center border-2 hover:shadow-lg transition-shadow animate-fade-in"
+              className="text-center border-2 hover:shadow-lg transition-shadow animate-fade-in rounded-lg max-w-md mx-auto md:max-w-none w-full"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <CardHeader>
@@ -56,7 +56,7 @@ const Jobs = () => {
         </div>
 
         <div className="max-w-4xl mx-auto space-y-8">
-          <Card className="bg-gradient-to-br from-primary to-secondary text-white border-0 shadow-xl overflow-hidden">
+          <Card className="bg-gradient-to-br from-primary to-secondary text-white border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl md:text-3xl">Skilehrer/in (Voll- und/oder Teilzeit)</CardTitle>
             </CardHeader>
@@ -67,7 +67,7 @@ const Jobs = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-secondary to-primary text-white border-0 shadow-xl overflow-hidden">
+          <Card className="bg-gradient-to-br from-secondary to-primary text-white border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl md:text-3xl">Kinderbetreuer/in auf Ski (Teilzeit)</CardTitle>
             </CardHeader>
@@ -78,7 +78,7 @@ const Jobs = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-accent to-primary text-white border-0 shadow-xl overflow-hidden">
+          <Card className="bg-gradient-to-br from-accent to-primary text-white border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl md:text-3xl">Büroangestellte/r (Voll- und/oder Teilzeit)</CardTitle>
             </CardHeader>
