@@ -17,12 +17,12 @@ const Kontakt = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          <Card className="border-2">
+          <Card className="border-2 rounded-lg max-w-md mx-auto md:max-w-none w-full">
             <CardHeader>
-              <CardTitle className="text-2xl">Kontaktinformationen</CardTitle>
+              <CardTitle className="text-2xl text-center md:text-left">Kontaktinformationen</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-start gap-4">
+              <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <MapPin className="w-6 h-6 text-primary" />
                 </div>
@@ -37,7 +37,7 @@ const Kontakt = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Phone className="w-6 h-6 text-primary" />
                 </div>
@@ -52,7 +52,7 @@ const Kontakt = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Mail className="w-6 h-6 text-primary" />
                 </div>
@@ -67,7 +67,7 @@ const Kontakt = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Clock className="w-6 h-6 text-primary" />
                 </div>
@@ -83,9 +83,9 @@ const Kontakt = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-2">
+          <Card className="border-2 rounded-lg max-w-md mx-auto md:max-w-none w-full">
             <CardHeader>
-              <CardTitle className="text-2xl">Unser Standort</CardTitle>
+              <CardTitle className="text-2xl text-center md:text-left">Unser Standort</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="bg-muted rounded-lg overflow-hidden h-[400px]">
