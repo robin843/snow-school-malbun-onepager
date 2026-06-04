@@ -69,7 +69,7 @@ const FAQ = () => {
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto bg-card/80 backdrop-blur-xl border-2 border-primary/15 rounded-2xl p-6 md:p-8 shadow-xl">
+        <div className="max-w-3xl mx-auto bg-card/80 backdrop-blur-xl border-2 border-primary/15 rounded-lg p-6 md:p-8 shadow-xl">
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((f, i) => (
               <AccordionItem key={i} value={`item-${i}`}>
