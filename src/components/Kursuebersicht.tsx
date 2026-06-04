@@ -220,8 +220,8 @@ const FlagBadge = ({ flag }: { flag: Flag }) => (
 
 const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => (
   <div className="group relative animate-fade-in">
-    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
-    <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl">
+    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
+    <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl rounded-lg">
       <CardHeader className={`relative p-6 bg-gradient-to-br ${accentMap[course.accent]} text-white`}>
         {course.flag && (
           <div className="absolute top-4 right-4">
@@ -229,7 +229,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
           </div>
         )}
         <div className="flex items-start gap-3 pr-20">
-          <div className="w-12 h-12 bg-white/15 backdrop-blur-md rounded-xl flex items-center justify-center ring-2 ring-white/30 flex-shrink-0">
+          <div className="w-12 h-12 bg-white/15 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-white/30 flex-shrink-0">
             {course.icon}
           </div>
           <div className="min-w-0">
@@ -393,7 +393,19 @@ const Kursuebersicht = () => {
     });
   }, [main, sub]);
 
-  const handleBook = () => navigate("/buchung");
+  const handleBook = (course?: Course) => {
+    if (!course) {
+      navigate("/buchung");
+      return;
+    }
+    const productType = course.id.startsWith("privat") ? "private" : "group";
+    const params = new URLSearchParams({
+      type: productType,
+      sport: course.discipline,
+      course: course.id,
+    });
+    navigate(`/buchung?${params.toString()}`);
+  };
 
   return (
     <section id="kurse" className="relative py-24 overflow-hidden">
@@ -470,7 +482,7 @@ const Kursuebersicht = () => {
         {filtered.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {filtered.map((c) => (
-              <CourseCardView key={c.id} course={c} onBook={handleBook} />
+              <CourseCardView key={c.id} course={c} onBook={() => handleBook(c)} />
             ))}
           </div>
         ) : (
@@ -481,10 +493,10 @@ const Kursuebersicht = () => {
 
         {/* Info / Treffpunkte */}
         <div className="max-w-6xl mx-auto mt-16">
-          <Card className="bg-card/80 backdrop-blur-xl border-2 border-primary/20 shadow-xl overflow-hidden">
+          <Card className="bg-card/80 backdrop-blur-xl border-2 border-primary/20 shadow-xl overflow-hidden rounded-lg">
             <CardHeader className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-b">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
                   <MapPin className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -503,7 +515,7 @@ const Kursuebersicht = () => {
                 ].map((it, i) => (
                   <div
                     key={i}
-                    className="p-4 rounded-xl bg-muted/40 border border-border hover:border-primary/40 transition-colors"
+                    className="p-4 rounded-lg bg-muted/40 border border-border hover:border-primary/40 transition-colors"
                   >
                     <h4 className="font-bold text-foreground mb-1">{it.t}</h4>
                     <p className="text-sm text-muted-foreground">{it.v}</p>
@@ -543,10 +555,10 @@ const Kursuebersicht = () => {
               { title: "Ski Levels", icon: <Snowflake className="w-6 h-6 text-white" />, levels: skiLevels },
               { title: "Snowboard Levels", icon: <Snowflake className="w-6 h-6 text-white" />, levels: snowboardLevels },
             ].map((block, idx) => (
-              <Card key={idx} className="bg-card/90 backdrop-blur-xl border-2 border-border shadow-xl overflow-hidden">
+              <Card key={idx} className="bg-card/90 backdrop-blur-xl border-2 border-border shadow-xl overflow-hidden rounded-lg">
                 <CardHeader className={`bg-gradient-to-br ${idx === 0 ? "from-primary/90 to-primary/70" : "from-secondary/90 to-secondary/70"} text-white`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center ring-2 ring-white/30">
+                    <div className="w-12 h-12 bg-white/15 rounded-lg flex items-center justify-center ring-2 ring-white/30">
                       {block.icon}
                     </div>
                     <CardTitle className="text-2xl font-black text-white">{block.title}</CardTitle>
@@ -554,7 +566,7 @@ const Kursuebersicht = () => {
                 </CardHeader>
                 <CardContent className="p-6 space-y-5">
                   {block.levels.map((lvl, i) => (
-                    <div key={i} className={lvl.highlight ? "p-4 rounded-xl bg-gradient-to-br from-muted/60 to-muted/30 border-2 border-foreground/20" : ""}>
+                    <div key={i} className={lvl.highlight ? "p-4 rounded-lg bg-gradient-to-br from-muted/60 to-muted/30 border-2 border-foreground/20" : ""}>
                       <div className="flex items-center gap-2 mb-3">
                         {lvl.highlight && <Trophy className="w-4 h-4 text-foreground" />}
                         <h4 className="font-black text-sm uppercase tracking-wider text-foreground">
@@ -583,10 +595,10 @@ const Kursuebersicht = () => {
         {/* CTA */}
         <div className="text-center mt-16">
           <div className="relative inline-block">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-2xl blur-2xl opacity-30 animate-pulse" />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-lg blur-2xl opacity-30 animate-pulse" />
             <Button
               size="lg"
-              onClick={handleBook}
+              onClick={() => handleBook()}
               className="relative font-black text-lg px-12 py-7 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-105"
             >
               Kurs jetzt buchen

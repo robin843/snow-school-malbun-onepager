@@ -49,11 +49,11 @@ const Team = () => {
         <div className="grid md:grid-cols-2 gap-12 items-start max-w-6xl mx-auto mb-16">
           <div className="flex justify-center animate-fade-in">
             <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 to-secondary/20 transform -rotate-2 rounded-2xl"></div>
+              <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 to-secondary/20 transform -rotate-2 rounded-lg"></div>
               <img
                 src={teamPhotos}
                 alt="Christoph und Engelbert Bühler"
-                className="relative rounded-2xl shadow-2xl w-full object-cover"
+                className="relative rounded-lg shadow-2xl w-full object-cover"
               />
             </div>
           </div>
