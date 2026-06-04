@@ -1,61 +1,71 @@
-## Ziele
+## Ziel
 
-1. Navigation auf reines Hamburger-Menü umstellen (auch auf Desktop), rechts neben „Jetzt buchen".
-2. Neue FAQ-Sektion hinzufügen.
-3. Preise-/Kursbereich um detaillierte Infos zu allen Kursarten erweitern (Ski Privat, Ski Gruppe, Ski Samstag, Windel-Wedel, Snowboard Privat, Snowboard Gruppe, Treffpunkte/Kurszeiten) inkl. aktualisierter Preise/Saison 2026/27.
+Vier konkrete Verbesserungen ohne Funktionsänderungen am Backend:
 
-## 1. Header / Navigation (`src/components/Navigation.tsx`)
+1. Alle Blöcke auf Mobile zentrieren
+2. Christoph-Call-Button (VoiceBot) kleiner & enger in die Ecke
+3. Einheitlicher Border-Radius überall – ausser Header & Hero
+4. „Jetzt buchen" aus einer Kurs-Karte übernimmt Disziplin & Privat/Gruppe in die Buchungsseite
 
-- Desktop-Links (Preise, Über uns, Jobs, Kontakt) entfernen.
-- Reihenfolge im Header (sowohl Desktop als auch Mobile):
-  `Logo` … `Jetzt buchen` `Hamburger-Icon`
-- Hamburger öffnet ein Slide-in-Panel (Shadcn `Sheet` von rechts) mit allen Links: Preise, Kurse, Über uns, Jobs, FAQ, Kontakt + zusätzlicher „Jetzt buchen"-Button.
-- Bestehender Mobile-Dropdown-Block wird durch das Sheet ersetzt.
-- `Menu`/`X`-Icon aus lucide-react bleibt.
+---
 
-## 2. Neue FAQ-Sektion
+## 1. Mobile-Zentrierung
 
-- Neue Datei `src/components/FAQ.tsx` mit Shadcn `Accordion`.
-- In `src/pages/Index.tsx` zwischen `Kontakt` und `Footer` einfügen (`<FAQ />`), Section-id `faq` für Navigation.
-- Inhalte (basierend auf den gelieferten Quellen), z. B.:
-  - Wann ist Hoch-/Nebensaison 2026/27?
-  - Wie lange dauert eine Einzel-/Doppellektion? (55 / 115 Min.)
-  - Wie viele Personen pro Privatkurs? (max. 5)
-  - Mindest-/Maximalgrösse Gruppenkurse? (5–13 Kinder Ski, 3–10 Snowboard)
-  - Sind Liftkarte/Ausrüstung inklusive? (Nein)
-  - Wo sind die Treffpunkte? (Hotel Gorfion, Malbipark, Kasse Sesselbahn Täli)
-  - Ab welchem Alter ist der Windel-Wedel-Kurs? (2–4 J., ideal 3 J.)
-  - Wann kann man bei Gruppenkursen einsteigen? (Anfänger nur montags, Fortgeschrittene jederzeit)
-  - Gibt es Mittagsbetreuung? (12:00–14:00, CHF 30 / EUR 33 pro Tag/Kind)
-  - Wie funktioniert der 10 %-Rabatt im Privatunterricht? (ab 4 Lektionen/Tag)
+Betroffene Sections: `Kontakt.tsx`, `Jobs.tsx`, `Team.tsx`, `Kursuebersicht.tsx`, `FAQ.tsx`, `Footer.tsx`.
 
-## 3. Erweiterte Kursinfos (`src/components/Preise.tsx`)
+- Mobile (<sm): alle Karten/Texte in einer Single-Column-Grid mit `mx-auto`, `text-center sm:text-left` dort wo sinnvoll.
+- `Kontakt.tsx`: Icon+Label-Zeilen unter `sm` als `flex-col items-center text-center`, ab `sm` zurück zu `flex-row items-start text-left`.
+- Karten erhalten `max-w-md mx-auto sm:max-w-none` damit sie auf 390 px sauber zentriert wirken und keine Full-Bleed-Block-Optik haben.
+- Section-Header-Chips (z. B. „Über uns", „Kontakt & Standort") bekommen `mx-auto` und werden auf Mobile mittig gesetzt.
 
-Aktuelle Karten „Privatkurse" und „Gruppenkurse" bleiben optisch als Top-Highlights, aber:
+## 2. VoiceBot kleiner & in die Ecke (`src/components/VoiceBot.tsx`)
 
-- Preise/Saison aktualisieren auf 2026/27 gemäss Quelle (z. B. EUR 83 statt 79, Saisonzeiten 19.12.2026–10.01.2027 usw.).
-- Privatkurs-Doppellektionen ergänzen (10–12 CHF 190, 12–14 CHF 150, 14–16 CHF 170; Zusatzperson Doppel CHF 40).
-- Hinweis „max. 5 Personen", „Lektion = 55 Min / Doppel = 115 Min" einfügen.
+- Bild von `w-32 h-32` → `w-16 h-16 sm:w-20 sm:h-20`.
+- Border `border-4` → `border-2`, Phone-Badge `p-3` → `p-1.5`, Icon-Size 20 → 14.
+- Position: `bottom-4 right-4 sm:bottom-6 sm:right-6` (statt `bottom-8 right-8` / `bottom-24 right-8`).
+- „Sprich mit Christoph"-Bubble nur ab `sm` sichtbar (`hidden sm:block`), damit auf Mobile nur der kompakte runde Button in der Ecke sitzt.
+- `ring-6` → `ring-2`, damit der Halo nicht riesig wirkt.
 
-Darunter ein neuer Tab-/Karten-Block „Alle Kursangebote" mit Shadcn `Tabs` (Ski / Snowboard / Kinder) oder einfaches Grid mit 4 weiteren Karten:
+## 3. Einheitlicher Radius
 
-1. **Ski-Samstagskurse** – 5 Samstage, Daten Kurs 1 (9.1.–6.2.2027) und Kurs 2 (20.2.–20.3.2027), Preise 150/200/245/285/320 CHF.
-2. **Windel-Wedel-Kurs** – Alter 2–4, Mo–Mi 10–12, Preise 70/110/140 CHF, Treffpunkt Hotel Gorfion.
-3. **Snowboard-Privatkurse** – identische Tarifstruktur wie Ski Privat, Hinweise wie oben.
-4. **Snowboard-Gruppenkurse** – 14–16 Uhr, Preise 90/140/180/210/230 CHF, 3–10 Kinder, Treffpunkt Hotel Gorfion.
+- In `index.css` `--radius: 0.75rem` bleibt → entspricht Tailwind `rounded-lg`.
+- Wir definieren als Projekt-Konvention: alle Cards, Buttons, Inputs, Badges (ausser `rounded-full`-Pills für Filter/Icons), Info-Boxen und Modale nutzen **`rounded-lg`** (= `var(--radius)`).
+- Ausnahmen: `Hero` und `Navigation`/Header behalten ihre Original-Radii (inkl. der schrägen Secondary-Boxen mit `rotate-1`).
+- Konkrete Stellen die angepasst werden:
+  - `Kursuebersicht.tsx`: Card `rounded-2xl` → entfernen (Card-Default `rounded-lg` greift), innere `rounded-xl`/`rounded-2xl` Wrapper → `rounded-lg`, Info-Pillen `rounded-full` bleiben (Filter-Chips).
+  - `Buchung.tsx`: alle `rounded-xl`/`rounded-2xl` → `rounded-lg`.
+  - `Kontakt.tsx`: Icon-Boxen `rounded-lg` bleibt, Map-Container `rounded-lg` bleibt.
+  - `Jobs.tsx`, `Team.tsx`, `FAQ.tsx`: alle Karten + Inner-Wrapper auf `rounded-lg` vereinheitlichen.
+  - Buttons nutzen Shadcn-Default (`rounded-md` aus `button.tsx`) — bleibt, weil das aus der Komponente kommt; keine Custom-Override-Klassen mit anderem Radius mehr.
 
-Zusätzlich neue Info-Box „Treffpunkte & Kurszeiten" mit:
-- Windel-Wedel: Mo–Mi 10–12, Start Mo 10:00 Hotel Gorfion.
-- Anfänger (Snow Kids Village, ab 4): Mo–Fr 10–12 & 14–16, nur ganze Tage, Start Mo 10:00 Hotel Gorfion.
-- Fortgeschrittene (ab Blue Prince): Mo–Fr 10–12 & 14–16, Start Mo 10:00 Malbipark, Rückkehr 12:00 zum Hotel Gorfion.
-- Privatunterricht: täglich 09–16, stündlicher Start, Empfehlung 12–14 Uhr.
-- Allgemeiner Hinweis: Liftkarte und Ausrüstung nicht inklusive.
+## 4. Kursauswahl in die Buchung übernehmen
 
-Jede Karte erhält dieselbe visuelle Sprache (Glow, Gradient-Header, Badge bei „Beliebt"), bleibt aber kompakter als die zwei Hauptkarten.
+Aktuell ruft `Kursuebersicht.handleBook` einfach `navigate("/buchung")` auf, Schritt 1 zeigt also immer den Default „Privatkurs".
 
-## Technische Hinweise
+Vorgehen:
 
-- Keine Backend-Änderungen.
-- Verwendet bestehende UI-Komponenten: `Sheet`, `Accordion`, `Tabs`, `Card`, `Button`.
-- Section-IDs: `preise`, `kurse` (neu für detaillierte Kursliste), `faq` (neu), bestehende bleiben.
-- Hamburger-Menü-Links scrollen via `scrollIntoView` zu den jeweiligen Sections.
+- `Kursuebersicht.tsx`:
+  - `handleBook(course)` bekommt das Kurs-Objekt. Mapping:
+    - `productType = course.id.startsWith("privat") ? "private" : "group"`
+    - `sport = course.discipline` (`ski` | `snowboard`)
+    - `courseId = course.id` (für künftige Nutzung / Hinweistext)
+  - Navigation: `navigate(\`/buchung?type=${productType}&sport=${sport}&course=${course.id}\`)`.
+  - `CourseCardView` bekommt `onBook` weiterhin als Callback; Aufrufer übergibt `() => handleBook(course)`.
+
+- `Buchung.tsx`:
+  - `useSearchParams` aus `react-router-dom`.
+  - Initial-State über Lazy-Init lesen:
+    - `productType` → `searchParams.get("type")` validiert gegen `"private" | "group"`, sonst `"private"`.
+    - `sport` → `searchParams.get("sport")` validiert gegen `"ski" | "snowboard"`, sonst aktueller Default.
+  - Optional: ausgewählten Kursnamen (`course`) als kleine Info-Badge im Schritt 1 anzeigen („Vorausgewählt: Privatkurs Ski") — rein Anzeige, kein Backend.
+  - URL bleibt unverändert nach Mount, kein Replace nötig.
+
+Damit landet man aus jeder Karte direkt im richtigen Buchungsmodus.
+
+## Technische Details
+
+- Keine Backend-Änderungen, keine neuen Routen.
+- Keine neuen Packages.
+- `Hero.tsx`-Button auf „Kurs jetzt buchen" bleibt unverändert (führt weiter auf `/buchung` ohne Vorauswahl).
+- Konsistenter Radius wird durch direktes Bearbeiten der Klassen erreicht, keine neue CSS-Variable nötig.
+- Verifikation nach Implementierung: Preview im 390-px-Mobile-Viewport prüfen (Zentrierung, kompakter Call-Button, einheitliche Radii) und einmal aus Kursliste → Buchung navigieren und Schritt 1 kontrollieren.
