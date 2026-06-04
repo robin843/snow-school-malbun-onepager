@@ -76,14 +76,14 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
     <div
       className={`
         ${isScrolled 
-          ? "fixed bottom-8 right-8 z-50" 
-          : "absolute bottom-24 right-8 z-20"
+          ? "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
+          : "absolute bottom-20 right-4 sm:bottom-24 sm:right-6 z-20"
         }
         flex flex-col items-end gap-3 transition-all duration-300
       `}
     >
       {!isCallActive && !isScrolled && (
-        <div className="bg-card/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-lg border border-border animate-fade-in">
+        <div className="hidden sm:block bg-card/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-lg border border-border animate-fade-in">
           <p className="text-base font-semibold text-foreground whitespace-nowrap">
             💬 Sprich mit Christoph
           </p>
@@ -95,15 +95,15 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
         className={`
           relative group
           ${isCallActive 
-            ? "ring-6 ring-destructive/50" 
-            : "ring-6 ring-primary/50 hover:ring-primary/70"
+            ? "ring-2 ring-destructive/50"
+            : "ring-2 ring-primary/50 hover:ring-primary/70"
           }
           ${isSpeaking ? "animate-pulse" : ""}
           rounded-full transition-all duration-300 hover:scale-105 shadow-premium
         `}
         aria-label={isCallActive ? "Gespräch beenden" : "Mit Christoph sprechen"}
       >
-        <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
+        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-white shadow-lg">
           <img
             src={christophPortrait}
             alt="Christoph"
@@ -118,13 +118,13 @@ const VoiceBot = ({ isScrolled }: VoiceBotProps) => {
             transition-all duration-300
           `}>
             {isCallActive && (
-              <PhoneOff className="text-white" size={32} />
+              <PhoneOff className="text-white" size={20} />
             )}
           </div>
           
           {!isCallActive && (
-            <div className="absolute bottom-1 right-1 bg-primary rounded-full p-3 shadow-lg">
-              <Phone className="text-primary-foreground" size={20} />
+            <div className="absolute bottom-0 right-0 bg-primary rounded-full p-1.5 shadow-lg">
+              <Phone className="text-primary-foreground" size={12} />
             </div>
           )}
         </div>
