@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AGB_VERSION, PRIVACY_VERSION } from "@/config/legal";
@@ -123,13 +123,20 @@ const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeh
 
 const Buchung = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
-  const [productType, setProductType] = useState<ProductType>("private");
-  const [sport, setSport] = useState<Discipline>("ski");
+  const [productType, setProductType] = useState<ProductType>(() => {
+    const t = searchParams.get("type");
+    return t === "group" || t === "private" ? t : "private";
+  });
+  const [sport, setSport] = useState<Discipline>(() => {
+    const s = searchParams.get("sport");
+    return s === "snowboard" || s === "ski" ? s : "ski";
+  });
   const [participantCount, setParticipantCount] = useState(1);
   const [duration, setDuration] = useState<"55" | "115">("115");
   const [dates, setDates] = useState<DateSlot[]>([
