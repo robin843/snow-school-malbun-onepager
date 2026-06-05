@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu } from "lucide-react";
+import { Menu, Facebook, Instagram, MountainSnow, Camera, CloudSun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useNavigate } from "react-router-dom";
@@ -30,6 +30,14 @@ const Navigation = () => {
     { id: "jobs", label: "Jobs" },
     { id: "faq", label: "FAQ" },
     { id: "kontakt", label: "Kontakt" },
+  ];
+
+  const externalLinks = [
+    { label: "Facebook", icon: Facebook, url: "https://www.facebook.com/schneesportschulemalbun" },
+    { label: "Instagram", icon: Instagram, url: "https://www.instagram.com/schneesportschulemalbun" },
+    { label: "Bergbahnen", icon: MountainSnow, url: "https://www.bergbahnen.li" },
+    { label: "Webcams", icon: Camera, url: "https://www.bergbahnen.li/webcam" },
+    { label: "Wetter", icon: CloudSun, url: "https://www.meteoschweiz.admin.ch/#tab=forecast-place&location=Malbun" },
   ];
 
   return (
@@ -84,6 +92,28 @@ const Navigation = () => {
                   >
                     Jetzt buchen
                   </Button>
+                  <div className="mt-8 pt-6 border-t border-border">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
+                      Schnellzugriff
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {externalLinks.map((l) => {
+                        const Icon = l.icon;
+                        return (
+                          <a
+                            key={l.label}
+                            href={l.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-colors"
+                          >
+                            <Icon size={22} />
+                            <span className="text-xs font-medium">{l.label}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
