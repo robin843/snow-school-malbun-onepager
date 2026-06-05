@@ -36,7 +36,7 @@ const Team = () => {
     <section id="team" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-block transform rotate-1 bg-secondary px-6 py-3 mb-4">
+          <div className="inline-block transform rotate-1 bg-secondary px-6 py-3 mb-4 rounded-lg">
             <h2 className="text-3xl md:text-4xl font-bold text-secondary-foreground">
               Über uns
             </h2>
@@ -76,7 +76,7 @@ const Team = () => {
                 Gäste und stellt ein Höchstmass an Professionalität, Qualität und Sicherheit im
                 täglichen Familienbetrieb sicher.
               </p>
-              <div className="transform rotate-1 bg-secondary/10 p-1 inline-block mt-6">
+              <div className="transform rotate-1 bg-secondary/10 p-1 inline-block mt-6 rounded-lg">
                 <p className="text-lg font-semibold text-secondary px-4 py-2">
                   "Strahlende und glückliche Gäste sind unsere grösste Motivation"
                 </p>
@@ -87,7 +87,7 @@ const Team = () => {
 
         <div className="mt-20">
           <div className="text-center mb-12">
-            <div className="inline-block transform -rotate-1 bg-primary px-6 py-3 mb-4">
+            <div className="inline-block transform -rotate-1 bg-primary px-6 py-3 mb-4 rounded-lg">
               <h3 className="text-3xl md:text-4xl font-bold text-primary-foreground">
                 Unser Team
               </h3>
