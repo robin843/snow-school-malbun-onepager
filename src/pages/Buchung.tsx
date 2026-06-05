@@ -137,6 +137,18 @@ const Buchung = () => {
     const s = searchParams.get("sport");
     return s === "snowboard" || s === "ski" ? s : "ski";
   });
+  const courseTitles: Record<string, string> = {
+    "privat-ski": "Privatkurs Ski",
+    "privat-snowboard": "Privatkurs Snowboard",
+    "windel-wedel": "Windel-Wedel-Kurs",
+    "ganztages-kinder": "Ganztageskurs Kinder",
+    "samstagskurse": "Samstagskurse Kinder",
+    "carving-mittwoch": "Carvingkurs Erwachsene",
+    "carving-ladies": "Carvingkurs Ladies Only",
+    "snowboard-anfaenger": "Snowboard Anfängerkurs",
+    "snowboard-fortgeschritten": "Snowboard Fortgeschrittenenkurs",
+  };
+  const selectedCourseTitle = courseTitles[searchParams.get("course") ?? ""];
   const [participantCount, setParticipantCount] = useState(1);
   const [duration, setDuration] = useState<"55" | "115">("115");
   const [dates, setDates] = useState<DateSlot[]>([
@@ -341,6 +353,12 @@ const Buchung = () => {
                     <CardDescription>Produkt, Sport, Termine, Teilnehmer</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
+                    {selectedCourseTitle && (
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+                        <span className="text-muted-foreground">Vorausgewählt:</span>
+                        <span className="font-semibold text-primary">{selectedCourseTitle}</span>
+                      </div>
+                    )}
                     <RadioGroup value={productType} onValueChange={(v) => setProductType(v as ProductType)} className="space-y-2">
                       <div className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer ${productType === "private" ? "border-primary bg-primary/5" : "border-border"}`}>
                         <RadioGroupItem value="private" id="p-private" />
