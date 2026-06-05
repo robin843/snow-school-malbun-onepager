@@ -6,7 +6,7 @@ const Kontakt = () => {
     <section id="kontakt" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-block transform rotate-1 bg-secondary px-6 py-3 mb-4">
+          <div className="inline-block transform rotate-1 bg-secondary px-6 py-3 mb-4 rounded-lg">
             <h2 className="text-3xl md:text-4xl font-bold text-secondary-foreground">
               Kontakt & Standort
             </h2>
