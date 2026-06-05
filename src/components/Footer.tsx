@@ -1,5 +1,14 @@
 import { Separator } from "@/components/ui/separator";
+import { Facebook, Instagram, MountainSnow, Camera, CloudSun } from "lucide-react";
 import wappen from "@/assets/wappen-malbun.jpg";
+
+const externalLinks = [
+  { label: "Facebook", icon: Facebook, url: "https://www.facebook.com/schneesportschulemalbun" },
+  { label: "Instagram", icon: Instagram, url: "https://www.instagram.com/schneesportschulemalbun" },
+  { label: "Bergbahnen", icon: MountainSnow, url: "https://www.bergbahnen.li" },
+  { label: "Webcams", icon: Camera, url: "https://www.bergbahnen.li/webcam" },
+  { label: "Wetter", icon: CloudSun, url: "https://www.meteoschweiz.admin.ch/#tab=forecast-place&location=Malbun" },
+];
 
 const Footer = () => {
   return (
@@ -91,6 +100,26 @@ const Footer = () => {
         </div>
 
         <Separator className="bg-primary-foreground/20 mb-8" />
+
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-6">
+          {externalLinks.map((l) => {
+            const Icon = l.icon;
+            return (
+              <a
+                key={l.label}
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={l.label}
+                title={l.label}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors text-sm font-medium"
+              >
+                <Icon size={18} />
+                <span className="hidden sm:inline">{l.label}</span>
+              </a>
+            );
+          })}
+        </div>
 
         <div className="text-center text-sm text-primary-foreground/80">
           <p>
