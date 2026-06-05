@@ -228,7 +228,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
             <FlagBadge flag={course.flag} />
           </div>
         )}
-        <div className="flex items-start gap-3 pr-20">
+        <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left sm:pr-20">
           <div className="w-12 h-12 bg-white/15 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-white/30 flex-shrink-0">
             {course.icon}
           </div>
@@ -242,9 +242,9 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
       </CardHeader>
 
       <CardContent className="p-6 flex flex-col flex-1 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 justify-items-center sm:justify-items-start">
           {course.meta.map((m, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm text-foreground">
+            <div key={i} className="flex items-center gap-2 text-sm text-foreground text-center sm:text-left">
               <span className="text-primary flex-shrink-0">{m.icon}</span>
               <span className="font-medium">{m.label}</span>
             </div>
@@ -288,7 +288,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
         {course.notes && course.notes.length > 0 && (
           <ul className="space-y-1 pt-2 border-t border-border">
             {course.notes.map((n, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground justify-center sm:justify-start text-center sm:text-left">
                 <div className="w-1 h-1 rounded-full bg-primary mt-1.5 flex-shrink-0" />
                 <span>{n}</span>
               </li>
