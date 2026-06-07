@@ -3,11 +3,11 @@ import { Facebook, Instagram, MountainSnow, Camera, CloudSun } from "lucide-reac
 import wappen from "@/assets/wappen-malbun.jpg";
 
 const externalLinks = [
-  { label: "Facebook", icon: Facebook, url: "https://www.facebook.com/schneesportschulemalbun" },
-  { label: "Instagram", icon: Instagram, url: "https://www.instagram.com/schneesportschulemalbun" },
+  { label: "Facebook", icon: Facebook, url: "https://www.facebook.com/profile.php?id=100077315170645" },
+  { label: "Instagram", icon: Instagram, url: "https://www.instagram.com/schneesportschule_malbun/" },
   { label: "Bergbahnen", icon: MountainSnow, url: "https://www.bergbahnen.li" },
-  { label: "Webcams", icon: Camera, url: "https://www.bergbahnen.li/webcam" },
-  { label: "Wetter", icon: CloudSun, url: "https://www.meteoschweiz.admin.ch/#tab=forecast-place&location=Malbun" },
+  { label: "Webcams", icon: Camera, url: "https://www.bergbahnen.li/meta/webcams" },
+  { label: "Wetter", icon: CloudSun, url: "https://www.bergbahnen.li/meta/webcams#weather-forecast" },
 ];
 
 const Footer = () => {
