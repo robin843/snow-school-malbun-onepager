@@ -34,7 +34,7 @@ const Sponsoren = () => {
               <img
                 src={s.src}
                 alt={`Logo ${s.name}`}
-                className="max-h-20 w-auto object-contain"
+                className="max-h-32 w-auto object-contain"
                 loading="lazy"
               />
             </div>
