@@ -5,6 +5,7 @@ import Team from "@/components/Team";
 import Jobs from "@/components/Jobs";
 import Kontakt from "@/components/Kontakt";
 import FAQ from "@/components/FAQ";
+import Sponsoren from "@/components/Sponsoren";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -17,6 +18,7 @@ const Index = () => {
       <Jobs />
       <Kontakt />
       <FAQ />
+      <Sponsoren />
       <Footer />
     </div>
   );
