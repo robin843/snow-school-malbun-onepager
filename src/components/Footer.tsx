@@ -90,11 +90,6 @@ const Footer = () => {
                   Datenschutz
                 </a>
               </li>
-              <li>
-                <a href="#" className="hover:text-accent transition-colors">
-                  Impressum
-                </a>
-              </li>
             </ul>
           </div>
         </div>
