@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, Facebook, Instagram, MountainSnow, Camera, CloudSun } from "lucide-react";
+import { Menu, Instagram, MountainSnow, Camera, CloudSun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +33,6 @@ const Navigation = () => {
   ];
 
   const externalLinks = [
-    { label: "Facebook", icon: Facebook, url: "https://www.facebook.com/profile.php?id=100077315170645" },
     { label: "Instagram", icon: Instagram, url: "https://www.instagram.com/schneesportschule_malbun/" },
     { label: "Bergbahnen", icon: MountainSnow, url: "https://www.bergbahnen.li" },
     { label: "Webcams", icon: Camera, url: "https://www.bergbahnen.li/meta/webcams" },
