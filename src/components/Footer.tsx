@@ -76,7 +76,7 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Informationen</h4>
             <ul className="space-y-2 text-sm text-primary-foreground/80">
               <li>
-                <a href="#" className="hover:text-accent transition-colors">
+                <a href="/agb" className="hover:text-accent transition-colors">
                   AGB
                 </a>
               </li>
