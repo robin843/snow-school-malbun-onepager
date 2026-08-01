@@ -1,10 +1,14 @@
 import { HeartHandshake } from "lucide-react";
+import axaloAsset from "@/assets/sponsors/sponsor-axalo.png.asset.json";
+import heideggerAsset from "@/assets/sponsors/sponsor-heidegger.png.asset.json";
+import goldtestAsset from "@/assets/sponsors/sponsor-goldtest.png.asset.json";
+import kayakAsset from "@/assets/sponsors/sponsor-kayak.png.asset.json";
 
 const sponsors = [
-  { name: "AXALO", subtitle: "Kompetenz aus einer Hand" },
-  { name: "HEIDEGGER", subtitle: "Schweizer Qualität" },
-  { name: "GOLDTEST OF SWITZERLAND", subtitle: "Seit 1997" },
-  { name: "KAYAK", subtitle: "Featured on" },
+  { name: "AXALO", src: axaloAsset.url },
+  { name: "HEIDEGGER", src: heideggerAsset.url },
+  { name: "GOLDTEST OF SWITZERLAND", src: goldtestAsset.url },
+  { name: "KAYAK", src: kayakAsset.url },
 ];
 
 const Sponsoren = () => {
@@ -21,20 +25,18 @@ const Sponsoren = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto items-stretch">
           {sponsors.map((s) => (
             <div
               key={s.name}
-              className="flex flex-col items-center justify-center text-center p-6 bg-card border-2 border-primary/10 rounded-lg hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+              className="flex items-center justify-center p-6 bg-card border-2 border-primary/10 rounded-lg hover:border-primary/30 hover:shadow-lg transition-all duration-300"
             >
-              <span className="text-lg md:text-xl font-extrabold text-foreground tracking-tight">
-                {s.name}
-              </span>
-              {s.subtitle && (
-                <span className="text-xs md:text-sm text-muted-foreground mt-1">
-                  {s.subtitle}
-                </span>
-              )}
+              <img
+                src={s.src}
+                alt={`Logo ${s.name}`}
+                className="max-h-20 w-auto object-contain"
+                loading="lazy"
+              />
             </div>
           ))}
         </div>
