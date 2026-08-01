@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import logo from "@/assets/logo-malbun.jpg";
+import Sponsoren from "@/components/Sponsoren";
 
 const AGB = () => {
   const navigate = useNavigate();
@@ -244,6 +245,8 @@ const AGB = () => {
           </CardContent>
         </Card>
       </main>
+
+      <Sponsoren />
     </div>
   );
 };

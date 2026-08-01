@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AGB_VERSION, PRIVACY_VERSION } from "@/config/legal";
 import twintLogo from "@/assets/twint-logo.png";
 import visaLogo from "@/assets/visa-logo.svg";
+import Sponsoren from "@/components/Sponsoren";
 
 type Discipline = "ski" | "snowboard";
 type ProductType = "private" | "group";
@@ -691,6 +692,8 @@ const Buchung = () => {
           </div>
         </div>
       </div>
+
+      <Sponsoren />
     </div>
   );
 };
