@@ -59,10 +59,10 @@ const Kontakt = () => {
                 <div>
                   <h3 className="font-semibold mb-1">E-Mail</h3>
                   <a
-                    href="mailto:info@skischule-malbun.li"
+                    href="mailto:info@schneesportschule.li"
                     className="text-primary hover:underline"
                   >
-                    info@skischule-malbun.li
+                    info@schneesportschule.li
                   </a>
                 </div>
               </div>
