@@ -8,6 +8,8 @@ import Buchung from "./pages/Buchung";
 import Datenschutz from "./pages/Datenschutz";
 import AGB from "./pages/AGB";
 import NotFound from "./pages/NotFound";
+import ScrollToTop from "./components/ScrollToTop";
+
 
 const queryClient = new QueryClient();
 
