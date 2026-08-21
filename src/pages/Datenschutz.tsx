@@ -228,8 +228,8 @@ const Datenschutz = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="w-5 h-5 text-primary flex-shrink-0" />
-                  <a href="tel:+4232633177" className="text-primary hover:underline">
-                    +423 263 31 77
+                  <a href="tel:+4232639770" className="text-primary hover:underline">
+                    +423 263 97 70
                   </a>
                 </div>
               </div>

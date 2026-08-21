@@ -44,10 +44,10 @@ const Kontakt = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Telefon</h3>
                   <a
-                    href="tel:+4232633177"
+                    href="tel:+4232639770"
                     className="text-primary hover:underline"
                   >
-                    +423 263 31 77
+                    +423 263 97 70
                   </a>
                 </div>
               </div>
