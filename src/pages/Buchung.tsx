@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -156,6 +156,10 @@ const Buchung = () => {
     { date: "", start_time: "10:00", end_time: "11:55" },
   ]);
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
 
   const [participants, setParticipants] = useState<Participant[]>([
     { first_name: "", last_name: "", birth_date: "", discipline: "ski", skill_level_num: 1 },
