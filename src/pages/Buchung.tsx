@@ -683,14 +683,14 @@ const Buchung = () => {
             <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
           </Button>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-1 sm:mb-2">Kurs buchen</h1>
-          <p className="text-white/90 text-base sm:text-lg">Schritt {step} von 3</p>
+          <p className="text-white/90 text-base sm:text-lg">Schritt {step} von 4</p>
         </div>
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6 sm:mb-8 max-w-2xl mx-auto">
-            {[{ n: 1, label: "Kurs" }, { n: 2, label: "Teilnehmer" }, { n: 3, label: "Kontakt & Zahlung" }].map((s, i) => (
+            {[{ n: 1, label: "Kurs & Termin" }, { n: 2, label: "Teilnehmer" }, { n: 3, label: "Kontakt" }, { n: 4, label: "Zahlung" }].map((s, i) => (
               <div key={s.n} className="flex items-center flex-1">
                 <div className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full font-bold text-sm sm:text-base shrink-0 ${step >= s.n ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
                   {step > s.n ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : s.n}
@@ -698,10 +698,11 @@ const Buchung = () => {
                 <div className="ml-3 hidden sm:block">
                   <div className={`text-sm font-semibold ${step >= s.n ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</div>
                 </div>
-                {i < 2 && <div className={`flex-1 h-0.5 mx-2 sm:mx-3 ${step > s.n ? "bg-primary" : "bg-muted"}`} />}
+                {i < 3 && <div className={`flex-1 h-0.5 mx-2 sm:mx-3 ${step > s.n ? "bg-primary" : "bg-muted"}`} />}
               </div>
             ))}
           </div>
+
 
           <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
             <div className="lg:col-span-2 space-y-6">
