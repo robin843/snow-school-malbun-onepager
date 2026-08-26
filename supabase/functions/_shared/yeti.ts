@@ -28,9 +28,6 @@ export async function callYeti(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'x-api-key': key,
-    'X-API-Key': key,
-    apikey: key,
-    Authorization: `Bearer ${key}`,
   };
 
   if (init.idempotencyKey) headers['X-Idempotency-Key'] = init.idempotencyKey;
