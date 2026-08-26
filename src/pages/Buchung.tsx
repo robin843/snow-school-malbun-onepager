@@ -404,6 +404,42 @@ const Buchung = () => {
     }));
   };
 
+  /** Datumsauswahl inkl. Kursregeln (Gruppenkurs = ganze Woche Mo–Fr). */
+  const pickDate = (idx: number, iso: string) => {
+    if (courseMode === "week") {
+      const monday = mondayOf(iso);
+      const week: DateSlot[] = [0, 1, 2, 3, 4].map((i) => {
+        const date = addDays(monday, i);
+        const slot = firstSlot(availability[date]);
+        return {
+          date,
+          start_time: slot?.start ?? "10:00",
+          end_time: slot?.end ?? "12:00",
+        };
+      });
+      setDates(week);
+      return;
+    }
+    if (courseMode === "saturday") {
+      const slot = firstSlot(availability[iso]);
+      updateDate(idx, {
+        date: iso,
+        start_time: slot?.start ?? "10:00",
+        end_time: slot?.end ?? "12:00",
+      });
+      return;
+    }
+    const slots = slotsFor(iso);
+    const current = dates[idx];
+    const keep = slots.find((s) => s.start === current?.start_time);
+    const slot = keep ?? slots[0];
+    updateDate(idx, {
+      date: iso,
+      start_time: slot?.start ?? current?.start_time ?? "10:00",
+      end_time: slot?.end ?? computeEnd(slot?.start ?? current?.start_time ?? "10:00", duration),
+    });
+  };
+
   const addDate = () => setDates([...dates, { date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
   const removeDate = (idx: number) => setDates(dates.filter((_, i) => i !== idx));
 
@@ -424,10 +460,32 @@ const Buchung = () => {
     [selectedProduct, dates.length, hoursPerDay, participantCount],
   );
 
+  // Produkt-/Kursartwechsel: Termine zurücksetzen, damit keine ungültigen Tage bleiben.
+  useEffect(() => {
+    setDates([{ date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
+    setReservation(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseMode, productId]);
 
   const validateStep1 = () => {
+    if (!productId) {
+      toast({ title: "Kurs wählen", description: "Bitte einen Kurs auswählen.", variant: "destructive" });
+      return false;
+    }
     if (dates.some((d) => !isISODate(d.date) || d.date < todayISO())) {
       toast({ title: "Ungültiges Datum", description: "Bitte ein gültiges, zukünftiges Datum wählen.", variant: "destructive" });
+      return false;
+    }
+    if (courseMode === "saturday" && dates.some((d) => weekdayOf(d.date) !== 6)) {
+      toast({ title: "Nur Samstage", description: "Samstagskurse sind ausschliesslich an Samstagen buchbar.", variant: "destructive" });
+      return false;
+    }
+    if (courseMode === "week" && dates.some((d) => weekdayOf(d.date) === 0 || weekdayOf(d.date) === 6)) {
+      toast({ title: "Nur Montag–Freitag", description: "Gruppenkurse finden von Montag bis Freitag statt.", variant: "destructive" });
+      return false;
+    }
+    if (hasAvailabilityData && dates.some((d) => availability[d.date] && !dayHasCapacity(availability[d.date]))) {
+      toast({ title: "Termin nicht verfügbar", description: "Für diesen Termin sind keine Skilehrer mehr frei.", variant: "destructive" });
       return false;
     }
     if (productType === "private") {
@@ -435,6 +493,11 @@ const Buchung = () => {
         toast({ title: "Ungültige Zeit", description: "Zeiten zwischen 09:00 und 16:00, Ende nach Start.", variant: "destructive" });
         return false;
       }
+    }
+    const unique = new Set(dates.map((d) => d.date));
+    if (unique.size !== dates.length) {
+      toast({ title: "Doppelter Termin", description: "Bitte jeden Tag nur einmal wählen.", variant: "destructive" });
+      return false;
     }
     return true;
   };
@@ -458,6 +521,10 @@ const Buchung = () => {
       toast({ title: "Kontaktdaten unvollständig", description: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
       return false;
     }
+    return true;
+  };
+
+  const validateStep4 = () => {
     if (!agb || !privacy) {
       toast({ title: "Einwilligung fehlt", description: "Bitte AGB und Datenschutz akzeptieren.", variant: "destructive" });
       return false;
@@ -465,11 +532,81 @@ const Buchung = () => {
     return true;
   };
 
-  const next = () => {
+  const buildReservePayload = () => ({
+    submission_id: crypto.randomUUID(),
+    customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
+    participants: participants.map((p) => ({
+      first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
+      discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
+    })),
+    booking: {
+      product_id: productId || undefined,
+      product_type: productType,
+      sport,
+      dates,
+      participant_count: participantCount,
+      duration_minutes: productType === "private" ? Number(duration) : undefined,
+      notes: notes || undefined,
+    },
+    consent: {
+      agb_accepted: true as const, agb_version: AGB_VERSION,
+      privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
+    },
+  });
+
+  /** Provisorische Reservierung in YETI (Skilehrer + Zeitfenster für 15 Min. gesperrt). */
+  const reserve = async (): Promise<boolean> => {
+    setReserving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("yeti-reserve", {
+        body: buildReservePayload(),
+      });
+      if (error) throw error;
+      if (!data?.success) {
+        if (data?.conflict) refetchAvailability();
+        toast({
+          title: data?.conflict ? "Termin inzwischen vergeben" : "Reservierung fehlgeschlagen",
+          description: data?.message ?? "Bitte versuche es in 1–2 Minuten erneut.",
+          variant: "destructive",
+        });
+        if (data?.conflict) setStep(1);
+        return false;
+      }
+      setReservation({
+        ticket_id: data.ticket_id ?? null,
+        ticket_number: data.ticket_number ?? null,
+        reservation_token: data.reservation_token ?? null,
+        expires_at: data.reservation_expires_at ?? null,
+        instructor_name: data.instructor?.name ?? null,
+        total: typeof data.price?.total === "number" ? data.price.total : null,
+        currency: data.price?.currency ?? selectedProduct?.currency ?? "CHF",
+      });
+      setNow(Date.now());
+      return true;
+    } catch (err) {
+      console.error("yeti-reserve failed:", err);
+      toast({
+        title: "Reservierung fehlgeschlagen",
+        description: "Bitte versuche es in 1–2 Minuten erneut.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setReserving(false);
+    }
+  };
+
+  const next = async () => {
     if (step === 1 && !validateStep1()) return;
     if (step === 2 && !validateStep2()) return;
-    setStep((s) => (s + 1) as 1 | 2 | 3);
+    if (step === 3) {
+      if (!validateStep3()) return;
+      const ok = await reserve();
+      if (!ok) return;
+    }
+    setStep((s) => Math.min(4, s + 1) as Step);
   };
+
 
   const submit = async () => {
     if (submittingRef.current) return;
