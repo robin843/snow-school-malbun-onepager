@@ -1,6 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3.23.8';
+import { callYeti } from '../_shared/yeti.ts';
+
 
 const YETI_URL = 'https://pgrlrsrjwyixndmrzhct.supabase.co/functions/v1/intake-booking';
 const SAFE_BOOKING_ERROR = 'Die Buchung konnte gerade nicht übertragen werden. Bitte versuche es in 1–2 Minuten erneut.';
