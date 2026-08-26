@@ -895,7 +895,7 @@ const Buchung = () => {
                                   <SelectContent>
                                     {slotsFor(d.date).map((s) => (
                                       <SelectItem key={s.start} value={s.start}>
-                                        {s.start}–{s.end} · {s.free_instructors} frei
+                                        {s.start}–{s.end} · verfügbar
                                       </SelectItem>
                                     ))}
                                   </SelectContent>

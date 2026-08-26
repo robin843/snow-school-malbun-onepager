@@ -43,10 +43,15 @@ Deno.serve(async (req) => {
     ...p,
     date_from: p.from,
     date_to: p.to,
-    from: undefined,
-    to: undefined,
+    start_at: `${p.from}T00:00:00`,
+    end_at: `${p.to}T23:59:59`,
   };
-  const query: Record<string, string> = { date_from: p.from, date_to: p.to };
+  const query: Record<string, string> = {
+    date_from: p.from,
+    date_to: p.to,
+    start_at: `${p.from}T00:00:00`,
+    end_at: `${p.to}T23:59:59`,
+  };
   if (p.product_id) query.product_id = p.product_id;
   if (p.product_type) query.product_type = p.product_type;
   if (p.sport) query.sport = p.sport;
