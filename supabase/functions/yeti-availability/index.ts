@@ -39,7 +39,14 @@ Deno.serve(async (req) => {
   const p = parsed.data;
   if (p.to < p.from) return json({ error: 'Validation failed', details: { to: ['to must be >= from'] } }, 400);
 
-  const query: Record<string, string> = { from: p.from, to: p.to };
+  const yetiPayload = {
+    ...p,
+    date_from: p.from,
+    date_to: p.to,
+    from: undefined,
+    to: undefined,
+  };
+  const query: Record<string, string> = { date_from: p.from, date_to: p.to };
   if (p.product_id) query.product_id = p.product_id;
   if (p.product_type) query.product_type = p.product_type;
   if (p.sport) query.sport = p.sport;
@@ -47,7 +54,7 @@ Deno.serve(async (req) => {
   if (p.participant_count) query.participant_count = String(p.participant_count);
 
   // Yeti expects POST with a JSON body; GET with query params is a fallback.
-  let result = await callYeti('get-availability', { method: 'POST', body: p });
+  let result = await callYeti('get-availability', { method: 'POST', body: yetiPayload });
   if (result.status === 404 || result.status === 405) {
     console.error('get-availability POST rejected', result.status, result.json ?? result.raw);
     const getResult = await callYeti('get-availability', { method: 'GET', query });
