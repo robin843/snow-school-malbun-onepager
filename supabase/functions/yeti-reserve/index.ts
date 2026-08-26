@@ -44,7 +44,7 @@ const DateSlotSchema = z.object({
 }).strict();
 
 const BookingSchema = z.object({
-  product_id: z.string().trim().max(100).optional(),
+  product_id: z.string().trim().min(1).max(100),
   product_type: z.enum(['private', 'group']),
   sport: z.enum(['ski', 'snowboard']),
   dates: z.array(DateSlotSchema).min(1).max(30),
