@@ -11,6 +11,12 @@ const isValidISODate = (value: string) => {
 };
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isValidISODate);
 
+const minutesBetween = (start: string, end: string) => {
+  const [startHour, startMinute] = start.split(':').map(Number);
+  const [endHour, endMinute] = end.split(':').map(Number);
+  return endHour * 60 + endMinute - (startHour * 60 + startMinute);
+};
+
 const CustomerSchema = z.object({
   salutation: z.string().trim().max(30).optional(),
   first_name: requiredString(100),
@@ -119,11 +125,28 @@ Deno.serve(async (req) => {
   const acceptedAt = new Date().toISOString();
   const idempotencyKey = data.submission_id ?? crypto.randomUUID();
 
+  const items = data.booking.dates.map((slot) => ({
+    product_id: data.booking.product_id,
+    date: slot.date,
+    start_time: slot.start_time,
+    end_time: slot.end_time,
+    duration_minutes: minutesBetween(slot.start_time, slot.end_time),
+    participant_count: data.booking.participant_count,
+    sport: data.booking.sport,
+  }));
+
   // Never trust prices from the browser — Yeti calculates them from product_id.
+  // YETI's reservation endpoint expects the reservable product and dates as
+  // top-level `product_id` + `items`; the nested `booking` object is retained as
+  // contextual metadata for intake/admin views.
   const yetiPayload = {
     source: 'website',
+    product_id: data.booking.product_id,
+    items,
     customer: data.customer,
     participants: data.participants,
+    payment_method: data.booking.payment_method,
+    reservation_ttl_minutes: 15,
     booking: {
       product_id: data.booking.product_id,
       product_type: data.booking.product_type,
