@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Building2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Building2, Clock, AlertTriangle, Loader2 } from "lucide-react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,6 +23,8 @@ import twintLogo from "@/assets/twint-logo.png";
 import visaLogo from "@/assets/visa-logo.svg";
 import Sponsoren from "@/components/Sponsoren";
 import { useYetiProducts, computeProductTotal, type YetiProduct } from "@/hooks/useYetiProducts";
+import { useYetiAvailability, dayHasCapacity, type YetiDay } from "@/hooks/useYetiAvailability";
+
 
 
 type Discipline = "ski" | "snowboard";
@@ -94,6 +96,15 @@ const productFromPrice = (list: YetiProduct[]) => {
 };
 
 
+/** Kursregeln: Privatkurs (frei), Gruppenkurs Mo–Fr als Block, Samstagskurs nur Samstage. */
+type CourseMode = "private" | "week" | "saturday";
+
+const courseModeFor = (productType: ProductType, product?: YetiProduct): CourseMode => {
+  if (productType === "private") return "private";
+  if (product && /samstag/i.test(product.name)) return "saturday";
+  return "week";
+};
+
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const isISODate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -104,6 +115,35 @@ const isISODate = (value: string) => {
 const toISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+const addDays = (iso: string, n: number) => {
+  const d = parseISO(iso);
+  d.setDate(d.getDate() + n);
+  return toISO(d);
+};
+
+/** Montag der Woche, in welcher das Datum liegt. */
+const mondayOf = (iso: string) => {
+  const d = parseISO(iso);
+  const dow = d.getDay(); // 0 = So
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diff);
+  return toISO(d);
+};
+
+const weekdayOf = (iso: string) => parseISO(iso).getDay();
+
+const firstSlot = (day: YetiDay | undefined) =>
+  day?.slots.find((s) => s.free_instructors > 0) ?? null;
+
+const formatCountdown = (ms: number) => {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
+
+const zurichLabel = (iso: string) =>
+  isISODate(iso) ? format(parseISO(iso), "EEEE, dd.MM.yyyy", { locale: de }) : "–";
+
+
 interface DateFieldProps {
   value: string;
   onChange: (v: string) => void;
@@ -112,9 +152,26 @@ interface DateFieldProps {
   fromYear?: number;
   toYear?: number;
   placeholder?: string;
+  /** Zusätzliche Sperre (z.B. keine Verfügbarkeit in YETI). */
+  isDisabledDay?: (iso: string) => boolean;
+  onMonthChange?: (d: Date) => void;
+  month?: Date;
+  footer?: React.ReactNode;
 }
 
-const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeholder }: DateFieldProps) => {
+const DateField = ({
+  value,
+  onChange,
+  minDate,
+  maxDate,
+  fromYear,
+  toYear,
+  placeholder,
+  isDisabledDay,
+  onMonthChange,
+  month,
+  footer,
+}: DateFieldProps) => {
   const selected = value && isISODate(value) ? parseISO(value) : undefined;
   return (
     <Popover>
@@ -134,7 +191,13 @@ const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeh
           locale={de}
           selected={selected}
           onSelect={(d) => d && onChange(toISO(d))}
-          disabled={(d) => (minDate ? d < minDate : false) || (maxDate ? d > maxDate : false)}
+          month={month}
+          onMonthChange={onMonthChange}
+          disabled={(d) =>
+            (minDate ? d < minDate : false) ||
+            (maxDate ? d > maxDate : false) ||
+            (isDisabledDay ? isDisabledDay(toISO(d)) : false)
+          }
           captionLayout="dropdown-buttons"
           fromYear={fromYear ?? 1920}
           toYear={toYear ?? new Date().getFullYear() + 2}
@@ -152,16 +215,29 @@ const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeh
             vhidden: "sr-only",
           }}
         />
+        {footer && <div className="border-t px-3 py-2 text-xs text-muted-foreground">{footer}</div>}
       </PopoverContent>
     </Popover>
   );
 };
 
+type Step = 1 | 2 | 3 | 4;
+
+interface Reservation {
+  ticket_id: string | null;
+  ticket_number: string | null;
+  reservation_token: string | null;
+  expires_at: string | null;
+  instructor_name: string | null;
+  total: number | null;
+  currency: string;
+}
+
 const Buchung = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<Step>(1);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
@@ -209,6 +285,74 @@ const Buchung = () => {
     );
     setProductId((hinted ?? availableProducts[0]).id);
   }, [availableProducts, productId, courseKey]);
+
+  const courseMode = courseModeFor(productType, selectedProduct);
+
+  // Verfügbarkeitszeitraum: angezeigter Monat (+ Puffer für Kurswochen).
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+  const rangeFrom = useMemo(() => {
+    const d = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const today = new Date();
+    return toISO(d < today ? today : d);
+  }, [calendarMonth]);
+  const rangeTo = useMemo(
+    () => toISO(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 7)),
+    [calendarMonth],
+  );
+
+  const {
+    byDate: availability,
+    loading: availabilityLoading,
+    error: availabilityError,
+    refetch: refetchAvailability,
+  } = useYetiAvailability({
+    productId,
+    productType,
+    sport,
+    durationMinutes: productType === "private" ? Number(duration) : undefined,
+    participantCount,
+    from: rangeFrom,
+    to: rangeTo,
+    enabled: Boolean(productId),
+  });
+
+  const hasAvailabilityData = Object.keys(availability).length > 0;
+
+  /** Ist ein Tag nach Kursregeln + YETI-Verfügbarkeit buchbar? */
+  const isDayBookable = (iso: string): boolean => {
+    const dow = weekdayOf(iso);
+    if (courseMode === "saturday" && dow !== 6) return false;
+    if (courseMode === "week" && (dow === 0 || dow === 6)) return false;
+    if (courseMode === "private" && dow === 0) return false;
+    if (!hasAvailabilityData) return true; // YETI nicht erreichbar -> nicht blockieren
+    if (courseMode === "week") {
+      const monday = mondayOf(iso);
+      if (iso !== monday) return false;
+      return [0, 1, 2, 3, 4].every((i) => {
+        const day = availability[addDays(monday, i)];
+        return day ? dayHasCapacity(day) : true;
+      });
+    }
+    const day = availability[iso];
+    return day ? dayHasCapacity(day) : true;
+  };
+
+  const slotsFor = (iso: string) =>
+    (availability[iso]?.slots ?? []).filter((s) => s.free_instructors > 0);
+
+  // Reservierung
+  const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [reserving, setReserving] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!reservation?.expires_at) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [reservation?.expires_at]);
+  const remainingMs = reservation?.expires_at
+    ? new Date(reservation.expires_at).getTime() - now
+    : 0;
+  const reservationExpired = Boolean(reservation?.expires_at) && remainingMs <= 0;
 
 
   useEffect(() => {
@@ -260,6 +404,42 @@ const Buchung = () => {
     }));
   };
 
+  /** Datumsauswahl inkl. Kursregeln (Gruppenkurs = ganze Woche Mo–Fr). */
+  const pickDate = (idx: number, iso: string) => {
+    if (courseMode === "week") {
+      const monday = mondayOf(iso);
+      const week: DateSlot[] = [0, 1, 2, 3, 4].map((i) => {
+        const date = addDays(monday, i);
+        const slot = firstSlot(availability[date]);
+        return {
+          date,
+          start_time: slot?.start ?? "10:00",
+          end_time: slot?.end ?? "12:00",
+        };
+      });
+      setDates(week);
+      return;
+    }
+    if (courseMode === "saturday") {
+      const slot = firstSlot(availability[iso]);
+      updateDate(idx, {
+        date: iso,
+        start_time: slot?.start ?? "10:00",
+        end_time: slot?.end ?? "12:00",
+      });
+      return;
+    }
+    const slots = slotsFor(iso);
+    const current = dates[idx];
+    const keep = slots.find((s) => s.start === current?.start_time);
+    const slot = keep ?? slots[0];
+    updateDate(idx, {
+      date: iso,
+      start_time: slot?.start ?? current?.start_time ?? "10:00",
+      end_time: slot?.end ?? computeEnd(slot?.start ?? current?.start_time ?? "10:00", duration),
+    });
+  };
+
   const addDate = () => setDates([...dates, { date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
   const removeDate = (idx: number) => setDates(dates.filter((_, i) => i !== idx));
 
@@ -280,10 +460,32 @@ const Buchung = () => {
     [selectedProduct, dates.length, hoursPerDay, participantCount],
   );
 
+  // Produkt-/Kursartwechsel: Termine zurücksetzen, damit keine ungültigen Tage bleiben.
+  useEffect(() => {
+    setDates([{ date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
+    setReservation(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseMode, productId]);
 
   const validateStep1 = () => {
+    if (!productId) {
+      toast({ title: "Kurs wählen", description: "Bitte einen Kurs auswählen.", variant: "destructive" });
+      return false;
+    }
     if (dates.some((d) => !isISODate(d.date) || d.date < todayISO())) {
       toast({ title: "Ungültiges Datum", description: "Bitte ein gültiges, zukünftiges Datum wählen.", variant: "destructive" });
+      return false;
+    }
+    if (courseMode === "saturday" && dates.some((d) => weekdayOf(d.date) !== 6)) {
+      toast({ title: "Nur Samstage", description: "Samstagskurse sind ausschliesslich an Samstagen buchbar.", variant: "destructive" });
+      return false;
+    }
+    if (courseMode === "week" && dates.some((d) => weekdayOf(d.date) === 0 || weekdayOf(d.date) === 6)) {
+      toast({ title: "Nur Montag–Freitag", description: "Gruppenkurse finden von Montag bis Freitag statt.", variant: "destructive" });
+      return false;
+    }
+    if (hasAvailabilityData && dates.some((d) => availability[d.date] && !dayHasCapacity(availability[d.date]))) {
+      toast({ title: "Termin nicht verfügbar", description: "Für diesen Termin sind keine Skilehrer mehr frei.", variant: "destructive" });
       return false;
     }
     if (productType === "private") {
@@ -291,6 +493,11 @@ const Buchung = () => {
         toast({ title: "Ungültige Zeit", description: "Zeiten zwischen 09:00 und 16:00, Ende nach Start.", variant: "destructive" });
         return false;
       }
+    }
+    const unique = new Set(dates.map((d) => d.date));
+    if (unique.size !== dates.length) {
+      toast({ title: "Doppelter Termin", description: "Bitte jeden Tag nur einmal wählen.", variant: "destructive" });
+      return false;
     }
     return true;
   };
@@ -314,6 +521,10 @@ const Buchung = () => {
       toast({ title: "Kontaktdaten unvollständig", description: "Bitte alle Pflichtfelder ausfüllen.", variant: "destructive" });
       return false;
     }
+    return true;
+  };
+
+  const validateStep4 = () => {
     if (!agb || !privacy) {
       toast({ title: "Einwilligung fehlt", description: "Bitte AGB und Datenschutz akzeptieren.", variant: "destructive" });
       return false;
@@ -321,63 +532,138 @@ const Buchung = () => {
     return true;
   };
 
-  const next = () => {
-    if (step === 1 && !validateStep1()) return;
-    if (step === 2 && !validateStep2()) return;
-    setStep((s) => (s + 1) as 1 | 2 | 3);
+  const buildReservePayload = () => ({
+    submission_id: crypto.randomUUID(),
+    customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
+    participants: participants.map((p) => ({
+      first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
+      discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
+    })),
+    booking: {
+      product_id: productId || undefined,
+      product_type: productType,
+      sport,
+      dates,
+      participant_count: participantCount,
+      duration_minutes: productType === "private" ? Number(duration) : undefined,
+      notes: notes || undefined,
+    },
+    consent: {
+      agb_accepted: true as const, agb_version: AGB_VERSION,
+      privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
+    },
+  });
+
+  /** Provisorische Reservierung in YETI (Skilehrer + Zeitfenster für 15 Min. gesperrt). */
+  const reserve = async (): Promise<boolean> => {
+    setReserving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("yeti-reserve", {
+        body: buildReservePayload(),
+      });
+      if (error) throw error;
+      if (!data?.success) {
+        if (data?.conflict) refetchAvailability();
+        toast({
+          title: data?.conflict ? "Termin inzwischen vergeben" : "Reservierung fehlgeschlagen",
+          description: data?.message ?? "Bitte versuche es in 1–2 Minuten erneut.",
+          variant: "destructive",
+        });
+        if (data?.conflict) setStep(1);
+        return false;
+      }
+      setReservation({
+        ticket_id: data.ticket_id ?? null,
+        ticket_number: data.ticket_number ?? null,
+        reservation_token: data.reservation_token ?? null,
+        expires_at: data.reservation_expires_at ?? null,
+        instructor_name: data.instructor?.name ?? null,
+        total: typeof data.price?.total === "number" ? data.price.total : null,
+        currency: data.price?.currency ?? selectedProduct?.currency ?? "CHF",
+      });
+      setNow(Date.now());
+      return true;
+    } catch (err) {
+      console.error("yeti-reserve failed:", err);
+      toast({
+        title: "Reservierung fehlgeschlagen",
+        description: "Bitte versuche es in 1–2 Minuten erneut.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setReserving(false);
+    }
   };
 
+  const next = async () => {
+    if (step === 1 && !validateStep1()) return;
+    if (step === 2 && !validateStep2()) return;
+    if (step === 3) {
+      if (!validateStep3()) return;
+      const ok = await reserve();
+      if (!ok) return;
+    }
+    setStep((s) => Math.min(4, s + 1) as Step);
+  };
+
+
+  const isInvoice = paymentMethod === "ueberweisung" || paymentMethod === "postfinance";
+
+  /** Reservierung in eine Buchung umwandeln (Onlinezahlung oder Rechnung). */
   const submit = async () => {
     if (submittingRef.current) return;
-    if (!validateStep1() || !validateStep2() || !validateStep3()) return;
+    if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) return;
+    if (!reservation?.ticket_id || !reservation.reservation_token) {
+      toast({ title: "Keine Reservierung", description: "Bitte den Termin erneut reservieren.", variant: "destructive" });
+      setStep(1);
+      return;
+    }
+    if (reservationExpired) {
+      toast({ title: "Reservierung abgelaufen", description: "Bitte wähle den Termin erneut.", variant: "destructive" });
+      setReservation(null);
+      refetchAvailability();
+      setStep(1);
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     let submittedSuccessfully = false;
     try {
-      const payload = {
-        submission_id: crypto.randomUUID(),
-        source: "website" as const,
-        customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
-        participants: participants.map((p) => ({
-          first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
-          discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
-        })),
-        booking: {
-          product_type: productType, sport, dates,
-          product_id: productId || undefined,
-          product_name: selectedProduct?.name,
-          expected_total: total,
-          currency: selectedProduct?.currency ?? "CHF",
-          participant_count: participantCount,
-          notes: notes || undefined,
-          payment_method: paymentMethod,
+      const { data, error } = await supabase.functions.invoke("yeti-confirm", {
+        body: {
+          ticket_id: reservation.ticket_id,
+          reservation_token: reservation.reservation_token,
+          payment_method: isInvoice ? "invoice" : "online",
         },
-
-        consent: {
-          agb_accepted: true as const, agb_version: AGB_VERSION,
-          privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
-        },
-      };
-
-      const { data, error } = await supabase.functions.invoke("submit-booking", { body: payload });
+      });
       if (error) throw error;
-      if (data?.fallback || data?.success === false) {
-        throw new Error(data?.message || "Booking submission failed");
+      if (!data?.success) {
+        if (data?.expired) {
+          setReservation(null);
+          refetchAvailability();
+          setStep(1);
+        }
+        throw new Error(data?.message || "Booking confirmation failed");
       }
 
       toast({
-        title: "Buchung erfolgreich!",
-        description: data?.ticket_number
-          ? `Ticket-Nr. ${data.ticket_number}. Bestätigung folgt per E-Mail.`
-          : "Die Buchung wurde übertragen. Bestätigung folgt per E-Mail.",
+        title: isInvoice ? "Buchung bestätigt – Rechnung folgt" : "Buchung bestätigt!",
+        description: [
+          data.ticket_number ? `Ticket-Nr. ${data.ticket_number}` : null,
+          data.customer_number ? `Kundennummer ${data.customer_number}` : null,
+          data.invoice_number ? `Rechnung ${data.invoice_number}` : null,
+        ].filter(Boolean).join(" · ") || "Bestätigung folgt per E-Mail.",
       });
       submittedSuccessfully = true;
-      setTimeout(() => navigate("/"), 2500);
+      setTimeout(() => navigate("/"), 3500);
     } catch (err: any) {
-      console.error("Booking submit error:", err);
+      console.error("Booking confirm error:", err);
       toast({
         title: "Buchung fehlgeschlagen",
-        description: "Die Buchung konnte gerade nicht übertragen werden. Bitte versuche es in 1–2 Minuten erneut.",
+        description: err?.message?.startsWith("Die Reservierung")
+          ? err.message
+          : "Die Buchung konnte gerade nicht abgeschlossen werden. Bitte versuche es innerhalb der Reservierungszeit erneut.",
         variant: "destructive",
       });
     } finally {
@@ -388,6 +674,7 @@ const Buchung = () => {
     }
   };
 
+
   return (
     <div className="min-h-screen bg-background">
       <div className="bg-primary py-6 sm:py-8 border-b">
@@ -396,14 +683,14 @@ const Buchung = () => {
             <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
           </Button>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-1 sm:mb-2">Kurs buchen</h1>
-          <p className="text-white/90 text-base sm:text-lg">Schritt {step} von 3</p>
+          <p className="text-white/90 text-base sm:text-lg">Schritt {step} von 4</p>
         </div>
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6 sm:mb-8 max-w-2xl mx-auto">
-            {[{ n: 1, label: "Kurs" }, { n: 2, label: "Teilnehmer" }, { n: 3, label: "Kontakt & Zahlung" }].map((s, i) => (
+            {[{ n: 1, label: "Kurs & Termin" }, { n: 2, label: "Teilnehmer" }, { n: 3, label: "Kontakt" }, { n: 4, label: "Zahlung" }].map((s, i) => (
               <div key={s.n} className="flex items-center flex-1">
                 <div className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full font-bold text-sm sm:text-base shrink-0 ${step >= s.n ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
                   {step > s.n ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : s.n}
@@ -411,10 +698,11 @@ const Buchung = () => {
                 <div className="ml-3 hidden sm:block">
                   <div className={`text-sm font-semibold ${step >= s.n ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</div>
                 </div>
-                {i < 2 && <div className={`flex-1 h-0.5 mx-2 sm:mx-3 ${step > s.n ? "bg-primary" : "bg-muted"}`} />}
+                {i < 3 && <div className={`flex-1 h-0.5 mx-2 sm:mx-3 ${step > s.n ? "bg-primary" : "bg-muted"}`} />}
               </div>
             ))}
           </div>
+
 
           <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
             <div className="lg:col-span-2 space-y-6">
@@ -522,42 +810,94 @@ const Buchung = () => {
                     )}
 
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label>{productType === "group" ? "Startdatum (Mo der Kurswoche)" : "Termine"}</Label>
-                        {productType === "private" && (
+                      <div className="flex items-center justify-between gap-2">
+                        <Label>
+                          {courseMode === "week"
+                            ? "Kurswoche (Montag wählen – Mo–Fr wird übernommen)"
+                            : courseMode === "saturday"
+                              ? "Samstage wählen"
+                              : "Termine"}
+                        </Label>
+                        {courseMode !== "week" && (
                           <Button type="button" size="sm" variant="outline" onClick={addDate}>
                             <Plus className="w-4 h-4 mr-1" /> Termin hinzufügen
                           </Button>
                         )}
                       </div>
+
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {availabilityLoading ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Verfügbarkeit wird geladen…</>
+                        ) : availabilityError ? (
+                          <><AlertTriangle className="w-3.5 h-3.5 text-destructive" /> {availabilityError}</>
+                        ) : (
+                          <><Check className="w-3.5 h-3.5 text-primary" /> Nur freie Tage sind auswählbar (Zeiten Europe/Zurich)</>
+                        )}
+                      </div>
+
                       {dates.map((d, idx) => (
                         <div
                           key={idx}
                           className={cn(
                             "grid grid-cols-1 gap-2 items-end p-3 border rounded-lg",
-                            productType === "private" && "md:grid-cols-[1fr_auto_auto_auto]"
+                            courseMode === "private" && "md:grid-cols-[1fr_1fr_auto]"
                           )}
                         >
                           <div className="space-y-1">
-                            <Label className="text-xs">Datum</Label>
-                            <DateField
-                              value={d.date}
-                              onChange={(v) => updateDate(idx, { date: v })}
-                              minDate={new Date()}
-                              fromYear={new Date().getFullYear()}
-                              toYear={new Date().getFullYear() + 2}
-                              placeholder="Datum wählen"
-                            />
+                            <Label className="text-xs">{courseMode === "week" ? (idx === 0 ? "Kursstart (Montag)" : "Kurstag") : "Datum"}</Label>
+                            {courseMode === "week" && idx > 0 ? (
+                              <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm">
+                                {zurichLabel(d.date)}
+                              </div>
+                            ) : (
+                              <DateField
+                                value={d.date}
+                                onChange={(v) => pickDate(idx, v)}
+                                minDate={new Date()}
+                                month={calendarMonth}
+                                onMonthChange={setCalendarMonth}
+                                isDisabledDay={(iso) => !isDayBookable(iso)}
+                                fromYear={new Date().getFullYear()}
+                                toYear={new Date().getFullYear() + 2}
+                                placeholder={courseMode === "saturday" ? "Samstag wählen" : "Datum wählen"}
+                                footer={
+                                  availabilityLoading
+                                    ? "Verfügbarkeit wird geladen…"
+                                    : courseMode === "week"
+                                      ? "Gruppenkurse starten montags und laufen bis Freitag."
+                                      : courseMode === "saturday"
+                                        ? "Nur Samstage sind buchbar."
+                                        : "Ausgegraute Tage sind ausgebucht."
+                                }
+                              />
+                            )}
                           </div>
-                          {productType === "private" && (
+                          {courseMode === "private" && (
                             <>
                               <div className="space-y-1">
-                                <Label className="text-xs">Start</Label>
-                                <Input type="time" value={d.start_time} min="09:00" max="16:00" onChange={(e) => updateDate(idx, { start_time: e.target.value })} />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Ende</Label>
-                                <Input type="time" value={d.end_time} min="09:00" max="16:00" readOnly onChange={(e) => updateDate(idx, { end_time: e.target.value })} />
+                                <Label className="text-xs">Zeitfenster</Label>
+                                <Select
+                                  value={d.start_time}
+                                  onValueChange={(v) => {
+                                    const slot = slotsFor(d.date).find((s) => s.start === v);
+                                    updateDate(idx, { start_time: v, end_time: slot?.end ?? computeEnd(v, duration) });
+                                  }}
+                                  disabled={!d.date || slotsFor(d.date).length === 0}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={d.date ? "Zeit wählen" : "Zuerst Datum wählen"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {slotsFor(d.date).map((s) => (
+                                      <SelectItem key={s.start} value={s.start}>
+                                        {s.start}–{s.end} · {s.free_instructors} frei
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {d.date && slotsFor(d.date).length === 0 && (
+                                  <p className="text-xs text-muted-foreground">{d.start_time}–{d.end_time}</p>
+                                )}
                               </div>
                               {dates.length > 1 && (
                                 <Button type="button" size="icon" variant="ghost" onClick={() => removeDate(idx)}>
@@ -566,9 +906,15 @@ const Buchung = () => {
                               )}
                             </>
                           )}
+                          {courseMode === "saturday" && dates.length > 1 && (
+                            <Button type="button" size="sm" variant="ghost" className="justify-self-start" onClick={() => removeDate(idx)}>
+                              <Trash2 className="w-4 h-4 text-destructive mr-1" /> Entfernen
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
+
 
                     <div className="space-y-2">
                       <Label htmlFor="notes">Bemerkungen (optional)</Label>
@@ -705,11 +1051,54 @@ const Buchung = () => {
                       </div>
                     </CardContent>
                   </Card>
+                </>
+              )}
+
+              {step === 4 && (
+                <>
+                  <Card className={cn("border-2", reservationExpired ? "border-destructive/60" : "border-primary/40")}>
+                    <CardHeader className="border-b bg-muted/30">
+                      <CardTitle className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-primary" />
+                        {reservationExpired ? "Reservierung abgelaufen" : "Termin provisorisch reserviert"}
+                      </CardTitle>
+                      <CardDescription>
+                        {reservationExpired
+                          ? "Bitte wähle den Termin erneut – Skilehrer und Zeiten sind wieder freigegeben."
+                          : "Der Skilehrer und die Zeiten sind für dich gesperrt. Bitte schliesse die Buchung innerhalb der angezeigten Zeit ab."}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-2 text-sm">
+                      {reservation?.expires_at && !reservationExpired && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Reserviert noch:</span>
+                          <span className="font-bold text-primary text-lg">{formatCountdown(remainingMs)}</span>
+                        </div>
+                      )}
+                      {reservation?.ticket_number && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Ticket-Nr.:</span>
+                          <span className="font-semibold">{reservation.ticket_number}</span>
+                        </div>
+                      )}
+                      {reservation?.instructor_name && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Skilehrer:in:</span>
+                          <span className="font-semibold">{reservation.instructor_name}</span>
+                        </div>
+                      )}
+                      {reservationExpired && (
+                        <Button type="button" variant="outline" onClick={() => { setReservation(null); refetchAvailability(); setStep(1); }}>
+                          Termin neu wählen
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
 
                   <Card>
                     <CardHeader className="border-b bg-muted/30">
-                      <CardTitle>Zahlungsmethode</CardTitle>
-                      <CardDescription>Wir kontaktieren Sie zur Bezahlung – noch kein direkter Charge.</CardDescription>
+                      <CardTitle>Zahlungsart</CardTitle>
+                      <CardDescription>Onlinezahlung oder Zahlung auf Rechnung.</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-3">
                       <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="space-y-2">
@@ -726,14 +1115,19 @@ const Buchung = () => {
                         <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "ueberweisung" ? "border-primary bg-primary/5" : "border-border"}`}>
                           <RadioGroupItem value="ueberweisung" id="pm-bank" />
                           <Building2 className="w-5 h-5 text-muted-foreground" />
-                          <Label htmlFor="pm-bank" className="flex-1 cursor-pointer font-semibold">Banküberweisung (Rechnung)</Label>
+                          <Label htmlFor="pm-bank" className="flex-1 cursor-pointer font-semibold">Rechnung (Banküberweisung)</Label>
                         </div>
                         <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "postfinance" ? "border-primary bg-primary/5" : "border-border"}`}>
                           <RadioGroupItem value="postfinance" id="pm-pf" />
                           <Building2 className="w-5 h-5 text-[#FFCC00]" />
-                          <Label htmlFor="pm-pf" className="flex-1 cursor-pointer font-semibold">PostFinance</Label>
+                          <Label htmlFor="pm-pf" className="flex-1 cursor-pointer font-semibold">Rechnung (PostFinance)</Label>
                         </div>
                       </RadioGroup>
+                      <p className="text-xs text-muted-foreground">
+                        {isInvoice
+                          ? "Du erhältst Buchungsbestätigung und Rechnung mit Zahlungsfrist per E-Mail."
+                          : "Die Onlinezahlung wird aktuell manuell abgewickelt – wir melden uns mit dem Zahlungslink. Die Buchung bleibt bis zur Zahlung als offen markiert."}
+                      </p>
                     </CardContent>
                   </Card>
 
@@ -744,11 +1138,11 @@ const Buchung = () => {
                     <CardContent className="pt-6 space-y-3">
                       <label className="flex items-start gap-3 cursor-pointer">
                         <Checkbox checked={agb} onCheckedChange={(c) => setAgb(c === true)} className="mt-1" />
-                        <span className="text-sm">Ich akzeptiere die <a href="#" className="underline text-primary">AGB</a> (Version {AGB_VERSION}). *</span>
+                        <span className="text-sm">Ich akzeptiere die <a href="/agb" className="underline text-primary">AGB</a> (Version {AGB_VERSION}). *</span>
                       </label>
                       <label className="flex items-start gap-3 cursor-pointer">
                         <Checkbox checked={privacy} onCheckedChange={(c) => setPrivacy(c === true)} className="mt-1" />
-                        <span className="text-sm">Ich akzeptiere die <a href="#" className="underline text-primary">Datenschutzerklärung</a> (Version {PRIVACY_VERSION}). *</span>
+                        <span className="text-sm">Ich akzeptiere die <a href="/datenschutz" className="underline text-primary">Datenschutzerklärung</a> (Version {PRIVACY_VERSION}). *</span>
                       </label>
                     </CardContent>
                   </Card>
@@ -756,17 +1150,24 @@ const Buchung = () => {
               )}
 
               <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(1, s - 1) as 1 | 2 | 3)} disabled={step === 1}>
+                <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(1, s - 1) as Step)} disabled={step === 1 || reserving || submitting}>
                   <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
                 </Button>
-                {step < 3 ? (
-                  <Button type="button" onClick={next}>Weiter <ArrowRight className="w-4 h-4 ml-2" /></Button>
+                {step < 4 ? (
+                  <Button type="button" onClick={next} disabled={reserving}>
+                    {reserving ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Termin wird reserviert…</>
+                    ) : (
+                      <>Weiter <ArrowRight className="w-4 h-4 ml-2" /></>
+                    )}
+                  </Button>
                 ) : (
-                  <Button type="button" onClick={submit} disabled={submitting} size="lg">
-                    {submitting ? "Wird gesendet..." : "Buchung absenden"}
+                  <Button type="button" onClick={submit} disabled={submitting || reservationExpired} size="lg">
+                    {submitting ? "Wird gesendet..." : isInvoice ? "Buchen & Rechnung erhalten" : "Buchung abschliessen"}
                   </Button>
                 )}
               </div>
+
             </div>
 
             <div className="lg:col-span-1">
@@ -779,20 +1180,38 @@ const Buchung = () => {
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Sport:</span><span className="font-semibold capitalize">{sport}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Teilnehmer:</span><span className="font-semibold">{participantCount}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Termine:</span><span className="font-semibold">{dates.length}</span></div>
+                  {dates.filter((d) => d.date).length > 0 && (
+                    <div className="rounded-lg border bg-muted/30 p-2 space-y-1">
+                      {dates.filter((d) => d.date).map((d, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">{zurichLabel(d.date)}</span>
+                          <span className="font-medium">{d.start_time}–{d.end_time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {productType === "private" && (
                     <div className="flex justify-between text-sm"><span className="text-muted-foreground">Dauer/Termin:</span><span className="font-semibold">{duration === "55" ? "55 Min." : "115 Min."}</span></div>
                   )}
                   {selectedProduct && (
                     <div className="flex justify-between text-sm"><span className="text-muted-foreground">Preisbasis:</span><span className="font-semibold">{priceBasisLabel(selectedProduct)}</span></div>
                   )}
+                  {reservation?.instructor_name && (
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Skilehrer:in:</span><span className="font-semibold">{reservation.instructor_name}</span></div>
+                  )}
                   <Separator />
                   <div className="flex justify-between items-center pt-2">
                     <span className="font-bold">Total</span>
                     <span className="text-2xl font-bold text-primary">
-                      {productsLoading ? "…" : `${selectedProduct?.currency ?? "CHF"} ${total}.–`}
+                      {productsLoading ? "…" : `${reservation?.currency ?? selectedProduct?.currency ?? "CHF"} ${reservation?.total ?? total}.–`}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Preise gemäss aktuellem Kursangebot. Verbindlich bestätigt wird der Preis bei der Buchung.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {reservation?.total != null
+                      ? "Verbindlicher Preis, serverseitig berechnet."
+                      : "Preise gemäss aktuellem Kursangebot. Verbindlich bestätigt wird der Preis bei der Reservierung."}
+                  </p>
+
 
                   <div className="space-y-2 pt-2 text-xs text-muted-foreground">
                     <p className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" /> Sofortige Bestätigung per E-Mail</p>
