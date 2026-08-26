@@ -608,57 +608,62 @@ const Buchung = () => {
   };
 
 
+  const isInvoice = paymentMethod === "ueberweisung" || paymentMethod === "postfinance";
+
+  /** Reservierung in eine Buchung umwandeln (Onlinezahlung oder Rechnung). */
   const submit = async () => {
     if (submittingRef.current) return;
-    if (!validateStep1() || !validateStep2() || !validateStep3()) return;
+    if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) return;
+    if (!reservation?.ticket_id || !reservation.reservation_token) {
+      toast({ title: "Keine Reservierung", description: "Bitte den Termin erneut reservieren.", variant: "destructive" });
+      setStep(1);
+      return;
+    }
+    if (reservationExpired) {
+      toast({ title: "Reservierung abgelaufen", description: "Bitte wähle den Termin erneut.", variant: "destructive" });
+      setReservation(null);
+      refetchAvailability();
+      setStep(1);
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     let submittedSuccessfully = false;
     try {
-      const payload = {
-        submission_id: crypto.randomUUID(),
-        source: "website" as const,
-        customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
-        participants: participants.map((p) => ({
-          first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
-          discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
-        })),
-        booking: {
-          product_type: productType, sport, dates,
-          product_id: productId || undefined,
-          product_name: selectedProduct?.name,
-          expected_total: total,
-          currency: selectedProduct?.currency ?? "CHF",
-          participant_count: participantCount,
-          notes: notes || undefined,
-          payment_method: paymentMethod,
+      const { data, error } = await supabase.functions.invoke("yeti-confirm", {
+        body: {
+          ticket_id: reservation.ticket_id,
+          reservation_token: reservation.reservation_token,
+          payment_method: isInvoice ? "invoice" : "online",
         },
-
-        consent: {
-          agb_accepted: true as const, agb_version: AGB_VERSION,
-          privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
-        },
-      };
-
-      const { data, error } = await supabase.functions.invoke("submit-booking", { body: payload });
+      });
       if (error) throw error;
-      if (data?.fallback || data?.success === false) {
-        throw new Error(data?.message || "Booking submission failed");
+      if (!data?.success) {
+        if (data?.expired) {
+          setReservation(null);
+          refetchAvailability();
+          setStep(1);
+        }
+        throw new Error(data?.message || "Booking confirmation failed");
       }
 
       toast({
-        title: "Buchung erfolgreich!",
-        description: data?.ticket_number
-          ? `Ticket-Nr. ${data.ticket_number}. Bestätigung folgt per E-Mail.`
-          : "Die Buchung wurde übertragen. Bestätigung folgt per E-Mail.",
+        title: isInvoice ? "Buchung bestätigt – Rechnung folgt" : "Buchung bestätigt!",
+        description: [
+          data.ticket_number ? `Ticket-Nr. ${data.ticket_number}` : null,
+          data.customer_number ? `Kundennummer ${data.customer_number}` : null,
+          data.invoice_number ? `Rechnung ${data.invoice_number}` : null,
+        ].filter(Boolean).join(" · ") || "Bestätigung folgt per E-Mail.",
       });
       submittedSuccessfully = true;
-      setTimeout(() => navigate("/"), 2500);
+      setTimeout(() => navigate("/"), 3500);
     } catch (err: any) {
-      console.error("Booking submit error:", err);
+      console.error("Booking confirm error:", err);
       toast({
         title: "Buchung fehlgeschlagen",
-        description: "Die Buchung konnte gerade nicht übertragen werden. Bitte versuche es in 1–2 Minuten erneut.",
+        description: err?.message?.startsWith("Die Reservierung")
+          ? err.message
+          : "Die Buchung konnte gerade nicht abgeschlossen werden. Bitte versuche es innerhalb der Reservierungszeit erneut.",
         variant: "destructive",
       });
     } finally {
@@ -668,6 +673,7 @@ const Buchung = () => {
       }
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background">
