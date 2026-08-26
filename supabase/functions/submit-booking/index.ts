@@ -129,11 +129,56 @@ Deno.serve(async (req) => {
   const userAgent = req.headers.get('user-agent') ?? undefined;
   const acceptedAt = new Date().toISOString();
 
+  // Verbindlichen Preis serverseitig aus YETI berechnen (Browser-Angaben werden ignoriert).
+  let serverTotal: number | null = null;
+  let serverCurrency = 'CHF';
+  if (data.booking.product_id) {
+    const productsRes = await callYeti('get-products');
+    const product = Array.isArray(productsRes.json?.products)
+      ? productsRes.json.products.find((p: any) => p.id === data.booking.product_id)
+      : undefined;
+    if (product) {
+      serverCurrency = product.currency ?? 'CHF';
+      const days = data.booking.dates.length;
+      const participants = data.booking.participant_count;
+      if (product.pricing_type === 'hourly') {
+        const minutes = data.booking.dates.reduce((sum: number, d: any) => {
+          const [sh, sm] = d.start_time.split(':').map(Number);
+          const [eh, em] = d.end_time.split(':').map(Number);
+          return sum + (eh * 60 + em - (sh * 60 + sm));
+        }, 0);
+        serverTotal = Math.round(product.price * (minutes / 60) * 100) / 100;
+      } else if (product.pricing_type === 'tiered') {
+        const tiers = [...(product.price_tiers ?? [])].sort(
+          (a: any, b: any) => a.day_count - b.day_count,
+        );
+        const match = tiers.filter((t: any) => t.day_count <= days).pop() ?? tiers[0];
+        if (match) {
+          const extra = Math.max(0, days - match.day_count);
+          const lastStep =
+            tiers.length > 1
+              ? tiers[tiers.length - 1].cumulative_price - tiers[tiers.length - 2].cumulative_price
+              : match.cumulative_price;
+          serverTotal = (match.cumulative_price + extra * lastStep) * participants;
+        }
+      } else {
+        serverTotal = product.price * participants;
+      }
+    } else {
+      console.warn('Product not found in YETI:', data.booking.product_id);
+    }
+  }
+
+  const { expected_total: _clientTotal, currency: _clientCurrency, ...bookingForYeti } = data.booking;
+
   const yetiPayload = {
     source: data.source,
     customer: data.customer,
     participants: data.participants,
-    booking: data.booking,
+    booking: {
+      ...bookingForYeti,
+      ...(serverTotal !== null ? { total_price: serverTotal, currency: serverCurrency } : {}),
+    },
     consent: {
       agb_accepted: true,
       agb_version: data.consent.agb_version,
@@ -167,7 +212,12 @@ Deno.serve(async (req) => {
       },
       status: 'pending',
       customer_email: data.customer.email,
+      product_id: data.booking.product_id ?? null,
+      total_price: serverTotal,
+      currency: serverCurrency,
+      payment_method: data.booking.payment_method ?? null,
     })
+
     .select('id')
     .single();
 
