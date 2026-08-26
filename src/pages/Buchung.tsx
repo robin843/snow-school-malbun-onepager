@@ -433,17 +433,48 @@ const Buchung = () => {
                           <span className="font-semibold block">Privatkurs</span>
                           <span className="text-sm text-muted-foreground">1–5 Personen, individuelle Termine</span>
                         </Label>
-                        <span className="font-bold text-primary">ab CHF 75.–</span>
+                        <span className="font-bold text-primary whitespace-nowrap">
+                          {productFromPrice(privateProducts) !== null ? `ab CHF ${productFromPrice(privateProducts)}.–` : "–"}
+                        </span>
                       </div>
                       <div className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer ${productType === "group" ? "border-primary bg-primary/5" : "border-border"}`}>
                         <RadioGroupItem value="group" id="p-group" />
                         <Label htmlFor="p-group" className="flex-1 cursor-pointer">
                           <span className="font-semibold block">Gruppenkurs</span>
-                          <span className="text-sm text-muted-foreground">5-Tage-Wochenblock</span>
+                          <span className="text-sm text-muted-foreground">Kurstage Montag–Freitag oder Samstagskurs</span>
                         </Label>
-                        <span className="font-bold text-primary">CHF 320.–</span>
+                        <span className="font-bold text-primary whitespace-nowrap">
+                          {productFromPrice(groupProducts) !== null ? `ab CHF ${productFromPrice(groupProducts)}.–` : "–"}
+                        </span>
                       </div>
                     </RadioGroup>
+
+                    <div className="space-y-2">
+                      <Label>Kurs</Label>
+                      <Select value={productId} onValueChange={setProductId} disabled={productsLoading || availableProducts.length === 0}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={productsLoading ? "Kurse werden geladen…" : "Kurs wählen"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableProducts.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} — {priceBasisLabel(p)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {productsError && <p className="text-xs text-destructive">{productsError}</p>}
+                      {selectedProduct?.description && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
+                      )}
+                      {selectedProduct && (selectedProduct.min_age || selectedProduct.max_age) && (
+                        <p className="text-xs text-muted-foreground">
+                          Alter: {selectedProduct.min_age ?? "–"}
+                          {selectedProduct.max_age ? `–${selectedProduct.max_age}` : "+"} Jahre
+                        </p>
+                      )}
+                    </div>
+
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
