@@ -16,46 +16,82 @@ export type Database = {
     Tables: {
       submitted_bookings: {
         Row: {
+          booking_status: string
           created_at: string
+          currency: string
           customer_email: string | null
+          customer_number: string | null
           error_message: string | null
           id: string
           idempotency_key: string
+          instructor_id: string | null
+          invoice_due_date: string | null
+          invoice_number: string | null
           payload: Json
+          payment_method: string | null
+          payment_status: string
+          product_id: string | null
+          reservation_expires_at: string | null
           retry_count: number
           status: string
+          total_price: number | null
           updated_at: string
           yeti_customer_id: string | null
+          yeti_reservation_token: string | null
           yeti_response: Json | null
           yeti_ticket_id: string | null
           yeti_ticket_number: string | null
         }
         Insert: {
+          booking_status?: string
           created_at?: string
+          currency?: string
           customer_email?: string | null
+          customer_number?: string | null
           error_message?: string | null
           id?: string
           idempotency_key: string
+          instructor_id?: string | null
+          invoice_due_date?: string | null
+          invoice_number?: string | null
           payload: Json
+          payment_method?: string | null
+          payment_status?: string
+          product_id?: string | null
+          reservation_expires_at?: string | null
           retry_count?: number
           status?: string
+          total_price?: number | null
           updated_at?: string
           yeti_customer_id?: string | null
+          yeti_reservation_token?: string | null
           yeti_response?: Json | null
           yeti_ticket_id?: string | null
           yeti_ticket_number?: string | null
         }
         Update: {
+          booking_status?: string
           created_at?: string
+          currency?: string
           customer_email?: string | null
+          customer_number?: string | null
           error_message?: string | null
           id?: string
           idempotency_key?: string
+          instructor_id?: string | null
+          invoice_due_date?: string | null
+          invoice_number?: string | null
           payload?: Json
+          payment_method?: string | null
+          payment_status?: string
+          product_id?: string | null
+          reservation_expires_at?: string | null
           retry_count?: number
           status?: string
+          total_price?: number | null
           updated_at?: string
           yeti_customer_id?: string | null
+          yeti_reservation_token?: string | null
           yeti_response?: Json | null
           yeti_ticket_id?: string | null
           yeti_ticket_number?: string | null
