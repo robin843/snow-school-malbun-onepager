@@ -96,6 +96,15 @@ const productFromPrice = (list: YetiProduct[]) => {
 };
 
 
+/** Kursregeln: Privatkurs (frei), Gruppenkurs Mo–Fr als Block, Samstagskurs nur Samstage. */
+type CourseMode = "private" | "week" | "saturday";
+
+const courseModeFor = (productType: ProductType, product?: YetiProduct): CourseMode => {
+  if (productType === "private") return "private";
+  if (product && /samstag/i.test(product.name)) return "saturday";
+  return "week";
+};
+
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const isISODate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -105,6 +114,35 @@ const isISODate = (value: string) => {
 
 const toISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const addDays = (iso: string, n: number) => {
+  const d = parseISO(iso);
+  d.setDate(d.getDate() + n);
+  return toISO(d);
+};
+
+/** Montag der Woche, in welcher das Datum liegt. */
+const mondayOf = (iso: string) => {
+  const d = parseISO(iso);
+  const dow = d.getDay(); // 0 = So
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diff);
+  return toISO(d);
+};
+
+const weekdayOf = (iso: string) => parseISO(iso).getDay();
+
+const firstSlot = (day: YetiDay | undefined) =>
+  day?.slots.find((s) => s.free_instructors > 0) ?? null;
+
+const formatCountdown = (ms: number) => {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
+
+const zurichLabel = (iso: string) =>
+  isISODate(iso) ? format(parseISO(iso), "EEEE, dd.MM.yyyy", { locale: de }) : "–";
+
 
 interface DateFieldProps {
   value: string;
