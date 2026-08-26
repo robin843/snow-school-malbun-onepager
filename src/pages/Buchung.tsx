@@ -810,42 +810,94 @@ const Buchung = () => {
                     )}
 
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label>{productType === "group" ? "Startdatum (Mo der Kurswoche)" : "Termine"}</Label>
-                        {productType === "private" && (
+                      <div className="flex items-center justify-between gap-2">
+                        <Label>
+                          {courseMode === "week"
+                            ? "Kurswoche (Montag wählen – Mo–Fr wird übernommen)"
+                            : courseMode === "saturday"
+                              ? "Samstage wählen"
+                              : "Termine"}
+                        </Label>
+                        {courseMode !== "week" && (
                           <Button type="button" size="sm" variant="outline" onClick={addDate}>
                             <Plus className="w-4 h-4 mr-1" /> Termin hinzufügen
                           </Button>
                         )}
                       </div>
+
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {availabilityLoading ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Verfügbarkeit wird geladen…</>
+                        ) : availabilityError ? (
+                          <><AlertTriangle className="w-3.5 h-3.5 text-destructive" /> {availabilityError}</>
+                        ) : (
+                          <><Check className="w-3.5 h-3.5 text-primary" /> Nur freie Tage sind auswählbar (Zeiten Europe/Zurich)</>
+                        )}
+                      </div>
+
                       {dates.map((d, idx) => (
                         <div
                           key={idx}
                           className={cn(
                             "grid grid-cols-1 gap-2 items-end p-3 border rounded-lg",
-                            productType === "private" && "md:grid-cols-[1fr_auto_auto_auto]"
+                            courseMode === "private" && "md:grid-cols-[1fr_1fr_auto]"
                           )}
                         >
                           <div className="space-y-1">
-                            <Label className="text-xs">Datum</Label>
-                            <DateField
-                              value={d.date}
-                              onChange={(v) => updateDate(idx, { date: v })}
-                              minDate={new Date()}
-                              fromYear={new Date().getFullYear()}
-                              toYear={new Date().getFullYear() + 2}
-                              placeholder="Datum wählen"
-                            />
+                            <Label className="text-xs">{courseMode === "week" ? (idx === 0 ? "Kursstart (Montag)" : "Kurstag") : "Datum"}</Label>
+                            {courseMode === "week" && idx > 0 ? (
+                              <div className="h-10 flex items-center px-3 rounded-md border bg-muted/40 text-sm">
+                                {zurichLabel(d.date)}
+                              </div>
+                            ) : (
+                              <DateField
+                                value={d.date}
+                                onChange={(v) => pickDate(idx, v)}
+                                minDate={new Date()}
+                                month={calendarMonth}
+                                onMonthChange={setCalendarMonth}
+                                isDisabledDay={(iso) => !isDayBookable(iso)}
+                                fromYear={new Date().getFullYear()}
+                                toYear={new Date().getFullYear() + 2}
+                                placeholder={courseMode === "saturday" ? "Samstag wählen" : "Datum wählen"}
+                                footer={
+                                  availabilityLoading
+                                    ? "Verfügbarkeit wird geladen…"
+                                    : courseMode === "week"
+                                      ? "Gruppenkurse starten montags und laufen bis Freitag."
+                                      : courseMode === "saturday"
+                                        ? "Nur Samstage sind buchbar."
+                                        : "Ausgegraute Tage sind ausgebucht."
+                                }
+                              />
+                            )}
                           </div>
-                          {productType === "private" && (
+                          {courseMode === "private" && (
                             <>
                               <div className="space-y-1">
-                                <Label className="text-xs">Start</Label>
-                                <Input type="time" value={d.start_time} min="09:00" max="16:00" onChange={(e) => updateDate(idx, { start_time: e.target.value })} />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Ende</Label>
-                                <Input type="time" value={d.end_time} min="09:00" max="16:00" readOnly onChange={(e) => updateDate(idx, { end_time: e.target.value })} />
+                                <Label className="text-xs">Zeitfenster</Label>
+                                <Select
+                                  value={d.start_time}
+                                  onValueChange={(v) => {
+                                    const slot = slotsFor(d.date).find((s) => s.start === v);
+                                    updateDate(idx, { start_time: v, end_time: slot?.end ?? computeEnd(v, duration) });
+                                  }}
+                                  disabled={!d.date || slotsFor(d.date).length === 0}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={d.date ? "Zeit wählen" : "Zuerst Datum wählen"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {slotsFor(d.date).map((s) => (
+                                      <SelectItem key={s.start} value={s.start}>
+                                        {s.start}–{s.end} · {s.free_instructors} frei
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {d.date && slotsFor(d.date).length === 0 && (
+                                  <p className="text-xs text-muted-foreground">{d.start_time}–{d.end_time}</p>
+                                )}
                               </div>
                               {dates.length > 1 && (
                                 <Button type="button" size="icon" variant="ghost" onClick={() => removeDate(idx)}>
@@ -854,9 +906,15 @@ const Buchung = () => {
                               )}
                             </>
                           )}
+                          {courseMode === "saturday" && dates.length > 1 && (
+                            <Button type="button" size="sm" variant="ghost" className="justify-self-start" onClick={() => removeDate(idx)}>
+                              <Trash2 className="w-4 h-4 text-destructive mr-1" /> Entfernen
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
+
 
                     <div className="space-y-2">
                       <Label htmlFor="notes">Bemerkungen (optional)</Label>
