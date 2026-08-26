@@ -54,10 +54,24 @@ const LEVEL_LABELS: Record<number, string> = {
   6: "6 – Experte / Profi",
 };
 
-const PRICES = {
-  private: { single: 75, label: "Privatkurs" },
-  group: { single: 320, label: "Gruppenkurs (5 Tage)" },
-} as const;
+const PRODUCT_LABELS: Record<ProductType, string> = {
+  private: "Privatkurs",
+  group: "Gruppenkurs",
+};
+
+/** Kurs-ID aus der Kursübersicht -> Namens-Hinweis für das passende YETI-Produkt. */
+const COURSE_PRODUCT_HINTS: Record<string, string[]> = {
+  "windel-wedel": ["windel"],
+  "samstagskurse": ["samstag"],
+  "ganztages-kinder": ["gruppenkurs"],
+  "carving-mittwoch": ["gruppenkurs"],
+  "carving-ladies": ["gruppenkurs"],
+  "snowboard-anfaenger": ["gruppenkurs"],
+  "snowboard-fortgeschritten": ["gruppenkurs"],
+  "privat-ski": ["privatstunde 75"],
+  "privat-snowboard": ["privatstunde 75"],
+};
+
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const isISODate = (value: string) => {
