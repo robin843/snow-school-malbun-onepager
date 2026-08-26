@@ -1051,11 +1051,54 @@ const Buchung = () => {
                       </div>
                     </CardContent>
                   </Card>
+                </>
+              )}
+
+              {step === 4 && (
+                <>
+                  <Card className={cn("border-2", reservationExpired ? "border-destructive/60" : "border-primary/40")}>
+                    <CardHeader className="border-b bg-muted/30">
+                      <CardTitle className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-primary" />
+                        {reservationExpired ? "Reservierung abgelaufen" : "Termin provisorisch reserviert"}
+                      </CardTitle>
+                      <CardDescription>
+                        {reservationExpired
+                          ? "Bitte wähle den Termin erneut – Skilehrer und Zeiten sind wieder freigegeben."
+                          : "Der Skilehrer und die Zeiten sind für dich gesperrt. Bitte schliesse die Buchung innerhalb der angezeigten Zeit ab."}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-2 text-sm">
+                      {reservation?.expires_at && !reservationExpired && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Reserviert noch:</span>
+                          <span className="font-bold text-primary text-lg">{formatCountdown(remainingMs)}</span>
+                        </div>
+                      )}
+                      {reservation?.ticket_number && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Ticket-Nr.:</span>
+                          <span className="font-semibold">{reservation.ticket_number}</span>
+                        </div>
+                      )}
+                      {reservation?.instructor_name && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Skilehrer:in:</span>
+                          <span className="font-semibold">{reservation.instructor_name}</span>
+                        </div>
+                      )}
+                      {reservationExpired && (
+                        <Button type="button" variant="outline" onClick={() => { setReservation(null); refetchAvailability(); setStep(1); }}>
+                          Termin neu wählen
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
 
                   <Card>
                     <CardHeader className="border-b bg-muted/30">
-                      <CardTitle>Zahlungsmethode</CardTitle>
-                      <CardDescription>Wir kontaktieren Sie zur Bezahlung – noch kein direkter Charge.</CardDescription>
+                      <CardTitle>Zahlungsart</CardTitle>
+                      <CardDescription>Onlinezahlung oder Zahlung auf Rechnung.</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-3">
                       <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="space-y-2">
@@ -1072,14 +1115,19 @@ const Buchung = () => {
                         <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "ueberweisung" ? "border-primary bg-primary/5" : "border-border"}`}>
                           <RadioGroupItem value="ueberweisung" id="pm-bank" />
                           <Building2 className="w-5 h-5 text-muted-foreground" />
-                          <Label htmlFor="pm-bank" className="flex-1 cursor-pointer font-semibold">Banküberweisung (Rechnung)</Label>
+                          <Label htmlFor="pm-bank" className="flex-1 cursor-pointer font-semibold">Rechnung (Banküberweisung)</Label>
                         </div>
                         <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "postfinance" ? "border-primary bg-primary/5" : "border-border"}`}>
                           <RadioGroupItem value="postfinance" id="pm-pf" />
                           <Building2 className="w-5 h-5 text-[#FFCC00]" />
-                          <Label htmlFor="pm-pf" className="flex-1 cursor-pointer font-semibold">PostFinance</Label>
+                          <Label htmlFor="pm-pf" className="flex-1 cursor-pointer font-semibold">Rechnung (PostFinance)</Label>
                         </div>
                       </RadioGroup>
+                      <p className="text-xs text-muted-foreground">
+                        {isInvoice
+                          ? "Du erhältst Buchungsbestätigung und Rechnung mit Zahlungsfrist per E-Mail."
+                          : "Die Onlinezahlung wird aktuell manuell abgewickelt – wir melden uns mit dem Zahlungslink. Die Buchung bleibt bis zur Zahlung als offen markiert."}
+                      </p>
                     </CardContent>
                   </Card>
 
@@ -1090,11 +1138,11 @@ const Buchung = () => {
                     <CardContent className="pt-6 space-y-3">
                       <label className="flex items-start gap-3 cursor-pointer">
                         <Checkbox checked={agb} onCheckedChange={(c) => setAgb(c === true)} className="mt-1" />
-                        <span className="text-sm">Ich akzeptiere die <a href="#" className="underline text-primary">AGB</a> (Version {AGB_VERSION}). *</span>
+                        <span className="text-sm">Ich akzeptiere die <a href="/agb" className="underline text-primary">AGB</a> (Version {AGB_VERSION}). *</span>
                       </label>
                       <label className="flex items-start gap-3 cursor-pointer">
                         <Checkbox checked={privacy} onCheckedChange={(c) => setPrivacy(c === true)} className="mt-1" />
-                        <span className="text-sm">Ich akzeptiere die <a href="#" className="underline text-primary">Datenschutzerklärung</a> (Version {PRIVACY_VERSION}). *</span>
+                        <span className="text-sm">Ich akzeptiere die <a href="/datenschutz" className="underline text-primary">Datenschutzerklärung</a> (Version {PRIVACY_VERSION}). *</span>
                       </label>
                     </CardContent>
                   </Card>
@@ -1102,17 +1150,24 @@ const Buchung = () => {
               )}
 
               <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(1, s - 1) as 1 | 2 | 3)} disabled={step === 1}>
+                <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(1, s - 1) as Step)} disabled={step === 1 || reserving || submitting}>
                   <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
                 </Button>
-                {step < 3 ? (
-                  <Button type="button" onClick={next}>Weiter <ArrowRight className="w-4 h-4 ml-2" /></Button>
+                {step < 4 ? (
+                  <Button type="button" onClick={next} disabled={reserving}>
+                    {reserving ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Termin wird reserviert…</>
+                    ) : (
+                      <>Weiter <ArrowRight className="w-4 h-4 ml-2" /></>
+                    )}
+                  </Button>
                 ) : (
-                  <Button type="button" onClick={submit} disabled={submitting} size="lg">
-                    {submitting ? "Wird gesendet..." : "Buchung absenden"}
+                  <Button type="button" onClick={submit} disabled={submitting || reservationExpired} size="lg">
+                    {submitting ? "Wird gesendet..." : isInvoice ? "Buchen & Rechnung erhalten" : "Buchung abschliessen"}
                   </Button>
                 )}
               </div>
+
             </div>
 
             <div className="lg:col-span-1">
