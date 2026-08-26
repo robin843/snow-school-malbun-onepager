@@ -74,6 +74,25 @@ const COURSE_PRODUCT_HINTS: Record<string, string[]> = {
   "privat-snowboard": ["privatstunde 75"],
 };
 
+const priceBasisLabel = (p: YetiProduct) => {
+  if (p.pricing_type === "hourly") return `${p.currency} ${p.price}.– / Stunde`;
+  if (p.pricing_type === "tiered") {
+    const tiers = [...p.price_tiers].sort((a, b) => a.day_count - b.day_count);
+    const first = tiers[0];
+    return first ? `ab ${p.currency} ${first.cumulative_price}.– / Person` : "–";
+  }
+  return `${p.currency} ${p.price}.– / Person`;
+};
+
+const productFromPrice = (list: YetiProduct[]) => {
+  const values = list.map((p) =>
+    p.pricing_type === "tiered"
+      ? Math.min(...p.price_tiers.map((t) => t.cumulative_price))
+      : p.price,
+  );
+  return values.length ? Math.min(...values) : null;
+};
+
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const isISODate = (value: string) => {
