@@ -221,6 +221,17 @@ const DateField = ({
   );
 };
 
+type Step = 1 | 2 | 3 | 4;
+
+interface Reservation {
+  ticket_id: string | null;
+  ticket_number: string | null;
+  reservation_token: string | null;
+  expires_at: string | null;
+  instructor_name: string | null;
+  total: number | null;
+  currency: string;
+}
 
 const Buchung = () => {
   const navigate = useNavigate();
