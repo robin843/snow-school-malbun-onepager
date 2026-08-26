@@ -228,10 +228,18 @@ const Buchung = () => {
     setDates((prev) => prev.map((d) => ({ ...d, end_time: computeEnd(d.start_time, v) })));
   };
 
-  const total = useMemo(() => {
-    if (productType === "group") return PRICES.group.single * participantCount;
-    return PRICES.private.single * dates.length;
-  }, [productType, participantCount, dates.length]);
+  const hoursPerDay = productType === "private" ? (duration === "55" ? 1 : 2) : 1;
+
+  const total = useMemo(
+    () =>
+      computeProductTotal(selectedProduct, {
+        days: dates.length,
+        hoursPerDay,
+        participants: participantCount,
+      }),
+    [selectedProduct, dates.length, hoursPerDay, participantCount],
+  );
+
 
   const validateStep1 = () => {
     if (dates.some((d) => !isISODate(d.date) || d.date < todayISO())) {
