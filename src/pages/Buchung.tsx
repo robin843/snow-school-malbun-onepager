@@ -226,7 +226,7 @@ const Buchung = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<Step>(1);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
