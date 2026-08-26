@@ -22,6 +22,8 @@ import { AGB_VERSION, PRIVACY_VERSION } from "@/config/legal";
 import twintLogo from "@/assets/twint-logo.png";
 import visaLogo from "@/assets/visa-logo.svg";
 import Sponsoren from "@/components/Sponsoren";
+import { useYetiProducts, computeProductTotal, type YetiProduct } from "@/hooks/useYetiProducts";
+
 
 type Discipline = "ski" | "snowboard";
 type ProductType = "private" | "group";
