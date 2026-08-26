@@ -29,7 +29,10 @@ export async function callYeti(
     'Content-Type': 'application/json',
     'x-api-key': key,
     'X-API-Key': key,
+    apikey: key,
+    Authorization: `Bearer ${key}`,
   };
+
   if (init.idempotencyKey) headers['X-Idempotency-Key'] = init.idempotencyKey;
 
   const res = await fetch(url.toString(), {
