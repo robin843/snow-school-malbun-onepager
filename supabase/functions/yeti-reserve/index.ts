@@ -83,16 +83,6 @@ const PayloadSchema = z.object({
     if (slot.end_time <= slot.start_time) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['booking', 'dates', i, 'end_time'], message: 'End time must be after start time' });
     }
-    const dow = new Date(`${slot.date}T00:00:00Z`).getUTCDay(); // 0 = Sun, 6 = Sat
-    if (booking.product_type === 'group') {
-      const isSaturdayCourse = /samstag/i.test(booking.product_id ?? '');
-      if (isSaturdayCourse && dow !== 6) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['booking', 'dates', i, 'date'], message: 'Samstagskurse sind nur an Samstagen buchbar' });
-      }
-      if (!isSaturdayCourse && (dow === 0 || dow === 6)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['booking', 'dates', i, 'date'], message: 'Gruppenkurse finden von Montag bis Freitag statt' });
-      }
-    }
   }
 });
 
@@ -125,20 +115,49 @@ Deno.serve(async (req) => {
   const acceptedAt = new Date().toISOString();
   const idempotencyKey = data.submission_id ?? crypto.randomUUID();
 
+  const productsResult = await callYeti('get-products', { method: 'GET' });
+  const products = Array.isArray(productsResult.json?.products)
+    ? productsResult.json.products
+    : Array.isArray(productsResult.json)
+      ? productsResult.json
+      : [];
+  const selectedProduct = products.find((product: any) => product.id === data.booking.product_id);
+
+  if (selectedProduct && data.booking.product_type === 'group') {
+    const isSaturdayCourse = /samstag/i.test(String(selectedProduct.name ?? ''));
+    const invalidDate = data.booking.dates.find((slot) => {
+      const dow = new Date(`${slot.date}T00:00:00Z`).getUTCDay();
+      return isSaturdayCourse ? dow !== 6 : dow === 0 || dow === 6;
+    });
+
+    if (invalidDate) {
+      return json(
+        {
+          success: false,
+          conflict: false,
+          message: isSaturdayCourse
+            ? 'Dieser Kurs ist nur an Samstagen buchbar.'
+            : 'Dieser Gruppenkurs ist nur von Montag bis Freitag buchbar.',
+        },
+        200,
+      );
+    }
+  }
+
   const items = data.booking.dates.map((slot) => ({
     product_id: data.booking.product_id,
     date: slot.date,
-    start_time: slot.start_time,
-    end_time: slot.end_time,
+    time_start: slot.start_time,
+    time_end: slot.end_time,
     duration_minutes: minutesBetween(slot.start_time, slot.end_time),
     participant_count: data.booking.participant_count,
     sport: data.booking.sport,
+    discipline: data.booking.sport,
   }));
 
   // Never trust prices from the browser — Yeti calculates them from product_id.
-  // YETI's reservation endpoint expects the reservable product and dates as
-  // top-level `product_id` + `items`; the nested `booking` object is retained as
-  // contextual metadata for intake/admin views.
+  // YETI's reservation endpoint expects top-level `product_id` + `items`.
+  // Item times must be named `time_start` / `time_end` for its Zod schema.
   const yetiPayload = {
     source: 'website',
     product_id: data.booking.product_id,
@@ -216,23 +235,31 @@ Deno.serve(async (req) => {
     result.status >= 200 && result.status < 300 &&
     (r.success === true || Boolean(r.ticket_id || r.reservation_token || r.ticket_number));
 
-  await supabase
+  const localBookingStatus = success
+    ? (['provisional', 'payment_pending', 'confirmed', 'invoice_pending', 'expired', 'cancelled'].includes(String(r.status)) ? r.status : 'provisional')
+    : 'failed';
+
+  const { error: updateError } = await supabase
     .from('submitted_bookings')
     .update({
-      status: success ? 'reserved' : 'failed',
-      booking_status: success ? (r.status ?? 'provisional') : 'failed',
+      status: success ? 'success' : 'failed',
+      booking_status: localBookingStatus,
       yeti_ticket_id: r.ticket_id ?? null,
       yeti_ticket_number: r.ticket_number ?? null,
       yeti_customer_id: r.customer_id ?? null,
       yeti_reservation_token: r.reservation_token ?? null,
       reservation_expires_at: r.reservation_expires_at ?? null,
-      instructor_id: r.instructor?.id ?? r.instructor_id ?? null,
+      instructor_id: r.instructor?.id ?? r.instructor_id ?? r.assignments?.[0]?.instructor_id ?? null,
       customer_number: r.customer_number ?? null,
-      total_price: typeof r.total_price === 'number' ? r.total_price : (r.price?.total ?? null),
+      total_price: typeof r.total_price === 'number' ? r.total_price : (typeof r.total_amount === 'number' ? r.total_amount : (r.price?.total ?? null)),
       yeti_response: r,
       error_message: success ? null : `YETI ${result.status}: ${JSON.stringify(r ?? result.raw)}`,
     })
     .eq('id', backup.id);
+
+  if (updateError) {
+    console.error('Reservation backup update failed', { backup_id: backup.id, error: updateError });
+  }
 
   if (!success) {
     console.error('create-reservation failed', { backup_id: backup.id, status: result.status, response: r ?? result.raw });
@@ -256,8 +283,8 @@ Deno.serve(async (req) => {
     reservation_token: r.reservation_token ?? null,
     reservation_expires_at: r.reservation_expires_at ?? null,
     status: r.status ?? 'provisional',
-    instructor: r.instructor ?? (r.instructor_name ? { name: r.instructor_name } : null),
+    instructor: r.instructor ?? (r.assignments?.[0]?.instructor_id ? { id: r.assignments[0].instructor_id } : (r.instructor_name ? { name: r.instructor_name } : null)),
     customer_number: r.customer_number ?? null,
-    price: r.price ?? (typeof r.total_price === 'number' ? { total: r.total_price, currency: r.currency ?? 'CHF' } : null),
+    price: r.price ?? (typeof r.total_price === 'number' ? { total: r.total_price, currency: r.currency ?? 'CHF' } : (typeof r.total_amount === 'number' ? { total: r.total_amount, currency: r.currency ?? 'CHF' } : null)),
   });
 });
