@@ -152,9 +152,26 @@ interface DateFieldProps {
   fromYear?: number;
   toYear?: number;
   placeholder?: string;
+  /** Zusätzliche Sperre (z.B. keine Verfügbarkeit in YETI). */
+  isDisabledDay?: (iso: string) => boolean;
+  onMonthChange?: (d: Date) => void;
+  month?: Date;
+  footer?: React.ReactNode;
 }
 
-const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeholder }: DateFieldProps) => {
+const DateField = ({
+  value,
+  onChange,
+  minDate,
+  maxDate,
+  fromYear,
+  toYear,
+  placeholder,
+  isDisabledDay,
+  onMonthChange,
+  month,
+  footer,
+}: DateFieldProps) => {
   const selected = value && isISODate(value) ? parseISO(value) : undefined;
   return (
     <Popover>
@@ -174,7 +191,13 @@ const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeh
           locale={de}
           selected={selected}
           onSelect={(d) => d && onChange(toISO(d))}
-          disabled={(d) => (minDate ? d < minDate : false) || (maxDate ? d > maxDate : false)}
+          month={month}
+          onMonthChange={onMonthChange}
+          disabled={(d) =>
+            (minDate ? d < minDate : false) ||
+            (maxDate ? d > maxDate : false) ||
+            (isDisabledDay ? isDisabledDay(toISO(d)) : false)
+          }
           captionLayout="dropdown-buttons"
           fromYear={fromYear ?? 1920}
           toYear={toYear ?? new Date().getFullYear() + 2}
@@ -192,10 +215,12 @@ const DateField = ({ value, onChange, minDate, maxDate, fromYear, toYear, placeh
             vhidden: "sr-only",
           }}
         />
+        {footer && <div className="border-t px-3 py-2 text-xs text-muted-foreground">{footer}</div>}
       </PopoverContent>
     </Popover>
   );
 };
+
 
 const Buchung = () => {
   const navigate = useNavigate();
