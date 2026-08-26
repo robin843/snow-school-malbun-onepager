@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Building2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Building2, Clock, AlertTriangle, Loader2 } from "lucide-react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,6 +23,8 @@ import twintLogo from "@/assets/twint-logo.png";
 import visaLogo from "@/assets/visa-logo.svg";
 import Sponsoren from "@/components/Sponsoren";
 import { useYetiProducts, computeProductTotal, type YetiProduct } from "@/hooks/useYetiProducts";
+import { useYetiAvailability, dayHasCapacity, type YetiDay } from "@/hooks/useYetiAvailability";
+
 
 
 type Discipline = "ski" | "snowboard";
