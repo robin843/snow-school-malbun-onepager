@@ -1,71 +1,43 @@
-## Ziel
+# Etappe 1 — Kalender-Verfügbarkeit & provisorische Reservierung
 
-Vier konkrete Verbesserungen ohne Funktionsänderungen am Backend:
+Yeti stellt die sechs neuen Endpunkte bereit (`get-products`, `get-availability`, `create-reservation`, `confirm-booking`, `get-booking-status`, `expire-reservations`). Diese Etappe verbindet die Website damit — Design bleibt, bestehender 3-Schritt-Wizard und der heutige `submit-booking`-Weg bleiben als Fallback funktionsfähig.
 
-1. Alle Blöcke auf Mobile zentrieren
-2. Christoph-Call-Button (VoiceBot) kleiner & enger in die Ecke
-3. Einheitlicher Border-Radius überall – ausser Header & Hero
-4. „Jetzt buchen" aus einer Kurs-Karte übernimmt Disziplin & Privat/Gruppe in die Buchungsseite
+## Was der Kunde erlebt
 
----
+1. Kursübersicht → „Buchen“: Kurs (Produkt-ID), Kursart, Sportart, Dauer, Preis und Kursinfos werden in die Buchung übernommen und dort dauerhaft sichtbar angezeigt.
+2. Schritt 1 zeigt einen echten Verfügbarkeitskalender aus Yeti: freie Tage/Slots, blockierte Zeiten, Anzahl freier Skilehrer. Volle oder gesperrte Tage sind nicht wählbar.
+3. Kursregeln greifen im Kalender: Gruppenkurse nur Mo–Fr (ganze Kurswoche automatisch), Samstagskurse nur Samstage (alle zugehörigen Termine automatisch), Privatkurse nach gewählter Dauer mit zusammenhängenden freien Stunden.
+4. Klick auf „Weiter“ nach Schritt 2 löst die provisorische Reservierung in Yeti aus: Skilehrer wird zugewiesen, Slot ist 15 Minuten gesperrt. Ein Countdown zeigt die Restzeit.
+5. Schritt 3 zeigt eine transparente Preisübersicht (vom Server berechnet), Reservierungsstatus und die Wahl Onlinezahlung oder Rechnung.
+6. Ist der Slot zwischenzeitlich weg, erscheint eine klare Meldung und der Kalender lädt neu — kein stiller Fehlschlag.
 
-## 1. Mobile-Zentrierung
+## Technische Umsetzung
 
-Betroffene Sections: `Kontakt.tsx`, `Jobs.tsx`, `Team.tsx`, `Kursuebersicht.tsx`, `FAQ.tsx`, `Footer.tsx`.
+**Neue Edge Functions (Proxy zu Yeti, API-Key bleibt serverseitig)**
+- `yeti-products` → `get-products`, mit kurzem Cache; liefert Kurskatalog inkl. Preise/Preisart/Dauer/Teilnehmergrenzen.
+- `yeti-availability` → `get-availability` für Zeitraum + Produkt.
+- `yeti-reserve` → `create-reservation`; validiert Eingaben mit Zod (`.strict()`), schickt **nie** Preise aus dem Browser, gibt `ticket_id`, `reservation_token`, `reservation_expires_at`, Skilehrer und den serverseitig berechneten Preis zurück.
+- `yeti-confirm` → `confirm-booking` (Online oder Rechnung).
+- `yeti-booking-status` → `get-booking-status` per Token, für Countdown/Polling.
+- Alle mit CORS, klaren Fehlercodes (409 = Slot vergeben) und Logging in `submitted_bookings` (bestehende Tabelle, um Status/Token erweitert).
 
-- Mobile (<sm): alle Karten/Texte in einer Single-Column-Grid mit `mx-auto`, `text-center sm:text-left` dort wo sinnvoll.
-- `Kontakt.tsx`: Icon+Label-Zeilen unter `sm` als `flex-col items-center text-center`, ab `sm` zurück zu `flex-row items-start text-left`.
-- Karten erhalten `max-w-md mx-auto sm:max-w-none` damit sie auf 390 px sauber zentriert wirken und keine Full-Bleed-Block-Optik haben.
-- Section-Header-Chips (z. B. „Über uns", „Kontakt & Standort") bekommen `mx-auto` und werden auf Mobile mittig gesetzt.
+**Migration (nicht destruktiv)**
+- `submitted_bookings`: neue Felder `yeti_reservation_token`, `reservation_expires_at`, `booking_status`, `payment_status`, `total_price`, `product_id`, `instructor_id`, `invoice_number`, `customer_number`. Bestehende Spalten und Daten bleiben unverändert.
 
-## 2. VoiceBot kleiner & in die Ecke (`src/components/VoiceBot.tsx`)
+**Frontend**
+- Neuer Hook `useYetiProducts` — Kursübersicht und Buchung lesen Preise/Kursdaten aus Yeti statt aus hartcodierten Listen (Fallback auf aktuelle Werte, falls Yeti nicht antwortet, damit die Seite nie leer ist).
+- `Buchung.tsx`: Verfügbarkeitskalender statt freier Datumswahl, Kursregeln pro Kursart, Reservierungs-Countdown, Preisübersicht-Komponente, Doppelklick-Schutz bleibt.
+- `Kursuebersicht.tsx`: übergibt zusätzlich `productId` und Kursdaten an die Buchung.
 
-- Bild von `w-32 h-32` → `w-16 h-16 sm:w-20 sm:h-20`.
-- Border `border-4` → `border-2`, Phone-Badge `p-3` → `p-1.5`, Icon-Size 20 → 14.
-- Position: `bottom-4 right-4 sm:bottom-6 sm:right-6` (statt `bottom-8 right-8` / `bottom-24 right-8`).
-- „Sprich mit Christoph"-Bubble nur ab `sm` sichtbar (`hidden sm:block`), damit auf Mobile nur der kompakte runde Button in der Ecke sitzt.
-- `ring-6` → `ring-2`, damit der Halo nicht riesig wirkt.
+**Doppelbuchungen / Race Conditions**
+- Reservierung passiert ausschliesslich in Yeti (Advisory Lock + Transaktion). Die Website prüft zusätzlich beim „Weiter“-Klick und erneut vor der Bestätigung; bei 409 wird der Kalender neu geladen.
+- Zeiten werden mit Zeitzone gespeichert, Anzeige in `Europe/Zurich`.
 
-## 3. Einheitlicher Radius
+## Nicht in dieser Etappe
 
-- In `index.css` `--radius: 0.75rem` bleibt → entspricht Tailwind `rounded-lg`.
-- Wir definieren als Projekt-Konvention: alle Cards, Buttons, Inputs, Badges (ausser `rounded-full`-Pills für Filter/Icons), Info-Boxen und Modale nutzen **`rounded-lg`** (= `var(--radius)`).
-- Ausnahmen: `Hero` und `Navigation`/Header behalten ihre Original-Radii (inkl. der schrägen Secondary-Boxen mit `rotate-1`).
-- Konkrete Stellen die angepasst werden:
-  - `Kursuebersicht.tsx`: Card `rounded-2xl` → entfernen (Card-Default `rounded-lg` greift), innere `rounded-xl`/`rounded-2xl` Wrapper → `rounded-lg`, Info-Pillen `rounded-full` bleiben (Filter-Chips).
-  - `Buchung.tsx`: alle `rounded-xl`/`rounded-2xl` → `rounded-lg`.
-  - `Kontakt.tsx`: Icon-Boxen `rounded-lg` bleibt, Map-Container `rounded-lg` bleibt.
-  - `Jobs.tsx`, `Team.tsx`, `FAQ.tsx`: alle Karten + Inner-Wrapper auf `rounded-lg` vereinheitlichen.
-  - Buttons nutzen Shadcn-Default (`rounded-md` aus `button.tsx`) — bleibt, weil das aus der Komponente kommt; keine Custom-Override-Klassen mit anderem Radius mehr.
+- Stripe-Onlinezahlung (Etappe 2): Schritt 3 setzt vorerst „Rechnung“ bzw. `payment_pending` und ist so gebaut, dass Stripe-Checkout nur eingehängt werden muss.
+- Adminbereich bleibt in Yeti; die Website liefert alle nötigen Felder mit.
 
-## 4. Kursauswahl in die Buchung übernehmen
+## Tests
 
-Aktuell ruft `Kursuebersicht.handleBook` einfach `navigate("/buchung")` auf, Schritt 1 zeigt also immer den Default „Privatkurs".
-
-Vorgehen:
-
-- `Kursuebersicht.tsx`:
-  - `handleBook(course)` bekommt das Kurs-Objekt. Mapping:
-    - `productType = course.id.startsWith("privat") ? "private" : "group"`
-    - `sport = course.discipline` (`ski` | `snowboard`)
-    - `courseId = course.id` (für künftige Nutzung / Hinweistext)
-  - Navigation: `navigate(\`/buchung?type=${productType}&sport=${sport}&course=${course.id}\`)`.
-  - `CourseCardView` bekommt `onBook` weiterhin als Callback; Aufrufer übergibt `() => handleBook(course)`.
-
-- `Buchung.tsx`:
-  - `useSearchParams` aus `react-router-dom`.
-  - Initial-State über Lazy-Init lesen:
-    - `productType` → `searchParams.get("type")` validiert gegen `"private" | "group"`, sonst `"private"`.
-    - `sport` → `searchParams.get("sport")` validiert gegen `"ski" | "snowboard"`, sonst aktueller Default.
-  - Optional: ausgewählten Kursnamen (`course`) als kleine Info-Badge im Schritt 1 anzeigen („Vorausgewählt: Privatkurs Ski") — rein Anzeige, kein Backend.
-  - URL bleibt unverändert nach Mount, kein Replace nötig.
-
-Damit landet man aus jeder Karte direkt im richtigen Buchungsmodus.
-
-## Technische Details
-
-- Keine Backend-Änderungen, keine neuen Routen.
-- Keine neuen Packages.
-- `Hero.tsx`-Button auf „Kurs jetzt buchen" bleibt unverändert (führt weiter auf `/buchung` ohne Vorauswahl).
-- Konsistenter Radius wird durch direktes Bearbeiten der Klassen erreicht, keine neue CSS-Variable nötig.
-- Verifikation nach Implementierung: Preview im 390-px-Mobile-Viewport prüfen (Zentrierung, kompakter Call-Button, einheitliche Radii) und einmal aus Kursliste → Buchung navigieren und Schritt 1 kontrollieren.
+- Verfügbarkeit laden, Reservierung anlegen, Status abfragen, abgelaufene Reservierung, Konfliktfall (409) — per Aufruf der Functions und im Browser-Durchlauf der Buchung auf Mobile und Desktop.
