@@ -47,6 +47,14 @@ export const useYetiAvailability = ({
 
   useEffect(() => {
     if (!enabled || !from || !to) return;
+    // Defensiver Schutz: Ungültige Bereiche nie an die Edge Function senden.
+    // Die Seite kann während eines Monatswechsels kurz Zwischenwerte rendern.
+    if (to < from) {
+      setDays([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);

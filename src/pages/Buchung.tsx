@@ -296,8 +296,13 @@ const Buchung = () => {
     return toISO(d < today ? today : d);
   }, [calendarMonth]);
   const rangeTo = useMemo(
-    () => toISO(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 7)),
-    [calendarMonth],
+    () => {
+      const endOfWindow = toISO(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 7));
+      // Beim Zurücknavigieren im Kalender kann der ganze sichtbare Monat in
+      // der Vergangenheit liegen. YETI verlangt trotzdem `to >= from`.
+      return endOfWindow < rangeFrom ? rangeFrom : endOfWindow;
+    },
+    [calendarMonth, rangeFrom],
   );
 
   const {
