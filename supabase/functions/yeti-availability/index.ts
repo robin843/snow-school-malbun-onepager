@@ -46,12 +46,14 @@ Deno.serve(async (req) => {
   if (p.duration_minutes) query.duration_minutes = String(p.duration_minutes);
   if (p.participant_count) query.participant_count = String(p.participant_count);
 
-  // Try GET with query params first; fall back to POST with a JSON body.
-  let result = await callYeti('get-availability', { method: 'GET', query });
-  if (result.status === 404 || result.status === 405 || result.status === 400) {
-    const postResult = await callYeti('get-availability', { method: 'POST', body: p });
-    if (postResult.status >= 200 && postResult.status < 300) result = postResult;
+  // Yeti expects POST with a JSON body; GET with query params is a fallback.
+  let result = await callYeti('get-availability', { method: 'POST', body: p });
+  if (result.status === 404 || result.status === 405) {
+    console.error('get-availability POST rejected', result.status, result.json ?? result.raw);
+    const getResult = await callYeti('get-availability', { method: 'GET', query });
+    if (getResult.status >= 200 && getResult.status < 300) result = getResult;
   }
+
 
   if (result.status < 200 || result.status >= 300) {
     console.error('get-availability failed', result.status, result.json ?? result.raw);
