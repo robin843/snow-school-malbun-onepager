@@ -165,13 +165,32 @@ const Buchung = () => {
     "snowboard-anfaenger": "Snowboard Anfängerkurs",
     "snowboard-fortgeschritten": "Snowboard Fortgeschrittenenkurs",
   };
-  const selectedCourseTitle = courseTitles[searchParams.get("course") ?? ""];
+  const courseKey = searchParams.get("course") ?? "";
+  const selectedCourseTitle = courseTitles[courseKey];
   const [participantCount, setParticipantCount] = useState(1);
   const [duration, setDuration] = useState<"55" | "115">("115");
   const [dates, setDates] = useState<DateSlot[]>([
     { date: "", start_time: "10:00", end_time: "11:55" },
   ]);
   const [notes, setNotes] = useState("");
+
+  const { privateProducts, groupProducts, loading: productsLoading, error: productsError } = useYetiProducts();
+  const [productId, setProductId] = useState<string>("");
+
+  const availableProducts: YetiProduct[] = productType === "private" ? privateProducts : groupProducts;
+  const selectedProduct = availableProducts.find((p) => p.id === productId);
+
+  // Passendes YETI-Produkt vorauswählen (Kurs aus der Kursübersicht bzw. erstes Produkt).
+  useEffect(() => {
+    if (availableProducts.length === 0) return;
+    if (availableProducts.some((p) => p.id === productId)) return;
+    const hints = COURSE_PRODUCT_HINTS[courseKey] ?? [];
+    const hinted = availableProducts.find((p) =>
+      hints.some((h) => p.name.toLowerCase().includes(h)),
+    );
+    setProductId((hinted ?? availableProducts[0]).id);
+  }, [availableProducts, productId, courseKey]);
+
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
