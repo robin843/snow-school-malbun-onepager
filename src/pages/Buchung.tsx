@@ -22,6 +22,8 @@ import { AGB_VERSION, PRIVACY_VERSION } from "@/config/legal";
 import twintLogo from "@/assets/twint-logo.png";
 import visaLogo from "@/assets/visa-logo.svg";
 import Sponsoren from "@/components/Sponsoren";
+import { useYetiProducts, computeProductTotal, type YetiProduct } from "@/hooks/useYetiProducts";
+
 
 type Discipline = "ski" | "snowboard";
 type ProductType = "private" | "group";
@@ -54,10 +56,43 @@ const LEVEL_LABELS: Record<number, string> = {
   6: "6 – Experte / Profi",
 };
 
-const PRICES = {
-  private: { single: 75, label: "Privatkurs" },
-  group: { single: 320, label: "Gruppenkurs (5 Tage)" },
-} as const;
+const PRODUCT_LABELS: Record<ProductType, string> = {
+  private: "Privatkurs",
+  group: "Gruppenkurs",
+};
+
+/** Kurs-ID aus der Kursübersicht -> Namens-Hinweis für das passende YETI-Produkt. */
+const COURSE_PRODUCT_HINTS: Record<string, string[]> = {
+  "windel-wedel": ["windel"],
+  "samstagskurse": ["samstag"],
+  "ganztages-kinder": ["gruppenkurs"],
+  "carving-mittwoch": ["gruppenkurs"],
+  "carving-ladies": ["gruppenkurs"],
+  "snowboard-anfaenger": ["gruppenkurs"],
+  "snowboard-fortgeschritten": ["gruppenkurs"],
+  "privat-ski": ["privatstunde 75"],
+  "privat-snowboard": ["privatstunde 75"],
+};
+
+const priceBasisLabel = (p: YetiProduct) => {
+  if (p.pricing_type === "hourly") return `${p.currency} ${p.price}.– / Stunde`;
+  if (p.pricing_type === "tiered") {
+    const tiers = [...p.price_tiers].sort((a, b) => a.day_count - b.day_count);
+    const first = tiers[0];
+    return first ? `ab ${p.currency} ${first.cumulative_price}.– / Person` : "–";
+  }
+  return `${p.currency} ${p.price}.– / Person`;
+};
+
+const productFromPrice = (list: YetiProduct[]) => {
+  const values = list.map((p) =>
+    p.pricing_type === "tiered"
+      ? Math.min(...p.price_tiers.map((t) => t.cumulative_price))
+      : p.price,
+  );
+  return values.length ? Math.min(...values) : null;
+};
+
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const isISODate = (value: string) => {
@@ -149,13 +184,32 @@ const Buchung = () => {
     "snowboard-anfaenger": "Snowboard Anfängerkurs",
     "snowboard-fortgeschritten": "Snowboard Fortgeschrittenenkurs",
   };
-  const selectedCourseTitle = courseTitles[searchParams.get("course") ?? ""];
+  const courseKey = searchParams.get("course") ?? "";
+  const selectedCourseTitle = courseTitles[courseKey];
   const [participantCount, setParticipantCount] = useState(1);
   const [duration, setDuration] = useState<"55" | "115">("115");
   const [dates, setDates] = useState<DateSlot[]>([
     { date: "", start_time: "10:00", end_time: "11:55" },
   ]);
   const [notes, setNotes] = useState("");
+
+  const { privateProducts, groupProducts, loading: productsLoading, error: productsError } = useYetiProducts();
+  const [productId, setProductId] = useState<string>("");
+
+  const availableProducts: YetiProduct[] = productType === "private" ? privateProducts : groupProducts;
+  const selectedProduct = availableProducts.find((p) => p.id === productId);
+
+  // Passendes YETI-Produkt vorauswählen (Kurs aus der Kursübersicht bzw. erstes Produkt).
+  useEffect(() => {
+    if (availableProducts.length === 0) return;
+    if (availableProducts.some((p) => p.id === productId)) return;
+    const hints = COURSE_PRODUCT_HINTS[courseKey] ?? [];
+    const hinted = availableProducts.find((p) =>
+      hints.some((h) => p.name.toLowerCase().includes(h)),
+    );
+    setProductId((hinted ?? availableProducts[0]).id);
+  }, [availableProducts, productId, courseKey]);
+
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -214,10 +268,18 @@ const Buchung = () => {
     setDates((prev) => prev.map((d) => ({ ...d, end_time: computeEnd(d.start_time, v) })));
   };
 
-  const total = useMemo(() => {
-    if (productType === "group") return PRICES.group.single * participantCount;
-    return PRICES.private.single * dates.length;
-  }, [productType, participantCount, dates.length]);
+  const hoursPerDay = productType === "private" ? (duration === "55" ? 1 : 2) : 1;
+
+  const total = useMemo(
+    () =>
+      computeProductTotal(selectedProduct, {
+        days: dates.length,
+        hoursPerDay,
+        participants: participantCount,
+      }),
+    [selectedProduct, dates.length, hoursPerDay, participantCount],
+  );
+
 
   const validateStep1 = () => {
     if (dates.some((d) => !isISODate(d.date) || d.date < todayISO())) {
@@ -282,10 +344,15 @@ const Buchung = () => {
         })),
         booking: {
           product_type: productType, sport, dates,
+          product_id: productId || undefined,
+          product_name: selectedProduct?.name,
+          expected_total: total,
+          currency: selectedProduct?.currency ?? "CHF",
           participant_count: participantCount,
           notes: notes || undefined,
           payment_method: paymentMethod,
         },
+
         consent: {
           agb_accepted: true as const, agb_version: AGB_VERSION,
           privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
@@ -371,17 +438,48 @@ const Buchung = () => {
                           <span className="font-semibold block">Privatkurs</span>
                           <span className="text-sm text-muted-foreground">1–5 Personen, individuelle Termine</span>
                         </Label>
-                        <span className="font-bold text-primary">ab CHF 75.–</span>
+                        <span className="font-bold text-primary whitespace-nowrap">
+                          {productFromPrice(privateProducts) !== null ? `ab CHF ${productFromPrice(privateProducts)}.–` : "–"}
+                        </span>
                       </div>
                       <div className={`flex items-center space-x-3 p-4 rounded-lg border cursor-pointer ${productType === "group" ? "border-primary bg-primary/5" : "border-border"}`}>
                         <RadioGroupItem value="group" id="p-group" />
                         <Label htmlFor="p-group" className="flex-1 cursor-pointer">
                           <span className="font-semibold block">Gruppenkurs</span>
-                          <span className="text-sm text-muted-foreground">5-Tage-Wochenblock</span>
+                          <span className="text-sm text-muted-foreground">Kurstage Montag–Freitag oder Samstagskurs</span>
                         </Label>
-                        <span className="font-bold text-primary">CHF 320.–</span>
+                        <span className="font-bold text-primary whitespace-nowrap">
+                          {productFromPrice(groupProducts) !== null ? `ab CHF ${productFromPrice(groupProducts)}.–` : "–"}
+                        </span>
                       </div>
                     </RadioGroup>
+
+                    <div className="space-y-2">
+                      <Label>Kurs</Label>
+                      <Select value={productId} onValueChange={setProductId} disabled={productsLoading || availableProducts.length === 0}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={productsLoading ? "Kurse werden geladen…" : "Kurs wählen"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableProducts.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} — {priceBasisLabel(p)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {productsError && <p className="text-xs text-destructive">{productsError}</p>}
+                      {selectedProduct?.description && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
+                      )}
+                      {selectedProduct && (selectedProduct.min_age || selectedProduct.max_age) && (
+                        <p className="text-xs text-muted-foreground">
+                          Alter: {selectedProduct.min_age ?? "–"}
+                          {selectedProduct.max_age ? `–${selectedProduct.max_age}` : "+"} Jahre
+                        </p>
+                      )}
+                    </div>
+
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -677,15 +775,25 @@ const Buchung = () => {
                   <CardTitle>Zusammenfassung</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-3">
-                  <div className="flex justify-between text-sm"><span className="text-muted-foreground">Produkt:</span><span className="font-semibold">{PRICES[productType].label}</span></div>
+                  <div className="flex justify-between text-sm gap-3"><span className="text-muted-foreground">Produkt:</span><span className="font-semibold text-right">{selectedProduct?.name ?? PRODUCT_LABELS[productType]}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Sport:</span><span className="font-semibold capitalize">{sport}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Teilnehmer:</span><span className="font-semibold">{participantCount}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Termine:</span><span className="font-semibold">{dates.length}</span></div>
+                  {productType === "private" && (
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Dauer/Termin:</span><span className="font-semibold">{duration === "55" ? "55 Min." : "115 Min."}</span></div>
+                  )}
+                  {selectedProduct && (
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Preisbasis:</span><span className="font-semibold">{priceBasisLabel(selectedProduct)}</span></div>
+                  )}
                   <Separator />
                   <div className="flex justify-between items-center pt-2">
                     <span className="font-bold">Total</span>
-                    <span className="text-2xl font-bold text-primary">CHF {total}.–</span>
+                    <span className="text-2xl font-bold text-primary">
+                      {productsLoading ? "…" : `${selectedProduct?.currency ?? "CHF"} ${total}.–`}
+                    </span>
                   </div>
+                  <p className="text-xs text-muted-foreground">Preise gemäss aktuellem Kursangebot. Verbindlich bestätigt wird der Preis bei der Buchung.</p>
+
                   <div className="space-y-2 pt-2 text-xs text-muted-foreground">
                     <p className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" /> Sofortige Bestätigung per E-Mail</p>
                     <p className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" /> Kostenlose Stornierung bis 24h vorher</p>
