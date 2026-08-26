@@ -51,7 +51,13 @@ const BookingSchema = z.object({
   participant_count: z.number().int().min(1).max(20),
   notes: z.string().max(2000).optional(),
   payment_method: z.enum(['twint', 'kreditkarte', 'ueberweisung', 'postfinance']).optional(),
+  product_id: z.string().uuid().optional(),
+  product_name: z.string().max(200).optional(),
+  // Nur informativ vom Browser — der verbindliche Preis wird serverseitig aus YETI berechnet.
+  expected_total: z.number().nonnegative().optional(),
+  currency: z.string().max(8).optional(),
 }).strict();
+
 
 const ConsentSchema = z.object({
   agb_accepted: z.literal(true),
