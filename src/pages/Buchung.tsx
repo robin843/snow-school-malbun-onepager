@@ -286,6 +286,74 @@ const Buchung = () => {
     setProductId((hinted ?? availableProducts[0]).id);
   }, [availableProducts, productId, courseKey]);
 
+  const courseMode = courseModeFor(productType, selectedProduct);
+
+  // Verfügbarkeitszeitraum: angezeigter Monat (+ Puffer für Kurswochen).
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+  const rangeFrom = useMemo(() => {
+    const d = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const today = new Date();
+    return toISO(d < today ? today : d);
+  }, [calendarMonth]);
+  const rangeTo = useMemo(
+    () => toISO(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 7)),
+    [calendarMonth],
+  );
+
+  const {
+    byDate: availability,
+    loading: availabilityLoading,
+    error: availabilityError,
+    refetch: refetchAvailability,
+  } = useYetiAvailability({
+    productId,
+    productType,
+    sport,
+    durationMinutes: productType === "private" ? Number(duration) : undefined,
+    participantCount,
+    from: rangeFrom,
+    to: rangeTo,
+    enabled: Boolean(productId),
+  });
+
+  const hasAvailabilityData = Object.keys(availability).length > 0;
+
+  /** Ist ein Tag nach Kursregeln + YETI-Verfügbarkeit buchbar? */
+  const isDayBookable = (iso: string): boolean => {
+    const dow = weekdayOf(iso);
+    if (courseMode === "saturday" && dow !== 6) return false;
+    if (courseMode === "week" && (dow === 0 || dow === 6)) return false;
+    if (courseMode === "private" && dow === 0) return false;
+    if (!hasAvailabilityData) return true; // YETI nicht erreichbar -> nicht blockieren
+    if (courseMode === "week") {
+      const monday = mondayOf(iso);
+      if (iso !== monday) return false;
+      return [0, 1, 2, 3, 4].every((i) => {
+        const day = availability[addDays(monday, i)];
+        return day ? dayHasCapacity(day) : true;
+      });
+    }
+    const day = availability[iso];
+    return day ? dayHasCapacity(day) : true;
+  };
+
+  const slotsFor = (iso: string) =>
+    (availability[iso]?.slots ?? []).filter((s) => s.free_instructors > 0);
+
+  // Reservierung
+  const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [reserving, setReserving] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!reservation?.expires_at) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [reservation?.expires_at]);
+  const remainingMs = reservation?.expires_at
+    ? new Date(reservation.expires_at).getTime() - now
+    : 0;
+  const reservationExpired = Boolean(reservation?.expires_at) && remainingMs <= 0;
+
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
