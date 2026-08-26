@@ -1180,20 +1180,38 @@ const Buchung = () => {
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Sport:</span><span className="font-semibold capitalize">{sport}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Teilnehmer:</span><span className="font-semibold">{participantCount}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-muted-foreground">Termine:</span><span className="font-semibold">{dates.length}</span></div>
+                  {dates.filter((d) => d.date).length > 0 && (
+                    <div className="rounded-lg border bg-muted/30 p-2 space-y-1">
+                      {dates.filter((d) => d.date).map((d, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">{zurichLabel(d.date)}</span>
+                          <span className="font-medium">{d.start_time}–{d.end_time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {productType === "private" && (
                     <div className="flex justify-between text-sm"><span className="text-muted-foreground">Dauer/Termin:</span><span className="font-semibold">{duration === "55" ? "55 Min." : "115 Min."}</span></div>
                   )}
                   {selectedProduct && (
                     <div className="flex justify-between text-sm"><span className="text-muted-foreground">Preisbasis:</span><span className="font-semibold">{priceBasisLabel(selectedProduct)}</span></div>
                   )}
+                  {reservation?.instructor_name && (
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Skilehrer:in:</span><span className="font-semibold">{reservation.instructor_name}</span></div>
+                  )}
                   <Separator />
                   <div className="flex justify-between items-center pt-2">
                     <span className="font-bold">Total</span>
                     <span className="text-2xl font-bold text-primary">
-                      {productsLoading ? "…" : `${selectedProduct?.currency ?? "CHF"} ${total}.–`}
+                      {productsLoading ? "…" : `${reservation?.currency ?? selectedProduct?.currency ?? "CHF"} ${reservation?.total ?? total}.–`}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Preise gemäss aktuellem Kursangebot. Verbindlich bestätigt wird der Preis bei der Buchung.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {reservation?.total != null
+                      ? "Verbindlicher Preis, serverseitig berechnet."
+                      : "Preise gemäss aktuellem Kursangebot. Verbindlich bestätigt wird der Preis bei der Reservierung."}
+                  </p>
+
 
                   <div className="space-y-2 pt-2 text-xs text-muted-foreground">
                     <p className="flex items-start gap-2"><Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" /> Sofortige Bestätigung per E-Mail</p>
