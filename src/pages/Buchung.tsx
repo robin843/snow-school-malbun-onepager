@@ -344,10 +344,15 @@ const Buchung = () => {
         })),
         booking: {
           product_type: productType, sport, dates,
+          product_id: productId || undefined,
+          product_name: selectedProduct?.name,
+          expected_total: total,
+          currency: selectedProduct?.currency ?? "CHF",
           participant_count: participantCount,
           notes: notes || undefined,
           payment_method: paymentMethod,
         },
+
         consent: {
           agb_accepted: true as const, agb_version: AGB_VERSION,
           privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
