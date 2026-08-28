@@ -1100,48 +1100,51 @@ const Buchung = () => {
                 </>
               )}
 
+              {step >= 2 && reservation && (
+                <Card className={cn("border-2", reservationExpired ? "border-destructive/60" : "border-primary/40")}>
+                  <CardHeader className="border-b bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-primary" />
+                      {reservationExpired ? "Reservierung abgelaufen" : "Termin provisorisch reserviert"}
+                    </CardTitle>
+                    <CardDescription>
+                      {reservationExpired
+                        ? "Bitte wähle den Termin erneut – Skilehrer und Zeiten sind wieder freigegeben."
+                        : "Der Skilehrer und die Zeiten sind für dich gesperrt. Bitte schliesse die Buchung innerhalb der angezeigten Zeit ab."}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-2 text-sm">
+                    {reservation?.expires_at && !reservationExpired && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Reserviert noch:</span>
+                        <span className="font-bold text-primary text-lg">{formatCountdown(remainingMs)}</span>
+                      </div>
+                    )}
+                    {reservation?.ticket_number && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Ticket-Nr.:</span>
+                        <span className="font-semibold">{reservation.ticket_number}</span>
+                      </div>
+                    )}
+                    {reservation?.instructor_name && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Skilehrer:in:</span>
+                        <span className="font-semibold">{reservation.instructor_name}</span>
+                      </div>
+                    )}
+                    {reservationExpired && (
+                      <Button type="button" variant="outline" onClick={() => { setReservation(null); refetchAvailability(); setStep(1); }}>
+                        Termin neu wählen
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {step === 4 && (
                 <>
-                  <Card className={cn("border-2", reservationExpired ? "border-destructive/60" : "border-primary/40")}>
-                    <CardHeader className="border-b bg-muted/30">
-                      <CardTitle className="flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-primary" />
-                        {reservationExpired ? "Reservierung abgelaufen" : "Termin provisorisch reserviert"}
-                      </CardTitle>
-                      <CardDescription>
-                        {reservationExpired
-                          ? "Bitte wähle den Termin erneut – Skilehrer und Zeiten sind wieder freigegeben."
-                          : "Der Skilehrer und die Zeiten sind für dich gesperrt. Bitte schliesse die Buchung innerhalb der angezeigten Zeit ab."}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-6 space-y-2 text-sm">
-                      {reservation?.expires_at && !reservationExpired && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Reserviert noch:</span>
-                          <span className="font-bold text-primary text-lg">{formatCountdown(remainingMs)}</span>
-                        </div>
-                      )}
-                      {reservation?.ticket_number && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Ticket-Nr.:</span>
-                          <span className="font-semibold">{reservation.ticket_number}</span>
-                        </div>
-                      )}
-                      {reservation?.instructor_name && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Skilehrer:in:</span>
-                          <span className="font-semibold">{reservation.instructor_name}</span>
-                        </div>
-                      )}
-                      {reservationExpired && (
-                        <Button type="button" variant="outline" onClick={() => { setReservation(null); refetchAvailability(); setStep(1); }}>
-                          Termin neu wählen
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-
                   <Card>
+
                     <CardHeader className="border-b bg-muted/30">
                       <CardTitle>Zahlungsart</CardTitle>
                       <CardDescription>Onlinezahlung oder Zahlung auf Rechnung.</CardDescription>
