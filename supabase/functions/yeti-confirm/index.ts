@@ -68,7 +68,11 @@ Deno.serve(async (req) => {
       // Online payment is not charged yet — Yeti keeps it as payment_pending.
       payment_status: p.payment_method === 'invoice' ? 'invoice_pending' : 'payment_pending',
       source: 'website',
+      ...(p.customer ? { customer: p.customer } : {}),
+      ...(p.participants ? { participants: p.participants } : {}),
+      ...(p.notes ? { notes: p.notes } : {}),
     },
+
   });
 
   const r = result.json ?? {};
