@@ -784,6 +784,8 @@ const Buchung = () => {
         ].filter(Boolean).join(" · ") || "Bestätigung folgt per E-Mail.",
       });
       submittedSuccessfully = true;
+      confirmedRef.current = true;
+      reservationRef.current = null;
       setTimeout(() => navigate("/"), 3500);
     } catch (err: any) {
       console.error("Booking confirm error:", err);
