@@ -639,15 +639,19 @@ const Buchung = () => {
   };
 
   const next = async () => {
-    if (step === 1 && !validateStep1()) return;
-    if (step === 2 && !validateStep2()) return;
-    if (step === 3) {
-      if (!validateStep3()) return;
-      const ok = await reserve();
-      if (!ok) return;
+    if (step === 1) {
+      if (!validateStep1()) return;
+      // Provisorische Reservierung direkt beim Wechsel zu "Teilnehmer".
+      if (!reservation || reservationExpired) {
+        const ok = await reserve();
+        if (!ok) return;
+      }
     }
+    if (step === 2 && !validateStep2()) return;
+    if (step === 3 && !validateStep3()) return;
     setStep((s) => Math.min(4, s + 1) as Step);
   };
+
 
 
   const isInvoice = paymentMethod === "ueberweisung" || paymentMethod === "postfinance";
