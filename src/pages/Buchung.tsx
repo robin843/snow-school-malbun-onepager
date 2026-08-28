@@ -537,27 +537,64 @@ const Buchung = () => {
     return true;
   };
 
-  const buildReservePayload = () => ({
-    submission_id: crypto.randomUUID(),
-    customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
-    participants: participants.map((p) => ({
-      first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
-      discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
-    })),
-    booking: {
-      product_id: productId || undefined,
-      product_type: productType,
-      sport,
-      dates,
-      participant_count: participantCount,
-      duration_minutes: productType === "private" ? Number(duration) : undefined,
-      notes: notes || undefined,
-    },
-    consent: {
-      agb_accepted: true as const, agb_version: AGB_VERSION,
-      privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
-    },
-  });
+  const holdEmail = useRef(`reservierung+${crypto.randomUUID()}@schneesportschule.li`);
+
+  /**
+   * Beim Wechsel von "Kurs & Termin" zu "Teilnehmer" sind Kunden-/Teilnehmerdaten
+   * noch nicht erfasst. YETI verlangt sie trotzdem, deshalb wird die provisorische
+   * Reservierung mit Platzhaltern erstellt und beim Abschluss mit den echten
+   * Daten überschrieben.
+   */
+  const buildReservePayload = () => {
+    const hasContact = Boolean(firstName.trim() && lastName.trim() && email.trim() && street.trim() && zip.trim() && city.trim());
+    const customer = hasContact
+      ? { salutation, first_name: firstName, last_name: lastName, email, phone: phone.trim().length >= 5 ? phone : "+423 263 97 70", street, zip, city, country }
+      : {
+          salutation: "Herr",
+          first_name: "Web",
+          last_name: "Reservierung",
+          email: holdEmail.current,
+          phone: "+423 263 97 70",
+          street: "Malbun",
+          zip: "9497",
+          city: "Triesenberg",
+          country: "LI",
+        };
+
+    const filled = participants.filter((p) => p.first_name.trim() && p.last_name.trim() && isISODate(p.birth_date));
+    const list = filled.length === participantCount
+      ? filled
+      : Array.from({ length: participantCount }, (_, i) => ({
+          first_name: "Teilnehmer",
+          last_name: String(i + 1),
+          birth_date: "2000-01-01",
+          discipline: sport,
+          skill_level_num: 1,
+        }));
+
+    return {
+      submission_id: crypto.randomUUID(),
+      customer,
+      participants: list.map((p) => ({
+        first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
+        discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
+      })),
+      booking: {
+        product_id: productId || undefined,
+        product_type: productType,
+        sport,
+        dates,
+        participant_count: participantCount,
+        duration_minutes: productType === "private" ? Number(duration) : undefined,
+        notes: notes || undefined,
+      },
+      consent: {
+        agb_accepted: true as const, agb_version: AGB_VERSION,
+        privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
+      },
+    };
+  };
+
 
   /** Provisorische Reservierung in YETI (Skilehrer + Zeitfenster für 15 Min. gesperrt). */
   const reserve = async (): Promise<boolean> => {
@@ -602,15 +639,19 @@ const Buchung = () => {
   };
 
   const next = async () => {
-    if (step === 1 && !validateStep1()) return;
-    if (step === 2 && !validateStep2()) return;
-    if (step === 3) {
-      if (!validateStep3()) return;
-      const ok = await reserve();
-      if (!ok) return;
+    if (step === 1) {
+      if (!validateStep1()) return;
+      // Provisorische Reservierung direkt beim Wechsel zu "Teilnehmer".
+      if (!reservation || reservationExpired) {
+        const ok = await reserve();
+        if (!ok) return;
+      }
     }
+    if (step === 2 && !validateStep2()) return;
+    if (step === 3 && !validateStep3()) return;
     setStep((s) => Math.min(4, s + 1) as Step);
   };
+
 
 
   const isInvoice = paymentMethod === "ueberweisung" || paymentMethod === "postfinance";
@@ -640,6 +681,12 @@ const Buchung = () => {
           ticket_id: reservation.ticket_id,
           reservation_token: reservation.reservation_token,
           payment_method: isInvoice ? "invoice" : "online",
+          customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
+          participants: participants.map((pt) => ({
+            first_name: pt.first_name, last_name: pt.last_name, birth_date: pt.birth_date,
+            discipline: pt.discipline, skill_level: LEVEL_MAP[pt.skill_level_num],
+          })),
+          notes: notes || undefined,
         },
       });
       if (error) throw error;
@@ -1059,48 +1106,51 @@ const Buchung = () => {
                 </>
               )}
 
+              {step >= 2 && reservation && (
+                <Card className={cn("border-2", reservationExpired ? "border-destructive/60" : "border-primary/40")}>
+                  <CardHeader className="border-b bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-primary" />
+                      {reservationExpired ? "Reservierung abgelaufen" : "Termin provisorisch reserviert"}
+                    </CardTitle>
+                    <CardDescription>
+                      {reservationExpired
+                        ? "Bitte wähle den Termin erneut – Skilehrer und Zeiten sind wieder freigegeben."
+                        : "Der Skilehrer und die Zeiten sind für dich gesperrt. Bitte schliesse die Buchung innerhalb der angezeigten Zeit ab."}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-2 text-sm">
+                    {reservation?.expires_at && !reservationExpired && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Reserviert noch:</span>
+                        <span className="font-bold text-primary text-lg">{formatCountdown(remainingMs)}</span>
+                      </div>
+                    )}
+                    {reservation?.ticket_number && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Ticket-Nr.:</span>
+                        <span className="font-semibold">{reservation.ticket_number}</span>
+                      </div>
+                    )}
+                    {reservation?.instructor_name && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Skilehrer:in:</span>
+                        <span className="font-semibold">{reservation.instructor_name}</span>
+                      </div>
+                    )}
+                    {reservationExpired && (
+                      <Button type="button" variant="outline" onClick={() => { setReservation(null); refetchAvailability(); setStep(1); }}>
+                        Termin neu wählen
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {step === 4 && (
                 <>
-                  <Card className={cn("border-2", reservationExpired ? "border-destructive/60" : "border-primary/40")}>
-                    <CardHeader className="border-b bg-muted/30">
-                      <CardTitle className="flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-primary" />
-                        {reservationExpired ? "Reservierung abgelaufen" : "Termin provisorisch reserviert"}
-                      </CardTitle>
-                      <CardDescription>
-                        {reservationExpired
-                          ? "Bitte wähle den Termin erneut – Skilehrer und Zeiten sind wieder freigegeben."
-                          : "Der Skilehrer und die Zeiten sind für dich gesperrt. Bitte schliesse die Buchung innerhalb der angezeigten Zeit ab."}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-6 space-y-2 text-sm">
-                      {reservation?.expires_at && !reservationExpired && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Reserviert noch:</span>
-                          <span className="font-bold text-primary text-lg">{formatCountdown(remainingMs)}</span>
-                        </div>
-                      )}
-                      {reservation?.ticket_number && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Ticket-Nr.:</span>
-                          <span className="font-semibold">{reservation.ticket_number}</span>
-                        </div>
-                      )}
-                      {reservation?.instructor_name && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Skilehrer:in:</span>
-                          <span className="font-semibold">{reservation.instructor_name}</span>
-                        </div>
-                      )}
-                      {reservationExpired && (
-                        <Button type="button" variant="outline" onClick={() => { setReservation(null); refetchAvailability(); setStep(1); }}>
-                          Termin neu wählen
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-
                   <Card>
+
                     <CardHeader className="border-b bg-muted/30">
                       <CardTitle>Zahlungsart</CardTitle>
                       <CardDescription>Onlinezahlung oder Zahlung auf Rechnung.</CardDescription>
