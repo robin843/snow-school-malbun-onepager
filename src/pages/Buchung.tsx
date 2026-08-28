@@ -1217,7 +1217,7 @@ const Buchung = () => {
                       </div>
                     )}
                     {reservationExpired && (
-                      <Button type="button" variant="outline" onClick={() => { setReservation(null); refetchAvailability(); setStep(1); }}>
+                      <Button type="button" variant="outline" onClick={() => { cancelReservation(); setStep(1); }}>
                         Termin neu wählen
                       </Button>
                     )}
