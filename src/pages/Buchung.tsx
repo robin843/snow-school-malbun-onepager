@@ -359,6 +359,63 @@ const Buchung = () => {
     : 0;
   const reservationExpired = Boolean(reservation?.expires_at) && remainingMs <= 0;
 
+  /**
+   * Provisorische Reservierung wieder freigeben, sobald der Kunde aussteigt
+   * (Zurück, Kurswechsel, Seite verlassen). Läuft "fire and forget".
+   */
+  const reservationRef = useRef<Reservation | null>(null);
+  const confirmedRef = useRef(false);
+  useEffect(() => {
+    reservationRef.current = reservation;
+  }, [reservation]);
+
+  const releaseReservation = (res?: Reservation | null, opts?: { keepAlive?: boolean }) => {
+    const target = res ?? reservationRef.current;
+    if (!target || confirmedRef.current) return;
+    if (!target.ticket_id && !target.reservation_token) return;
+    const body = JSON.stringify({
+      ticket_id: target.ticket_id ?? undefined,
+      reservation_token: target.reservation_token ?? undefined,
+    });
+    try {
+      void fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yeti-release`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body,
+        keepalive: opts?.keepAlive ?? false,
+      }).catch(() => undefined);
+    } catch {
+      /* Freigabe ist best effort – der Hold läuft sonst nach 15 Minuten ab. */
+    }
+    reservationRef.current = null;
+  };
+
+  /** Zurück zu "Kurs & Termin" oder Termin verwerfen: Slot sofort freigeben. */
+  const cancelReservation = () => {
+    releaseReservation();
+    setReservation(null);
+    refetchAvailability();
+  };
+
+  // Seite verlassen / Tab schliessen -> Reservierung freigeben.
+  useEffect(() => {
+    const onLeave = () => releaseReservation(reservationRef.current, { keepAlive: true });
+    window.addEventListener("beforeunload", onLeave);
+    window.addEventListener("pagehide", onLeave);
+    return () => {
+      window.removeEventListener("beforeunload", onLeave);
+      window.removeEventListener("pagehide", onLeave);
+      onLeave();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -468,9 +525,28 @@ const Buchung = () => {
   // Produkt-/Kursartwechsel: Termine zurücksetzen, damit keine ungültigen Tage bleiben.
   useEffect(() => {
     setDates([{ date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
+    releaseReservation();
     setReservation(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseMode, productId]);
+
+  // Termin-, Dauer-, Sport- oder Teilnehmerwechsel: bestehende Reservierung freigeben.
+  const reservationKey = useMemo(
+    () => JSON.stringify([dates, duration, sport, participantCount]),
+    [dates, duration, sport, participantCount],
+  );
+  const lastReservationKey = useRef(reservationKey);
+  useEffect(() => {
+    if (lastReservationKey.current === reservationKey) return;
+    lastReservationKey.current = reservationKey;
+    if (reservationRef.current) {
+      releaseReservation();
+      setReservation(null);
+      refetchAvailability();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservationKey]);
+
 
   const validateStep1 = () => {
     if (!productId) {
@@ -708,6 +784,8 @@ const Buchung = () => {
         ].filter(Boolean).join(" · ") || "Bestätigung folgt per E-Mail.",
       });
       submittedSuccessfully = true;
+      confirmedRef.current = true;
+      reservationRef.current = null;
       setTimeout(() => navigate("/"), 3500);
     } catch (err: any) {
       console.error("Booking confirm error:", err);
@@ -1139,7 +1217,7 @@ const Buchung = () => {
                       </div>
                     )}
                     {reservationExpired && (
-                      <Button type="button" variant="outline" onClick={() => { setReservation(null); refetchAvailability(); setStep(1); }}>
+                      <Button type="button" variant="outline" onClick={() => { cancelReservation(); setStep(1); }}>
                         Termin neu wählen
                       </Button>
                     )}
@@ -1205,7 +1283,16 @@ const Buchung = () => {
               )}
 
               <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(1, s - 1) as Step)} disabled={step === 1 || reserving || submitting}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    // Zurück zu "Kurs & Termin": Slot und Skilehrer:in sofort wieder freigeben.
+                    if (step === 2) cancelReservation();
+                    setStep((s) => Math.max(1, s - 1) as Step);
+                  }}
+                  disabled={step === 1 || reserving || submitting}
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
                 </Button>
                 {step < 4 ? (
