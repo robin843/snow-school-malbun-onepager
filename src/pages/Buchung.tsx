@@ -525,9 +525,28 @@ const Buchung = () => {
   // Produkt-/Kursartwechsel: Termine zurücksetzen, damit keine ungültigen Tage bleiben.
   useEffect(() => {
     setDates([{ date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
+    releaseReservation();
     setReservation(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseMode, productId]);
+
+  // Termin-, Dauer-, Sport- oder Teilnehmerwechsel: bestehende Reservierung freigeben.
+  const reservationKey = useMemo(
+    () => JSON.stringify([dates, duration, sport, participantCount]),
+    [dates, duration, sport, participantCount],
+  );
+  const lastReservationKey = useRef(reservationKey);
+  useEffect(() => {
+    if (lastReservationKey.current === reservationKey) return;
+    lastReservationKey.current = reservationKey;
+    if (reservationRef.current) {
+      releaseReservation();
+      setReservation(null);
+      refetchAvailability();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservationKey]);
+
 
   const validateStep1 = () => {
     if (!productId) {
