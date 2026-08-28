@@ -359,6 +359,63 @@ const Buchung = () => {
     : 0;
   const reservationExpired = Boolean(reservation?.expires_at) && remainingMs <= 0;
 
+  /**
+   * Provisorische Reservierung wieder freigeben, sobald der Kunde aussteigt
+   * (Zurück, Kurswechsel, Seite verlassen). Läuft "fire and forget".
+   */
+  const reservationRef = useRef<Reservation | null>(null);
+  const confirmedRef = useRef(false);
+  useEffect(() => {
+    reservationRef.current = reservation;
+  }, [reservation]);
+
+  const releaseReservation = (res?: Reservation | null, opts?: { keepAlive?: boolean }) => {
+    const target = res ?? reservationRef.current;
+    if (!target || confirmedRef.current) return;
+    if (!target.ticket_id && !target.reservation_token) return;
+    const body = JSON.stringify({
+      ticket_id: target.ticket_id ?? undefined,
+      reservation_token: target.reservation_token ?? undefined,
+    });
+    try {
+      void fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yeti-release`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body,
+        keepalive: opts?.keepAlive ?? false,
+      }).catch(() => undefined);
+    } catch {
+      /* Freigabe ist best effort – der Hold läuft sonst nach 15 Minuten ab. */
+    }
+    reservationRef.current = null;
+  };
+
+  /** Zurück zu "Kurs & Termin" oder Termin verwerfen: Slot sofort freigeben. */
+  const cancelReservation = () => {
+    releaseReservation();
+    setReservation(null);
+    refetchAvailability();
+  };
+
+  // Seite verlassen / Tab schliessen -> Reservierung freigeben.
+  useEffect(() => {
+    const onLeave = () => releaseReservation(reservationRef.current, { keepAlive: true });
+    window.addEventListener("beforeunload", onLeave);
+    window.addEventListener("pagehide", onLeave);
+    return () => {
+      window.removeEventListener("beforeunload", onLeave);
+      window.removeEventListener("pagehide", onLeave);
+      onLeave();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
+
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
