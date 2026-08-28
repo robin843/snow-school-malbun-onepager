@@ -93,6 +93,8 @@ Deno.serve(async (req) => {
       invoice_number: r.invoice_number ?? null,
       invoice_due_date: r.invoice_due_date ?? r.due_date ?? null,
       customer_number: r.customer_number ?? null,
+      ...(p.customer ? { customer_email: p.customer.email } : {}),
+
       total_price: typeof r.total_price === 'number' ? r.total_price : (r.price?.total ?? null),
       yeti_response: r,
       error_message: success ? null : `YETI ${result.status}: ${JSON.stringify(r ?? result.raw)}`,
