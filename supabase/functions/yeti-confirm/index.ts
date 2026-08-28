@@ -3,11 +3,37 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3.23.8';
 import { callYeti, SAFE_ERROR } from '../_shared/yeti.ts';
 
+const CustomerSchema = z.object({
+  salutation: z.string().trim().max(30).optional(),
+  first_name: z.string().trim().min(1).max(100),
+  last_name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(255),
+  phone: z.string().trim().min(5).max(50),
+  street: z.string().trim().min(1).max(200),
+  zip: z.string().trim().min(1).max(20),
+  city: z.string().trim().min(1).max(100),
+  country: z.string().trim().min(2).max(3),
+}).strict();
+
+const ParticipantSchema = z.object({
+  first_name: z.string().trim().min(1).max(100),
+  last_name: z.string().trim().min(1).max(100),
+  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  discipline: z.enum(['ski', 'snowboard']),
+  skill_level: z.string().trim().max(100).optional(),
+}).strict();
+
 const BodySchema = z.object({
   ticket_id: z.string().trim().min(1).max(100),
   reservation_token: z.string().trim().min(1).max(200),
   payment_method: z.enum(['online', 'invoice']),
+  // Die provisorische Reservierung entsteht vor der Kontakterfassung —
+  // die echten Daten kommen erst beim Abschluss nach.
+  customer: CustomerSchema.optional(),
+  participants: z.array(ParticipantSchema).min(1).max(20).optional(),
+  notes: z.string().max(2000).optional(),
 }).strict();
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
