@@ -1283,7 +1283,16 @@ const Buchung = () => {
               )}
 
               <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(1, s - 1) as Step)} disabled={step === 1 || reserving || submitting}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    // Zurück zu "Kurs & Termin": Slot und Skilehrer:in sofort wieder freigeben.
+                    if (step === 2) cancelReservation();
+                    setStep((s) => Math.max(1, s - 1) as Step);
+                  }}
+                  disabled={step === 1 || reserving || submitting}
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
                 </Button>
                 {step < 4 ? (
