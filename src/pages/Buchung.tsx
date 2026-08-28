@@ -681,6 +681,12 @@ const Buchung = () => {
           ticket_id: reservation.ticket_id,
           reservation_token: reservation.reservation_token,
           payment_method: isInvoice ? "invoice" : "online",
+          customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
+          participants: participants.map((pt) => ({
+            first_name: pt.first_name, last_name: pt.last_name, birth_date: pt.birth_date,
+            discipline: pt.discipline, skill_level: LEVEL_MAP[pt.skill_level_num],
+          })),
+          notes: notes || undefined,
         },
       });
       if (error) throw error;
