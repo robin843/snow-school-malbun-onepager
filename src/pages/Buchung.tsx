@@ -537,27 +537,64 @@ const Buchung = () => {
     return true;
   };
 
-  const buildReservePayload = () => ({
-    submission_id: crypto.randomUUID(),
-    customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
-    participants: participants.map((p) => ({
-      first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
-      discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
-    })),
-    booking: {
-      product_id: productId || undefined,
-      product_type: productType,
-      sport,
-      dates,
-      participant_count: participantCount,
-      duration_minutes: productType === "private" ? Number(duration) : undefined,
-      notes: notes || undefined,
-    },
-    consent: {
-      agb_accepted: true as const, agb_version: AGB_VERSION,
-      privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
-    },
-  });
+  const holdEmail = useRef(`reservierung+${crypto.randomUUID()}@schneesportschule.li`);
+
+  /**
+   * Beim Wechsel von "Kurs & Termin" zu "Teilnehmer" sind Kunden-/Teilnehmerdaten
+   * noch nicht erfasst. YETI verlangt sie trotzdem, deshalb wird die provisorische
+   * Reservierung mit Platzhaltern erstellt und beim Abschluss mit den echten
+   * Daten überschrieben.
+   */
+  const buildReservePayload = () => {
+    const hasContact = Boolean(firstName.trim() && lastName.trim() && email.trim() && street.trim() && zip.trim() && city.trim());
+    const customer = hasContact
+      ? { salutation, first_name: firstName, last_name: lastName, email, phone: phone.trim().length >= 5 ? phone : "+423 263 97 70", street, zip, city, country }
+      : {
+          salutation: "Herr",
+          first_name: "Web",
+          last_name: "Reservierung",
+          email: holdEmail.current,
+          phone: "+423 263 97 70",
+          street: "Malbun",
+          zip: "9497",
+          city: "Triesenberg",
+          country: "LI",
+        };
+
+    const filled = participants.filter((p) => p.first_name.trim() && p.last_name.trim() && isISODate(p.birth_date));
+    const list = filled.length === participantCount
+      ? filled
+      : Array.from({ length: participantCount }, (_, i) => ({
+          first_name: "Teilnehmer",
+          last_name: String(i + 1),
+          birth_date: "2000-01-01",
+          discipline: sport,
+          skill_level_num: 1,
+        }));
+
+    return {
+      submission_id: crypto.randomUUID(),
+      customer,
+      participants: list.map((p) => ({
+        first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
+        discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
+      })),
+      booking: {
+        product_id: productId || undefined,
+        product_type: productType,
+        sport,
+        dates,
+        participant_count: participantCount,
+        duration_minutes: productType === "private" ? Number(duration) : undefined,
+        notes: notes || undefined,
+      },
+      consent: {
+        agb_accepted: true as const, agb_version: AGB_VERSION,
+        privacy_accepted: true as const, privacy_version: PRIVACY_VERSION,
+      },
+    };
+  };
+
 
   /** Provisorische Reservierung in YETI (Skilehrer + Zeitfenster für 15 Min. gesperrt). */
   const reserve = async (): Promise<boolean> => {
