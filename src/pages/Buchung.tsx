@@ -515,12 +515,6 @@ const Buchung = () => {
   const addDate = () => setDates([...dates, { date: "", start_time: "09:00", end_time: "12:00" }]);
   const removeDate = (idx: number) => setDates(dates.filter((_, i) => i !== idx));
 
-  const durationMinutes = useMemo(() => {
-    const d = dates[0];
-    if (!d) return 120;
-    const mins = minutesBetweenTimes(d.start_time, d.end_time);
-    return mins > 0 ? mins : 120;
-  }, [dates]);
 
   const hoursPerDay = productType === "private" ? Math.max(1, Math.round(durationMinutes / 60)) : 1;
 
