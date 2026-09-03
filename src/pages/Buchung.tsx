@@ -1349,7 +1349,7 @@ const Buchung = () => {
                     </div>
                   )}
                   {productType === "private" && (
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Dauer/Termin:</span><span className="font-semibold">{duration === "55" ? "55 Min." : "115 Min."}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Dauer/Termin:</span><span className="font-semibold">{Math.round(durationMinutes / 60)} Std. ({durationMinutes} Min.)</span></div>
                   )}
                   {selectedProduct && (
                     <div className="flex justify-between text-sm"><span className="text-muted-foreground">Preisbasis:</span><span className="font-semibold">{priceBasisLabel(selectedProduct)}</span></div>
