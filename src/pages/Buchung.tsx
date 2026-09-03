@@ -282,11 +282,12 @@ const Buchung = () => {
   const courseKey = searchParams.get("course") ?? "";
   const selectedCourseTitle = courseTitles[courseKey];
   const [participantCount, setParticipantCount] = useState(1);
-  const [duration, setDuration] = useState<"55" | "115">("115");
   const [dates, setDates] = useState<DateSlot[]>([
-    { date: "", start_time: "10:00", end_time: "11:55" },
+    { date: "", start_time: "09:00", end_time: "12:00" },
   ]);
+  const [language, setLanguage] = useState<string>("Deutsch");
   const [notes, setNotes] = useState("");
+
 
   const { privateProducts, groupProducts, loading: productsLoading, error: productsError } = useYetiProducts();
   const [productId, setProductId] = useState<string>("");
