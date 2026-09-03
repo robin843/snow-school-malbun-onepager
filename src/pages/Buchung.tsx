@@ -939,21 +939,18 @@ const Buchung = () => {
                       </div>
                     </div>
 
-                    {productType === "private" && (
-                      <div className="space-y-2">
-                        <Label>Lektionsdauer</Label>
-                        <RadioGroup value={duration} onValueChange={(v) => onDurationChange(v as "55" | "115")} className="flex gap-3">
-                          <div className={`flex-1 flex items-center space-x-2 p-3 rounded-lg border cursor-pointer ${duration === "55" ? "border-primary bg-primary/5" : "border-border"}`}>
-                            <RadioGroupItem value="55" id="d-55" />
-                            <Label htmlFor="d-55" className="cursor-pointer flex-1">Einzellektion (55 min)</Label>
-                          </div>
-                          <div className={`flex-1 flex items-center space-x-2 p-3 rounded-lg border cursor-pointer ${duration === "115" ? "border-primary bg-primary/5" : "border-border"}`}>
-                            <RadioGroupItem value="115" id="d-115" />
-                            <Label htmlFor="d-115" className="cursor-pointer flex-1">Doppellektion (115 min)</Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label>Kurssprache</Label>
+                      <Select value={language} onValueChange={setLanguage}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {LANGUAGES.map((l) => (
+                            <SelectItem key={l} value={l}>{l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
