@@ -342,7 +342,7 @@ const Buchung = () => {
     productId,
     productType,
     sport,
-    durationMinutes: productType === "private" ? Number(duration) : undefined,
+    durationMinutes: productType === "private" ? durationMinutes : undefined,
     participantCount,
     from: rangeFrom,
     to: rangeTo,
@@ -677,8 +677,8 @@ const Buchung = () => {
         sport,
         dates,
         participant_count: participantCount,
-        duration_minutes: productType === "private" ? Number(duration) : undefined,
-        notes: notes || undefined,
+        duration_minutes: productType === "private" ? durationMinutes : undefined,
+        notes: [`Sprache: ${language}`, notes].filter(Boolean).join(" | ") || undefined,
       },
       consent: {
         agb_accepted: true as const, agb_version: AGB_VERSION,
@@ -778,7 +778,7 @@ const Buchung = () => {
             first_name: pt.first_name, last_name: pt.last_name, birth_date: pt.birth_date,
             discipline: pt.discipline, skill_level: LEVEL_MAP[pt.skill_level_num],
           })),
-          notes: notes || undefined,
+          notes: [`Sprache: ${language}`, notes].filter(Boolean).join(" | ") || undefined,
         },
       });
       if (error) throw error;
@@ -983,7 +983,7 @@ const Buchung = () => {
                           key={idx}
                           className={cn(
                             "grid grid-cols-1 gap-2 items-end p-3 border rounded-lg",
-                            courseMode === "private" && "md:grid-cols-[1fr_1fr_auto]"
+                            courseMode === "private" && "md:grid-cols-[1fr_1fr_1fr_auto]"
                           )}
                         >
                           <div className="space-y-1">
