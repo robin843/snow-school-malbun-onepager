@@ -288,6 +288,14 @@ const Buchung = () => {
   const [language, setLanguage] = useState<string>("Deutsch");
   const [notes, setNotes] = useState("");
 
+  const durationMinutes = useMemo(() => {
+    const d = dates[0];
+    if (!d) return 120;
+    const mins = minutesBetweenTimes(d.start_time, d.end_time);
+    return mins > 0 ? mins : 120;
+  }, [dates]);
+
+
 
   const { privateProducts, groupProducts, loading: productsLoading, error: productsError } = useYetiProducts();
   const [productId, setProductId] = useState<string>("");
