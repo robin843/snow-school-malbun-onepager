@@ -1021,30 +1021,42 @@ const Buchung = () => {
                           {courseMode === "private" && (
                             <>
                               <div className="space-y-1">
-                                <Label className="text-xs">Zeitfenster</Label>
+                                <Label className="text-xs">Startzeit</Label>
                                 <Select
                                   value={d.start_time}
-                                  onValueChange={(v) => {
-                                    const slot = slotsFor(d.date).find((s) => s.start === v);
-                                    updateDate(idx, { start_time: v, end_time: slot?.end ?? computeEnd(v, duration) });
-                                  }}
-                                  disabled={!d.date || slotsFor(d.date).length === 0}
+                                  onValueChange={(v) => updateDate(idx, { start_time: v })}
+                                  disabled={!d.date}
                                 >
                                   <SelectTrigger>
-                                    <SelectValue placeholder={d.date ? "Zeit wählen" : "Zuerst Datum wählen"} />
+                                    <SelectValue placeholder={d.date ? "Startzeit wählen" : "Zuerst Datum wählen"} />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {slotsFor(d.date).map((s) => (
-                                      <SelectItem key={s.start} value={s.start}>
-                                        {s.start}–{s.end} · verfügbar
+                                    {PRIVATE_START_TIMES.map((s) => (
+                                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Endzeit</Label>
+                                <Select
+                                  value={d.end_time}
+                                  onValueChange={(v) => updateDate(idx, { end_time: v })}
+                                  disabled={!d.date}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Endzeit wählen" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(PRIVATE_TIME_MATRIX[d.start_time] ?? []).map((e) => (
+                                      <SelectItem key={e} value={e}>
+                                        {d.start_time}–{e}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
-                                {d.date && slotsFor(d.date).length === 0 && (
-                                  <p className="text-xs text-muted-foreground">{d.start_time}–{d.end_time}</p>
-                                )}
                               </div>
+
                               {dates.length > 1 && (
                                 <Button type="button" size="icon" variant="ghost" onClick={() => removeDate(idx)}>
                                   <Trash2 className="w-4 h-4 text-destructive" />
