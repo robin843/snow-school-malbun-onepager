@@ -469,18 +469,16 @@ const Buchung = () => {
     });
   };
 
-  const computeEnd = (start: string, dur: "55" | "115") => {
-    const [h, m] = start.split(":").map(Number);
-    const mins = h * 60 + m + (dur === "55" ? 55 : 115);
-    return `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
-  };
+  /** Erste erlaubte Endzeit zu einer Startzeit. */
+  const firstEndFor = (start: string) => PRIVATE_TIME_MATRIX[start]?.[0] ?? "12:00";
 
   const updateDate = (idx: number, patch: Partial<DateSlot>) => {
     setDates((prev) => prev.map((d, i) => {
       if (i !== idx) return d;
       const merged = { ...d, ...patch };
-      if (productType === "private" && (patch.start_time !== undefined)) {
-        merged.end_time = computeEnd(merged.start_time, duration);
+      if (productType === "private" && patch.start_time !== undefined && patch.end_time === undefined) {
+        const allowed = PRIVATE_TIME_MATRIX[merged.start_time] ?? [];
+        merged.end_time = allowed.includes(merged.end_time) ? merged.end_time : firstEndFor(merged.start_time);
       }
       return merged;
     }));
@@ -511,26 +509,21 @@ const Buchung = () => {
       });
       return;
     }
-    const slots = slotsFor(iso);
-    const current = dates[idx];
-    const keep = slots.find((s) => s.start === current?.start_time);
-    const slot = keep ?? slots[0];
-    updateDate(idx, {
-      date: iso,
-      start_time: slot?.start ?? current?.start_time ?? "10:00",
-      end_time: slot?.end ?? computeEnd(slot?.start ?? current?.start_time ?? "10:00", duration),
-    });
+    updateDate(idx, { date: iso });
   };
 
-  const addDate = () => setDates([...dates, { date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
+  const addDate = () => setDates([...dates, { date: "", start_time: "09:00", end_time: "12:00" }]);
   const removeDate = (idx: number) => setDates(dates.filter((_, i) => i !== idx));
 
-  const onDurationChange = (v: "55" | "115") => {
-    setDuration(v);
-    setDates((prev) => prev.map((d) => ({ ...d, end_time: computeEnd(d.start_time, v) })));
-  };
+  const durationMinutes = useMemo(() => {
+    const d = dates[0];
+    if (!d) return 120;
+    const mins = minutesBetweenTimes(d.start_time, d.end_time);
+    return mins > 0 ? mins : 120;
+  }, [dates]);
 
-  const hoursPerDay = productType === "private" ? (duration === "55" ? 1 : 2) : 1;
+  const hoursPerDay = productType === "private" ? Math.max(1, Math.round(durationMinutes / 60)) : 1;
+
 
   const total = useMemo(
     () =>
