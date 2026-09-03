@@ -45,9 +45,28 @@ interface DateSlot {
   end_time: string;
 }
 
+/** Privatkurse: mögliche Startzeiten und die dazu wählbaren Endzeiten. */
+const PRIVATE_TIME_MATRIX: Record<string, string[]> = {
+  "09:00": ["10:00", "12:00", "13:00", "14:00", "15:00", "16:00"],
+  "10:00": ["12:00", "13:00", "14:00", "15:00", "16:00"],
+  "12:00": ["13:00", "14:00", "15:00", "16:00"],
+  "13:00": ["14:00", "16:00"],
+  "14:00": ["16:00"],
+};
+const PRIVATE_START_TIMES = Object.keys(PRIVATE_TIME_MATRIX);
+
+const LANGUAGES = ["Deutsch", "Englisch", "Französisch", "Italienisch"] as const;
+
+const minutesBetweenTimes = (start: string, end: string) => {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  return eh * 60 + em - (sh * 60 + sm);
+};
+
 const LEVEL_MAP: Record<number, string> = {
   1: "anfaenger", 2: "gruen", 3: "blau", 4: "rot", 5: "schwarz", 6: "experte",
 };
+
 
 const LEVEL_LABELS: Record<number, string> = {
   1: "1 – Anfänger (noch nie auf Skiern/Board)",
