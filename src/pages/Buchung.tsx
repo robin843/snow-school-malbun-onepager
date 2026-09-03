@@ -537,7 +537,7 @@ const Buchung = () => {
 
   // Produkt-/Kursartwechsel: Termine zurücksetzen, damit keine ungültigen Tage bleiben.
   useEffect(() => {
-    setDates([{ date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
+    setDates([{ date: "", start_time: "09:00", end_time: "12:00" }]);
     releaseReservation();
     setReservation(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -545,8 +545,9 @@ const Buchung = () => {
 
   // Termin-, Dauer-, Sport- oder Teilnehmerwechsel: bestehende Reservierung freigeben.
   const reservationKey = useMemo(
-    () => JSON.stringify([dates, duration, sport, participantCount]),
-    [dates, duration, sport, participantCount],
+    () => JSON.stringify([dates, sport, participantCount]),
+    [dates, sport, participantCount],
+
   );
   const lastReservationKey = useRef(reservationKey);
   useEffect(() => {
