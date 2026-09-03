@@ -45,9 +45,28 @@ interface DateSlot {
   end_time: string;
 }
 
+/** Privatkurse: mögliche Startzeiten und die dazu wählbaren Endzeiten. */
+const PRIVATE_TIME_MATRIX: Record<string, string[]> = {
+  "09:00": ["10:00", "12:00", "13:00", "14:00", "15:00", "16:00"],
+  "10:00": ["12:00", "13:00", "14:00", "15:00", "16:00"],
+  "12:00": ["13:00", "14:00", "15:00", "16:00"],
+  "13:00": ["14:00", "16:00"],
+  "14:00": ["16:00"],
+};
+const PRIVATE_START_TIMES = Object.keys(PRIVATE_TIME_MATRIX);
+
+const LANGUAGES = ["Deutsch", "Englisch", "Französisch", "Italienisch"] as const;
+
+const minutesBetweenTimes = (start: string, end: string) => {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  return eh * 60 + em - (sh * 60 + sm);
+};
+
 const LEVEL_MAP: Record<number, string> = {
   1: "anfaenger", 2: "gruen", 3: "blau", 4: "rot", 5: "schwarz", 6: "experte",
 };
+
 
 const LEVEL_LABELS: Record<number, string> = {
   1: "1 – Anfänger (noch nie auf Skiern/Board)",
@@ -263,11 +282,20 @@ const Buchung = () => {
   const courseKey = searchParams.get("course") ?? "";
   const selectedCourseTitle = courseTitles[courseKey];
   const [participantCount, setParticipantCount] = useState(1);
-  const [duration, setDuration] = useState<"55" | "115">("115");
   const [dates, setDates] = useState<DateSlot[]>([
-    { date: "", start_time: "10:00", end_time: "11:55" },
+    { date: "", start_time: "09:00", end_time: "12:00" },
   ]);
+  const [language, setLanguage] = useState<string>("Deutsch");
   const [notes, setNotes] = useState("");
+
+  const durationMinutes = useMemo(() => {
+    const d = dates[0];
+    if (!d) return 120;
+    const mins = minutesBetweenTimes(d.start_time, d.end_time);
+    return mins > 0 ? mins : 120;
+  }, [dates]);
+
+
 
   const { privateProducts, groupProducts, loading: productsLoading, error: productsError } = useYetiProducts();
   const [productId, setProductId] = useState<string>("");
@@ -314,7 +342,7 @@ const Buchung = () => {
     productId,
     productType,
     sport,
-    durationMinutes: productType === "private" ? Number(duration) : undefined,
+    durationMinutes: productType === "private" ? durationMinutes : undefined,
     participantCount,
     from: rangeFrom,
     to: rangeTo,
@@ -449,18 +477,16 @@ const Buchung = () => {
     });
   };
 
-  const computeEnd = (start: string, dur: "55" | "115") => {
-    const [h, m] = start.split(":").map(Number);
-    const mins = h * 60 + m + (dur === "55" ? 55 : 115);
-    return `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
-  };
+  /** Erste erlaubte Endzeit zu einer Startzeit. */
+  const firstEndFor = (start: string) => PRIVATE_TIME_MATRIX[start]?.[0] ?? "12:00";
 
   const updateDate = (idx: number, patch: Partial<DateSlot>) => {
     setDates((prev) => prev.map((d, i) => {
       if (i !== idx) return d;
       const merged = { ...d, ...patch };
-      if (productType === "private" && (patch.start_time !== undefined)) {
-        merged.end_time = computeEnd(merged.start_time, duration);
+      if (productType === "private" && patch.start_time !== undefined && patch.end_time === undefined) {
+        const allowed = PRIVATE_TIME_MATRIX[merged.start_time] ?? [];
+        merged.end_time = allowed.includes(merged.end_time) ? merged.end_time : firstEndFor(merged.start_time);
       }
       return merged;
     }));
@@ -491,26 +517,15 @@ const Buchung = () => {
       });
       return;
     }
-    const slots = slotsFor(iso);
-    const current = dates[idx];
-    const keep = slots.find((s) => s.start === current?.start_time);
-    const slot = keep ?? slots[0];
-    updateDate(idx, {
-      date: iso,
-      start_time: slot?.start ?? current?.start_time ?? "10:00",
-      end_time: slot?.end ?? computeEnd(slot?.start ?? current?.start_time ?? "10:00", duration),
-    });
+    updateDate(idx, { date: iso });
   };
 
-  const addDate = () => setDates([...dates, { date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
+  const addDate = () => setDates([...dates, { date: "", start_time: "09:00", end_time: "12:00" }]);
   const removeDate = (idx: number) => setDates(dates.filter((_, i) => i !== idx));
 
-  const onDurationChange = (v: "55" | "115") => {
-    setDuration(v);
-    setDates((prev) => prev.map((d) => ({ ...d, end_time: computeEnd(d.start_time, v) })));
-  };
 
-  const hoursPerDay = productType === "private" ? (duration === "55" ? 1 : 2) : 1;
+  const hoursPerDay = productType === "private" ? Math.max(1, Math.round(durationMinutes / 60)) : 1;
+
 
   const total = useMemo(
     () =>
@@ -524,7 +539,7 @@ const Buchung = () => {
 
   // Produkt-/Kursartwechsel: Termine zurücksetzen, damit keine ungültigen Tage bleiben.
   useEffect(() => {
-    setDates([{ date: "", start_time: "10:00", end_time: computeEnd("10:00", duration) }]);
+    setDates([{ date: "", start_time: "09:00", end_time: "12:00" }]);
     releaseReservation();
     setReservation(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -532,8 +547,9 @@ const Buchung = () => {
 
   // Termin-, Dauer-, Sport- oder Teilnehmerwechsel: bestehende Reservierung freigeben.
   const reservationKey = useMemo(
-    () => JSON.stringify([dates, duration, sport, participantCount]),
-    [dates, duration, sport, participantCount],
+    () => JSON.stringify([dates, sport, participantCount]),
+    [dates, sport, participantCount],
+
   );
   const lastReservationKey = useRef(reservationKey);
   useEffect(() => {
@@ -661,8 +677,8 @@ const Buchung = () => {
         sport,
         dates,
         participant_count: participantCount,
-        duration_minutes: productType === "private" ? Number(duration) : undefined,
-        notes: notes || undefined,
+        duration_minutes: productType === "private" ? durationMinutes : undefined,
+        notes: [`Sprache: ${language}`, notes].filter(Boolean).join(" | ") || undefined,
       },
       consent: {
         agb_accepted: true as const, agb_version: AGB_VERSION,
@@ -762,7 +778,7 @@ const Buchung = () => {
             first_name: pt.first_name, last_name: pt.last_name, birth_date: pt.birth_date,
             discipline: pt.discipline, skill_level: LEVEL_MAP[pt.skill_level_num],
           })),
-          notes: notes || undefined,
+          notes: [`Sprache: ${language}`, notes].filter(Boolean).join(" | ") || undefined,
         },
       });
       if (error) throw error;
@@ -923,21 +939,18 @@ const Buchung = () => {
                       </div>
                     </div>
 
-                    {productType === "private" && (
-                      <div className="space-y-2">
-                        <Label>Lektionsdauer</Label>
-                        <RadioGroup value={duration} onValueChange={(v) => onDurationChange(v as "55" | "115")} className="flex gap-3">
-                          <div className={`flex-1 flex items-center space-x-2 p-3 rounded-lg border cursor-pointer ${duration === "55" ? "border-primary bg-primary/5" : "border-border"}`}>
-                            <RadioGroupItem value="55" id="d-55" />
-                            <Label htmlFor="d-55" className="cursor-pointer flex-1">Einzellektion (55 min)</Label>
-                          </div>
-                          <div className={`flex-1 flex items-center space-x-2 p-3 rounded-lg border cursor-pointer ${duration === "115" ? "border-primary bg-primary/5" : "border-border"}`}>
-                            <RadioGroupItem value="115" id="d-115" />
-                            <Label htmlFor="d-115" className="cursor-pointer flex-1">Doppellektion (115 min)</Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label>Kurssprache</Label>
+                      <Select value={language} onValueChange={setLanguage}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {LANGUAGES.map((l) => (
+                            <SelectItem key={l} value={l}>{l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
@@ -970,7 +983,7 @@ const Buchung = () => {
                           key={idx}
                           className={cn(
                             "grid grid-cols-1 gap-2 items-end p-3 border rounded-lg",
-                            courseMode === "private" && "md:grid-cols-[1fr_1fr_auto]"
+                            courseMode === "private" && "md:grid-cols-[1fr_1fr_1fr_auto]"
                           )}
                         >
                           <div className="space-y-1">
@@ -1005,30 +1018,42 @@ const Buchung = () => {
                           {courseMode === "private" && (
                             <>
                               <div className="space-y-1">
-                                <Label className="text-xs">Zeitfenster</Label>
+                                <Label className="text-xs">Startzeit</Label>
                                 <Select
                                   value={d.start_time}
-                                  onValueChange={(v) => {
-                                    const slot = slotsFor(d.date).find((s) => s.start === v);
-                                    updateDate(idx, { start_time: v, end_time: slot?.end ?? computeEnd(v, duration) });
-                                  }}
-                                  disabled={!d.date || slotsFor(d.date).length === 0}
+                                  onValueChange={(v) => updateDate(idx, { start_time: v })}
+                                  disabled={!d.date}
                                 >
                                   <SelectTrigger>
-                                    <SelectValue placeholder={d.date ? "Zeit wählen" : "Zuerst Datum wählen"} />
+                                    <SelectValue placeholder={d.date ? "Startzeit wählen" : "Zuerst Datum wählen"} />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {slotsFor(d.date).map((s) => (
-                                      <SelectItem key={s.start} value={s.start}>
-                                        {s.start}–{s.end} · verfügbar
+                                    {PRIVATE_START_TIMES.map((s) => (
+                                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Endzeit</Label>
+                                <Select
+                                  value={d.end_time}
+                                  onValueChange={(v) => updateDate(idx, { end_time: v })}
+                                  disabled={!d.date}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Endzeit wählen" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(PRIVATE_TIME_MATRIX[d.start_time] ?? []).map((e) => (
+                                      <SelectItem key={e} value={e}>
+                                        {d.start_time}–{e}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
-                                {d.date && slotsFor(d.date).length === 0 && (
-                                  <p className="text-xs text-muted-foreground">{d.start_time}–{d.end_time}</p>
-                                )}
                               </div>
+
                               {dates.length > 1 && (
                                 <Button type="button" size="icon" variant="ghost" onClick={() => removeDate(idx)}>
                                   <Trash2 className="w-4 h-4 text-destructive" />
@@ -1333,7 +1358,7 @@ const Buchung = () => {
                     </div>
                   )}
                   {productType === "private" && (
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Dauer/Termin:</span><span className="font-semibold">{duration === "55" ? "55 Min." : "115 Min."}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Dauer/Termin:</span><span className="font-semibold">{Math.round(durationMinutes / 60)} Std. ({durationMinutes} Min.)</span></div>
                   )}
                   {selectedProduct && (
                     <div className="flex justify-between text-sm"><span className="text-muted-foreground">Preisbasis:</span><span className="font-semibold">{priceBasisLabel(selectedProduct)}</span></div>
