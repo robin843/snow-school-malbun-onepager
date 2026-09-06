@@ -17,6 +17,8 @@ export type Database = {
       submitted_bookings: {
         Row: {
           booking_status: string
+          confirm_attempt_count: number
+          confirmed_at: string | null
           created_at: string
           currency: string
           customer_email: string | null
@@ -27,6 +29,9 @@ export type Database = {
           instructor_id: string | null
           invoice_due_date: string | null
           invoice_number: string | null
+          last_confirm_attempt_at: string | null
+          last_confirm_code: string | null
+          last_confirm_http_status: number | null
           payload: Json
           payment_method: string | null
           payment_status: string
@@ -44,6 +49,8 @@ export type Database = {
         }
         Insert: {
           booking_status?: string
+          confirm_attempt_count?: number
+          confirmed_at?: string | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -54,6 +61,9 @@ export type Database = {
           instructor_id?: string | null
           invoice_due_date?: string | null
           invoice_number?: string | null
+          last_confirm_attempt_at?: string | null
+          last_confirm_code?: string | null
+          last_confirm_http_status?: number | null
           payload: Json
           payment_method?: string | null
           payment_status?: string
@@ -71,6 +81,8 @@ export type Database = {
         }
         Update: {
           booking_status?: string
+          confirm_attempt_count?: number
+          confirmed_at?: string | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -81,6 +93,9 @@ export type Database = {
           instructor_id?: string | null
           invoice_due_date?: string | null
           invoice_number?: string | null
+          last_confirm_attempt_at?: string | null
+          last_confirm_code?: string | null
+          last_confirm_http_status?: number | null
           payload?: Json
           payment_method?: string | null
           payment_status?: string
