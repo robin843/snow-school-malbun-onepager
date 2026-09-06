@@ -15,15 +15,12 @@ import {
 
 const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
   const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(instructor.portrait_url) && !imageFailed;
 
   return (
     <Card className="overflow-hidden rounded-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
       <div className="aspect-[3/4] bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-        {imageFailed ? (
-          <div className="w-24 h-24 rounded-full bg-primary/30 flex items-center justify-center text-4xl font-bold text-primary">
-            {instructor.display_name.charAt(0)}
-          </div>
-        ) : (
+        {showImage ? (
           <img
             src={instructor.portrait_url}
             alt={`Portrait von ${instructor.display_name}`}
@@ -31,22 +28,31 @@ const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
             onError={() => setImageFailed(true)}
             className="w-full h-full object-cover"
           />
+        ) : (
+          <div className="w-24 h-24 rounded-full bg-primary/30 flex items-center justify-center text-4xl font-bold text-primary">
+            {instructor.display_name.charAt(0)}
+          </div>
         )}
       </div>
       <div className="bg-gradient-to-br from-primary to-secondary p-4 text-center">
         <p className="font-bold text-primary-foreground text-lg truncate">
           {instructor.display_name}
         </p>
-        <p className="text-primary-foreground/90 text-sm line-clamp-2">
-          {instructor.role_label}
-        </p>
-        <p className="text-primary-foreground/80 text-xs mt-2 line-clamp-3">
-          {instructor.teaser}
-        </p>
+        {instructor.role_label && (
+          <p className="text-primary-foreground/90 text-sm line-clamp-2">
+            {instructor.role_label}
+          </p>
+        )}
+        {instructor.teaser && (
+          <p className="text-primary-foreground/80 text-xs mt-2 line-clamp-3">
+            {instructor.teaser}
+          </p>
+        )}
       </div>
     </Card>
   );
 };
+
 
 const Team = () => {
   const { team, isLoading } = useYetiPublicInstructors();
