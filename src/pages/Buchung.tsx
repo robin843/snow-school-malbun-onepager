@@ -1283,10 +1283,34 @@ const Buchung = () => {
                         <span className="font-semibold">{reservation.instructor_name}</span>
                       </div>
                     )}
+                    {reservationEndingSoon && (
+                      <p className="text-sm text-destructive font-medium">
+                        Nur noch wenige Minuten reserviert – bitte schliesse die Buchung jetzt ab.
+                      </p>
+                    )}
                     {reservationExpired && (
-                      <Button type="button" variant="outline" onClick={() => { cancelReservation(); setStep(1); }}>
-                        Termin neu wählen
-                      </Button>
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          Deine Angaben bleiben erhalten. Wir prüfen kurz, ob der Termin noch frei ist.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            onClick={async () => {
+                              setConfirmError(null);
+                              refetchAvailability();
+                              const ok = await reserve();
+                              if (!ok) setStep(1);
+                            }}
+                            disabled={reserving}
+                          >
+                            {reserving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Wird geprüft…</> : "Verfügbarkeit erneut prüfen"}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => { cancelReservation(); setStep(1); }}>
+                            Termin neu wählen
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -1351,33 +1375,77 @@ const Buchung = () => {
                 </>
               )}
 
-              <div className="flex justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    // Zurück zu "Kurs & Termin": Slot und Skilehrer:in sofort wieder freigeben.
-                    if (step === 2) cancelReservation();
-                    setStep((s) => Math.max(1, s - 1) as Step);
-                  }}
-                  disabled={step === 1 || reserving || submitting}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
-                </Button>
-                {step < 4 ? (
-                  <Button type="button" onClick={next} disabled={reserving}>
-                    {reserving ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Termin wird reserviert…</>
-                    ) : (
-                      <>Weiter <ArrowRight className="w-4 h-4 ml-2" /></>
+              {confirmResult && (
+                <Card className="border-2 border-primary">
+                  <CardHeader className="border-b bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-primary" /> Buchung bestätigt
+                    </CardTitle>
+                    <CardDescription>Du erhältst die Bestätigung per E-Mail.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-2 text-sm">
+                    {confirmResult.ticket_number && (
+                      <div className="flex items-center justify-between"><span className="text-muted-foreground">Ticket-Nr.:</span><span className="font-semibold">{confirmResult.ticket_number}</span></div>
                     )}
+                    {confirmResult.customer_number && (
+                      <div className="flex items-center justify-between"><span className="text-muted-foreground">Kundennummer:</span><span className="font-semibold">{confirmResult.customer_number}</span></div>
+                    )}
+                    {confirmResult.invoice_number && (
+                      <div className="flex items-center justify-between"><span className="text-muted-foreground">Rechnung:</span><span className="font-semibold">{confirmResult.invoice_number}</span></div>
+                    )}
+                    {confirmResult.invoice_due_date && (
+                      <div className="flex items-center justify-between"><span className="text-muted-foreground">Zahlbar bis:</span><span className="font-semibold">{zurichLabel(confirmResult.invoice_due_date)}</span></div>
+                    )}
+                    <Button type="button" className="mt-2" onClick={() => navigate("/")}>Zur Startseite</Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {confirmError && !confirmResult && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 space-y-3">
+                  <div className="flex items-start gap-2 text-sm">
+                    <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                    <span>{confirmError}</span>
+                  </div>
+                  {step === 4 && !reservationExpired && (
+                    <Button type="button" variant="outline" size="sm" onClick={submit} disabled={submitting}>
+                      Erneut versuchen
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {!confirmResult && (
+                <div className="flex justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      // Zurück zu "Kurs & Termin": Slot und Skilehrer:in sofort wieder freigeben.
+                      if (step === 2) cancelReservation();
+                      setStep((s) => Math.max(1, s - 1) as Step);
+                    }}
+                    disabled={step === 1 || reserving || submitting}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
                   </Button>
-                ) : (
-                  <Button type="button" onClick={submit} disabled={submitting || reservationExpired} size="lg">
-                    {submitting ? "Wird gesendet..." : isInvoice ? "Buchen & Rechnung erhalten" : "Buchung abschliessen"}
-                  </Button>
-                )}
-              </div>
+                  {step < 4 ? (
+                    <Button type="button" onClick={next} disabled={reserving}>
+                      {reserving ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Termin wird reserviert…</>
+                      ) : (
+                        <>Weiter <ArrowRight className="w-4 h-4 ml-2" /></>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button type="button" onClick={submit} disabled={submitting || reservationExpired} size="lg">
+                      {submitting ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Wird gesendet…</>
+                      ) : isInvoice ? "Buchen & Rechnung erhalten" : "Buchung abschliessen"}
+                    </Button>
+                  )}
+                </div>
+              )}
 
             </div>
 
