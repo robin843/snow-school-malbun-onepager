@@ -122,36 +122,42 @@ const Team = () => {
             </p>
           </div>
 
-          <Carousel
-            opts={{
-              align: "start",
-              loop: true,
-            }}
-            className="w-full max-w-6xl mx-auto"
-          >
-            <CarouselContent>
-              {groupedInstructors.map((group, groupIndex) => (
-                <CarouselItem key={groupIndex}>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-4">
-                    {group.map((name, index) => (
-                      <Card key={index} className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                        <div className="aspect-[3/4] bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                          <div className="w-24 h-24 rounded-full bg-primary/30 flex items-center justify-center text-4xl font-bold text-primary">
-                            {name.charAt(0)}
-                          </div>
-                        </div>
-                        <div className="bg-gradient-to-br from-primary to-secondary p-4 text-center">
-                          <p className="font-bold text-white text-lg">{name}</p>
-                        </div>
-                      </Card>
-                    ))}
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-4 w-full max-w-6xl mx-auto">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden rounded-lg">
+                  <div className="aspect-[3/4] bg-muted animate-pulse" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-muted rounded animate-pulse" />
+                    <div className="h-3 bg-muted rounded animate-pulse w-2/3 mx-auto" />
                   </div>
-                </CarouselItem>
+                </Card>
               ))}
-            </CarouselContent>
-            <CarouselPrevious className="left-0" />
-            <CarouselNext className="right-0" />
-          </Carousel>
+            </div>
+          ) : team.length > 0 ? (
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full max-w-6xl mx-auto"
+            >
+              <CarouselContent>
+                {groupedInstructors.map((group, groupIndex) => (
+                  <CarouselItem key={groupIndex}>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-4">
+                      {group.map((instructor, index) => (
+                        <InstructorCard key={`${instructor.display_name}-${index}`} instructor={instructor} />
+                      ))}
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-0" />
+              <CarouselNext className="right-0" />
+            </Carousel>
+          ) : null}
+
         </div>
       </div>
     </section>
