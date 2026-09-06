@@ -464,7 +464,7 @@ const Buchung = () => {
   const [country, setCountry] = useState("CH");
   const [agb, setAgb] = useState(false);
   const [privacy, setPrivacy] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("twint");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("ueberweisung");
 
   const syncParticipants = (count: number) => {
     setParticipantCount(count);
