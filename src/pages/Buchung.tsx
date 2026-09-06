@@ -386,6 +386,18 @@ const Buchung = () => {
     ? new Date(reservation.expires_at).getTime() - now
     : 0;
   const reservationExpired = Boolean(reservation?.expires_at) && remainingMs <= 0;
+  /** Warnung, sobald weniger als fünf Minuten Reservierungszeit übrig sind. */
+  const reservationEndingSoon = !reservationExpired && remainingMs > 0 && remainingMs <= 5 * 60 * 1000;
+
+  /** Abschluss-Diagnose: eine Kennung pro Kasse, damit Wiederholversuche zusammengehören. */
+  const correlationIdRef = useRef<string>(crypto.randomUUID());
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [confirmResult, setConfirmResult] = useState<{
+    ticket_number: string | null;
+    customer_number: string | null;
+    invoice_number: string | null;
+    invoice_due_date: string | null;
+  } | null>(null);
 
   /**
    * Provisorische Reservierung wieder freigeben, sobald der Kunde aussteigt
@@ -744,24 +756,26 @@ const Buchung = () => {
     }
   };
 
+  /** Prüft, ob die aktive Reservierung noch zur aktuellen Auswahl passt. */
+  const reservationMatchesSelection = () =>
+    lastReservationKey.current === reservationKey;
+
   /** Reservierung in eine Buchung umwandeln (Onlinezahlung oder Rechnung). */
   const submit = async () => {
     if (submittingRef.current) return;
+    setConfirmError(null);
     if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) return;
     if (!isInvoice && !ONLINE_PAYMENT_ENABLED) {
-      toast({ title: "Onlinezahlung nicht verfügbar", description: "Bitte wähle eine Zahlung auf Rechnung.", variant: "destructive" });
+      setConfirmError("Onlinezahlung ist derzeit nicht verfügbar. Bitte wähle eine Zahlung auf Rechnung.");
       return;
     }
-    if (!reservation?.ticket_id || !reservation.reservation_token) {
-      toast({ title: "Keine Reservierung", description: "Bitte den Termin erneut reservieren.", variant: "destructive" });
+    if (!reservation?.ticket_id || !reservation.reservation_token || !reservationMatchesSelection()) {
+      setConfirmError("Für die aktuelle Auswahl besteht keine gültige Reservierung. Bitte prüfe den Termin erneut.");
       setStep(1);
       return;
     }
     if (reservationExpired) {
-      toast({ title: "Reservierung abgelaufen", description: "Bitte wähle den Termin erneut.", variant: "destructive" });
-      setReservation(null);
-      refetchAvailability();
-      setStep(1);
+      setConfirmError("Die Reservierungszeit ist abgelaufen. Deine Angaben bleiben erhalten – bitte prüfe die Verfügbarkeit erneut.");
       return;
     }
     submittingRef.current = true;
@@ -782,6 +796,7 @@ const Buchung = () => {
           ticket_id: reservation.ticket_id,
           reservation_token: reservation.reservation_token,
           payment_method: isInvoice ? "invoice" : "online",
+          correlation_id: correlationIdRef.current,
           ...(paymentReference ? { payment_reference: paymentReference } : {}),
           customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
           participants: participants.map((pt) => ({
@@ -793,36 +808,52 @@ const Buchung = () => {
       });
 
       if (error) throw error;
-      if (!data?.success) {
+
+      let confirmed = data;
+
+      // Unklare oder unvollständige Antwort: echten Buchungsstand abfragen, statt erneut zu buchen.
+      if (!confirmed?.success || (isInvoice && !confirmed?.invoice_number)) {
+        const { data: statusData } = await supabase.functions.invoke("yeti-booking-status", {
+          body: { ticket_id: reservation.ticket_id },
+        });
+        const finalStatus = statusData?.status;
+        if (finalStatus && ["confirmed", "invoice_pending", "paid"].includes(String(finalStatus)) && (statusData?.invoice_number || !isInvoice)) {
+          confirmed = { ...statusData, success: true };
+        }
+      }
+
+      if (!confirmed?.success) {
         if (data?.expired) {
           setReservation(null);
           refetchAvailability();
-          setStep(1);
         }
-        throw new Error(data?.message || "Booking confirmation failed");
+        throw new Error(data?.message || "Die Buchung konnte nicht abgeschlossen werden.");
       }
 
+      setConfirmResult({
+        ticket_number: confirmed.ticket_number ?? reservation.ticket_number ?? null,
+        customer_number: confirmed.customer_number ?? null,
+        invoice_number: confirmed.invoice_number ?? null,
+        invoice_due_date: confirmed.invoice_due_date ?? null,
+      });
       toast({
         title: isInvoice ? "Buchung bestätigt – Rechnung folgt" : "Buchung bestätigt!",
         description: [
-          data.ticket_number ? `Ticket-Nr. ${data.ticket_number}` : null,
-          data.customer_number ? `Kundennummer ${data.customer_number}` : null,
-          data.invoice_number ? `Rechnung ${data.invoice_number}` : null,
+          confirmed.ticket_number ? `Ticket-Nr. ${confirmed.ticket_number}` : null,
+          confirmed.customer_number ? `Kundennummer ${confirmed.customer_number}` : null,
+          confirmed.invoice_number ? `Rechnung ${confirmed.invoice_number}` : null,
         ].filter(Boolean).join(" · ") || "Bestätigung folgt per E-Mail.",
       });
       submittedSuccessfully = true;
       confirmedRef.current = true;
       reservationRef.current = null;
-      setTimeout(() => navigate("/"), 3500);
     } catch (err: any) {
       console.error("Booking confirm error:", err);
-      toast({
-        title: "Buchung fehlgeschlagen",
-        description: err?.message?.startsWith("Die Reservierung")
+      setConfirmError(
+        typeof err?.message === "string" && err.message.length < 300
           ? err.message
           : "Die Buchung konnte gerade nicht abgeschlossen werden. Bitte versuche es innerhalb der Reservierungszeit erneut.",
-        variant: "destructive",
-      });
+      );
     } finally {
       if (!submittedSuccessfully) {
         submittingRef.current = false;
