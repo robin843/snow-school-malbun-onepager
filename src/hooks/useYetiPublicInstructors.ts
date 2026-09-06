@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface PublicInstructor {
   display_name: string;
-  role_label: string;
-  teaser: string;
-  portrait_url: string;
+  role_label?: string;
+  teaser?: string;
+  portrait_url?: string;
 }
 
 interface CacheEntry {
@@ -20,13 +20,9 @@ let memoryCache: CacheEntry | null = null;
 const isInstructor = (value: unknown): value is PublicInstructor => {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return (
-    typeof v.display_name === "string" && v.display_name.length > 0 &&
-    typeof v.role_label === "string" && v.role_label.length > 0 &&
-    typeof v.teaser === "string" && v.teaser.length > 0 &&
-    typeof v.portrait_url === "string" && v.portrait_url.length > 0
-  );
+  return typeof v.display_name === "string" && v.display_name.trim().length > 0;
 };
+
 
 export const useYetiPublicInstructors = () => {
   const fresh = memoryCache && Date.now() - memoryCache.at < STALE_MS ? memoryCache : null;
