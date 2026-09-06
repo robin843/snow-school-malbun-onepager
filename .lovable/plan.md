@@ -1,35 +1,56 @@
-# Kundendaten kommen in YETI nicht an — Analyse und Behebung
+# Abschluss der Buchung zuverlässig machen (Kundendaten in YETI)
 
-## Was die Daten zeigen
+## Was die Daten heute zeigen
 
-Die beiden Tickets im Screenshot (T-2026-998043, T-2026-998044) sind **reine Platzhalter-Reservierungen** — Status „Abgelaufen", Kunde „Provisorisch (Website)". Das ist genau das, was der aktuelle Ablauf vorsieht: beim Reservieren werden bewusst keine Personendaten mehr gesendet, erst beim Abschluss.
+- Die Tickets T-2026-998043 und T-2026-998044 sind abgelaufene, anonyme Platzhalter-Reservierungen. Sie stammen aus unserem eigenen Testlauf (zwei Holds am selben Tag, 10:00–12:00 und 14:00–16:00, ohne Abschluss) — nicht von echten Gästen.
+- In unserer Datenbank existiert bisher **kein einziger Abschluss von einer echten Besucherin oder einem echten Besucher**. Alle abgeschlossenen Buchungen tragen unsere Testadresse.
+- Ein Testabschluss (T-2026-998042) hat funktioniert: YETI hat Kundendaten übernommen, eine Kundennummer vergeben und Rechnung R-2026-00009 erzeugt. Der Vertrag funktioniert also grundsätzlich.
+- Zwei andere Testtickets (T-2026-998038, T-2026-998040) antworteten mit „bereits bestätigt" **ohne** Kundennummer, Rechnungsnummer oder Betrag. Das ist der wichtigste Verdachtspunkt: YETI meldet Erfolg, ohne dass nachweislich Kunde, Teilnehmer und Rechnung vorhanden sind.
 
-Die Datenbank bestätigt: seit dem Umbau gab es **keinen einzigen echten Abschluss von einer Kundin oder einem Kunden**. Alle abgeschlossenen Buchungen stammen aus unseren eigenen Tests. Bei einem dieser Tests (T-2026-998042) hat YETI die Kundendaten korrekt übernommen und eine Kundennummer sowie Rechnung R-2026-00009 erzeugt. Der Weg funktioniert also technisch — er wird bloss nie erreicht: die Reservierungen laufen nach 15 Minuten ab, bevor jemand den Abschluss auslöst.
+Daraus folgt: Bevor irgendetwas umgebaut wird, muss gemessen werden, an welcher Stelle der echte Ablauf abbricht.
 
-Zwei weitere Testtickets (T-2026-998038, T-2026-998040) bekamen von YETI die Antwort „bereits bestätigt" ohne Kundendaten — dort könnte der Kunde tatsächlich fehlen. Das ist der einzige offene Verdachtspunkt und wird zuerst geprüft.
+## Phase 1 — Messen statt raten
 
-## Schritt 1: Gezielt nachmessen (vor jeder Änderung)
+1. Eine vollständige Testbuchung über die echte Website-Oberfläche durchführen (Kurs, Termin, Teilnehmer, Kontakt, Einwilligung, Rechnung, ein Klick auf den Abschluss-Knopf), mit einer eindeutigen Kennung.
+2. Vorübergehende technische Protokolle an jeder Übergabestelle: Browser → Website-Abschlussfunktion → YETI. Protokolliert werden nur Kennungen, Zeitstempel, Statuscodes, Anzahl Teilnehmer, ob ein Kunde übermittelt wurde, ob eine Rechnung entstand — **keine Namen, Adressen, Telefonnummern, E-Mails, Geburtsdaten oder Reservierungstoken**.
+3. Datenbankstand direkt nach dem Halten und direkt nach dem Abschluss prüfen (Status, Kundenkennung, Teilnehmer, Ablaufzeit, genau eine Rechnung).
+4. Denselben Abschluss ein zweites Mal senden und prüfen, dass dieselben Referenzen zurückkommen und nichts doppelt entsteht.
+5. Ergebnis: ein kurzer Befund, welche Übergabestelle als erste versagt (Knopf löst nicht aus / Formularprüfung blockiert / Reservierung abgelaufen / Abschlussfunktion lehnt ab / YETI nicht erreichbar / YETI lehnt ab / Speicherung scheitert / Rechnung scheitert / Antwort wird fälschlich als Fehler gewertet / Oberfläche bleibt stehen). Erst danach wird gezielt korrigiert.
 
-- Eine kontrollierte Testreservierung anlegen und sofort abschliessen; danach in YETI prüfen, ob Name, Adresse, Telefon und E-Mail am Ticket sichtbar sind.
-- Denselben Abschluss ein zweites Mal senden und prüfen, ob YETI mit „bereits bestätigt" antwortet, obwohl nie Kundendaten gespeichert wurden.
-- Ergebnis entscheidet, ob das Problem auf unserer Seite oder bei YETI liegt.
+## Phase 2 — Abschluss-Knopf und Ablaufzeit auf der Website
 
-## Schritt 2: Kundendaten früher sichtbar machen
+In `src/pages/Buchung.tsx`:
 
-Damit im YETI-Stundenplan nicht mehr „Provisorisch (Website)" steht, sobald die Personalien im Formular erfasst sind:
+- Doppelklick-Schutz bleibt über eine synchrone Sperre; der Knopf bleibt bis zur Antwort im Ladezustand.
+- Erfolg wird erst angezeigt, wenn die Antwort ausdrücklich erfolgreich ist; kein vorzeitiges Weiterleiten oder Leeren des Formulars.
+- Fehler erscheinen als klarer Hinweis direkt im Schritt „Zahlung" samt „Erneut versuchen" — der Wiederholversuch nutzt dieselbe Reservierung und erzeugt weder ein zweites Ticket noch eine zweite Rechnung.
+- Vor dem Senden wird geprüft, dass die aktive Reservierung noch zu Kurs, Teilnehmerzahl, Datum und Zeit passt.
+- Sichtbarer Countdown ab der Reservierung, Warnung bei fünf Minuten Restzeit.
+- Beim Übergang von „Kontakt" zu „Zahlung" wird die bestehende Reservierung **einmalig** um bis zu 15 Minuten verlängert (nur die Ablaufzeit, keine Personendaten, kein neues Ticket). Existiert dafür kein YETI-Endpunkt, entfällt die Verlängerung und es bleibt bei Countdown plus sauberer Wiederherstellung.
+- Läuft die Zeit ab: eingegebene Daten bleiben erhalten, Schaltfläche „Verfügbarkeit erneut prüfen" legt eine neue Reservierung an und der Gast macht mit den bereits erfassten Angaben weiter.
+- Erfolgsanzeige nennt Ticketnummer, Kundennummer und Rechnungsnummer. Bei unvollständiger Antwort wird zuerst der Buchungsstatus abgefragt, bevor ein Fehler gemeldet wird — nie eine zweite Buchung als Notlösung.
 
-- Beim Wechsel von „Kontakt" zu „Zahlung" die bereits erfassten Kundendaten an die bestehende Reservierung nachmelden (Name, E-Mail, Telefon, Adresse, Teilnehmer).
-- Es werden weiterhin nie erfundene Daten gesendet — nur echte, vom Gast eingegebene Angaben.
-- Voraussetzung: YETI bietet dafür einen Weg (Reservierung aktualisieren oder Kundendaten optional schon beim Reservieren). Fehlt dieser, formuliere ich stattdessen die konkrete Anforderung an das YETI-Team.
+## Phase 3 — Abschlussfunktion und Fehlercodes
 
-## Schritt 3: Abbrüche sichtbar machen
+In `supabase/functions/yeti-confirm/index.ts`:
 
-- Fehlgeschlagene oder abgelaufene Abschlüsse werden protokolliert (nur Ticketnummer und Statuscode, keine Personendaten), damit erkennbar wird, an welcher Stelle Gäste aussteigen.
-- Läuft die Reservierungszeit während des Ausfüllens ab, wird der Gast klar darauf hingewiesen und die Reservierung automatisch erneuert, statt still zu scheitern.
+- Antwortet YETI mit „bereits bestätigt", wird der Buchungsstatus nachgeladen und geprüft, ob Kunde, Teilnehmer und Rechnung wirklich vorhanden sind. Fehlt etwas, wird das als eigener Fehlerfall gemeldet statt als Erfolg.
+- Einheitliche interne Codes (Prüfung fehlgeschlagen, Reservierung abgelaufen, Zugang fehlgeschlagen, YETI nicht erreichbar, Abschluss fehlgeschlagen, Rechnung fehlgeschlagen, Antwort unbrauchbar). Nach aussen bleiben freundliche deutsche Meldungen.
+- In `submitted_bookings` neu gespeichert: Anzahl Abschlussversuche, Zeitpunkt des letzten Versuchs, letzter Code, letzter Statuscode, Zeitpunkt der Bestätigung. Damit lassen sich abgebrochene Reservierung, abgelaufene Kasse, Prüffehler, YETI-Fehler und Erfolg unterscheiden. Keine Personendaten in Protokollen.
+
+## Phase 4 — Tests von echten Daten trennen
+
+- `supabase/functions/yeti-reserve/index.test.ts` verlangt künftig eine ausdrückliche Kennzeichnung als Nicht-Produktivumgebung und bricht sonst sofort ab.
+- Jeder Testlauf erhält eine eigene Laufkennung; erzeugte Testreservierungen werden am Ende wieder freigegeben.
+- Für die bekannten Testtickets (T-2026-998038 bis T-2026-998044) erstelle ich eine Liste zur Durchsicht — gelöscht wird nichts automatisch.
+
+## Was ausserhalb dieses Projekts liegt
+
+Die Punkte zum YETI-Backend (transaktionaler Abschluss mit genau einer Rechnung, feste Fehlercodes 410/422/409, sowie die Trennung von „Webreservierungen" in der Buchungsliste und den Kennzahlen) kann ich hier nicht umsetzen — dieses Projekt ist nur die Website. Ich liefere dafür eine präzise, direkt umsetzbare Anforderung an das YETI-Team, gestützt auf die Messergebnisse aus Phase 1.
 
 ## Technische Notizen
 
-- Betroffen: `supabase/functions/yeti-reserve/index.ts`, `supabase/functions/yeti-confirm/index.ts`, `src/pages/Buchung.tsx`
-- Bestätigt: `confirm-booking` überträgt `customer` und `participants` unverändert; YETI liefert dabei `customer_id` zurück (Ticket T-2026-998042)
-- Offen: Verhalten von `confirm-booking` bei `already_confirmed: true` sowie Existenz eines Endpunkts zum Nachtragen von Kundendaten an eine bestehende Reservierung
-- Keine Datenbankmigration nötig
+- Betroffene Dateien: `src/pages/Buchung.tsx`, `supabase/functions/yeti-confirm/index.ts`, `supabase/functions/yeti-booking-status/index.ts`, `supabase/functions/yeti-reserve/index.test.ts`
+- Eine kleine Datenbankänderung an `submitted_bookings` für die Diagnosefelder
+- Reserve-Pfad bleibt unverändert anonym; Zwei-Schritt-Architektur und die Regel „Onlinezahlung nur mit echter Zahlungsreferenz" bleiben bestehen
+- `yeti-confirm` wird nach den Änderungen neu bereitgestellt
