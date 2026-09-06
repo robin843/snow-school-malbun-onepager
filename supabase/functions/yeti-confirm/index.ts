@@ -27,13 +27,21 @@ const BodySchema = z.object({
   ticket_id: z.string().trim().min(1).max(100),
   reservation_token: z.string().trim().min(1).max(200),
   payment_method: z.enum(['online', 'invoice']),
-  // Die provisorische Reservierung entsteht vor der Kontakterfassung —
-  // die echten Daten kommen erst beim Abschluss nach.
-  customer: CustomerSchema.optional(),
-  participants: z.array(ParticipantSchema).min(1).max(20).optional(),
+  payment_reference: z.string().trim().min(1).max(200).optional(),
+  payment_failed: z.boolean().optional(),
+  customer: CustomerSchema,
+  participants: z.array(ParticipantSchema).min(1).max(20),
   notes: z.string().max(2000).optional(),
-}).strict();
-
+}).strict().superRefine((body, ctx) => {
+  // Onlinezahlung gilt nur mit echter Referenz eines Zahlungsanbieters als bezahlt.
+  if (body.payment_method === 'online' && !body.payment_failed && !body.payment_reference) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['payment_reference'],
+      message: 'payment_reference is required for online payments',
+    });
+  }
+});
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -65,14 +73,12 @@ Deno.serve(async (req) => {
       ticket_id: p.ticket_id,
       reservation_token: p.reservation_token,
       payment_method: p.payment_method,
-      // Online payment is not charged yet — Yeti keeps it as payment_pending.
-      payment_status: p.payment_method === 'invoice' ? 'invoice_pending' : 'payment_pending',
-      source: 'website',
-      ...(p.customer ? { customer: p.customer } : {}),
-      ...(p.participants ? { participants: p.participants } : {}),
+      ...(p.payment_reference ? { payment_reference: p.payment_reference } : {}),
+      ...(p.payment_failed ? { payment_failed: true } : {}),
+      customer: p.customer,
+      participants: p.participants,
       ...(p.notes ? { notes: p.notes } : {}),
     },
-
   });
 
   const r = result.json ?? {};
@@ -83,26 +89,43 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
+  // Fehlgeschlagene Zahlung: Reservierung bleibt bestehen, kein Abschluss.
+  if (p.payment_failed) {
+    await supabase
+      .from('submitted_bookings')
+      .update({ payment_status: 'payment_failed', payment_method: p.payment_method })
+      .eq('yeti_ticket_id', p.ticket_id);
+
+    return json({
+      success: false,
+      payment_failed: true,
+      expired: result.status === 410,
+      message: 'Die Zahlung wurde nicht abgeschlossen. Deine Reservierung bleibt noch gültig – bitte versuche es erneut.',
+    });
+  }
+
+  const fallbackStatus = p.payment_method === 'invoice' ? 'invoice_pending' : 'paid';
+
   await supabase
     .from('submitted_bookings')
     .update({
       status: success ? 'success' : 'failed',
-      booking_status: success ? (r.status ?? (p.payment_method === 'invoice' ? 'invoice_pending' : 'payment_pending')) : 'failed',
-      payment_status: success ? (r.payment_status ?? (p.payment_method === 'invoice' ? 'invoice_pending' : 'payment_pending')) : 'unpaid',
+      booking_status: success ? (r.status ?? 'confirmed') : 'failed',
+      payment_status: success ? (r.payment_status ?? fallbackStatus) : 'unpaid',
       payment_method: p.payment_method,
       invoice_number: r.invoice_number ?? null,
       invoice_due_date: r.invoice_due_date ?? r.due_date ?? null,
       customer_number: r.customer_number ?? null,
-      ...(p.customer ? { customer_email: p.customer.email } : {}),
-
+      customer_email: p.customer.email,
       total_price: typeof r.total_price === 'number' ? r.total_price : (r.price?.total ?? null),
       yeti_response: r,
-      error_message: success ? null : `YETI ${result.status}: ${JSON.stringify(r ?? result.raw)}`,
+      error_message: success ? null : `YETI ${result.status}`,
     })
     .eq('yeti_ticket_id', p.ticket_id);
 
   if (!success) {
-    console.error('confirm-booking failed', { status: result.status, response: r ?? result.raw });
+    // Keine Personendaten ins Log — nur IDs und Statuscodes.
+    console.error('confirm-booking failed', { ticket_id: p.ticket_id, status: result.status, code: r?.code ?? r?.error ?? null });
     const expired = result.status === 410 || /expired|abgelaufen/i.test(JSON.stringify(r ?? ''));
     return json(
       {

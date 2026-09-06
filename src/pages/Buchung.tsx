@@ -464,7 +464,7 @@ const Buchung = () => {
   const [country, setCountry] = useState("CH");
   const [agb, setAgb] = useState(false);
   const [privacy, setPrivacy] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("twint");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("ueberweisung");
 
   const syncParticipants = (count: number) => {
     setParticipantCount(count);
@@ -629,48 +629,13 @@ const Buchung = () => {
     return true;
   };
 
-  const holdEmail = useRef(`reservierung+${crypto.randomUUID()}@schneesportschule.li`);
-
   /**
-   * Beim Wechsel von "Kurs & Termin" zu "Teilnehmer" sind Kunden-/Teilnehmerdaten
-   * noch nicht erfasst. YETI verlangt sie trotzdem, deshalb wird die provisorische
-   * Reservierung mit Platzhaltern erstellt und beim Abschluss mit den echten
-   * Daten überschrieben.
+   * Anonymer Slot-Hold: nur Kurs-, Termin- und Kapazitätsdaten.
+   * Kunden- und Teilnehmerdaten gehen ausschliesslich beim Abschluss an YETI.
    */
   const buildReservePayload = () => {
-    const hasContact = Boolean(firstName.trim() && lastName.trim() && email.trim() && street.trim() && zip.trim() && city.trim());
-    const customer = hasContact
-      ? { salutation, first_name: firstName, last_name: lastName, email, phone: phone.trim().length >= 5 ? phone : "+423 263 97 70", street, zip, city, country }
-      : {
-          salutation: "Herr",
-          first_name: "Web",
-          last_name: "Reservierung",
-          email: holdEmail.current,
-          phone: "+423 263 97 70",
-          street: "Malbun",
-          zip: "9497",
-          city: "Triesenberg",
-          country: "LI",
-        };
-
-    const filled = participants.filter((p) => p.first_name.trim() && p.last_name.trim() && isISODate(p.birth_date));
-    const list = filled.length === participantCount
-      ? filled
-      : Array.from({ length: participantCount }, (_, i) => ({
-          first_name: "Teilnehmer",
-          last_name: String(i + 1),
-          birth_date: "2000-01-01",
-          discipline: sport,
-          skill_level_num: 1,
-        }));
-
     return {
       submission_id: crypto.randomUUID(),
-      customer,
-      participants: list.map((p) => ({
-        first_name: p.first_name, last_name: p.last_name, birth_date: p.birth_date,
-        discipline: p.discipline, skill_level: LEVEL_MAP[p.skill_level_num],
-      })),
       booking: {
         product_id: productId || undefined,
         product_type: productType,
@@ -686,6 +651,7 @@ const Buchung = () => {
       },
     };
   };
+
 
 
   /** Provisorische Reservierung in YETI (Skilehrer + Zeitfenster für 15 Min. gesperrt). */
@@ -745,13 +711,47 @@ const Buchung = () => {
   };
 
 
+  /**
+   * Onlinezahlung (TWINT/Kreditkarte) ist erst möglich, wenn ein echter
+   * Zahlungsanbieter angebunden ist und eine Transaktionsnummer liefert.
+   * Es wird nie eine erfundene Referenz erzeugt.
+   */
+  const ONLINE_PAYMENT_ENABLED = false;
+  /** Platzhalter für den späteren Anbieter-Callback: liefert die echte Transaktionsnummer. */
+  const startOnlinePayment = async (): Promise<string | null> => null;
 
   const isInvoice = paymentMethod === "ueberweisung" || paymentMethod === "postfinance";
+
+  /** Meldet YETI eine gescheiterte Zahlung — die Reservierung bleibt bestehen. */
+  const reportPaymentFailed = async () => {
+    if (!reservation?.ticket_id || !reservation.reservation_token) return;
+    try {
+      await supabase.functions.invoke("yeti-confirm", {
+        body: {
+          ticket_id: reservation.ticket_id,
+          reservation_token: reservation.reservation_token,
+          payment_method: "online",
+          payment_failed: true,
+          customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
+          participants: participants.map((pt) => ({
+            first_name: pt.first_name, last_name: pt.last_name, birth_date: pt.birth_date,
+            discipline: pt.discipline, skill_level: LEVEL_MAP[pt.skill_level_num],
+          })),
+        },
+      });
+    } catch {
+      /* best effort */
+    }
+  };
 
   /** Reservierung in eine Buchung umwandeln (Onlinezahlung oder Rechnung). */
   const submit = async () => {
     if (submittingRef.current) return;
     if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) return;
+    if (!isInvoice && !ONLINE_PAYMENT_ENABLED) {
+      toast({ title: "Onlinezahlung nicht verfügbar", description: "Bitte wähle eine Zahlung auf Rechnung.", variant: "destructive" });
+      return;
+    }
     if (!reservation?.ticket_id || !reservation.reservation_token) {
       toast({ title: "Keine Reservierung", description: "Bitte den Termin erneut reservieren.", variant: "destructive" });
       setStep(1);
@@ -768,11 +768,21 @@ const Buchung = () => {
     setSubmitting(true);
     let submittedSuccessfully = false;
     try {
+      let paymentReference: string | undefined;
+      if (!isInvoice) {
+        paymentReference = (await startOnlinePayment()) ?? undefined;
+        if (!paymentReference) {
+          await reportPaymentFailed();
+          throw new Error("Die Zahlung wurde nicht abgeschlossen. Deine Reservierung bleibt noch gültig – bitte versuche es erneut.");
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("yeti-confirm", {
         body: {
           ticket_id: reservation.ticket_id,
           reservation_token: reservation.reservation_token,
           payment_method: isInvoice ? "invoice" : "online",
+          ...(paymentReference ? { payment_reference: paymentReference } : {}),
           customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
           participants: participants.map((pt) => ({
             first_name: pt.first_name, last_name: pt.last_name, birth_date: pt.birth_date,
@@ -781,6 +791,7 @@ const Buchung = () => {
           notes: [`Sprache: ${language}`, notes].filter(Boolean).join(" | ") || undefined,
         },
       });
+
       if (error) throw error;
       if (!data?.success) {
         if (data?.expired) {
@@ -1260,15 +1271,15 @@ const Buchung = () => {
                     </CardHeader>
                     <CardContent className="pt-6 space-y-3">
                       <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="space-y-2">
-                        <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "twint" ? "border-[#FFED00] bg-[#FFED00]/5" : "border-border"}`}>
-                          <RadioGroupItem value="twint" id="pm-twint" />
+                        <div className={`flex items-center space-x-3 p-3 rounded-lg border ${ONLINE_PAYMENT_ENABLED ? "cursor-pointer" : "opacity-50"} ${paymentMethod === "twint" ? "border-[#FFED00] bg-[#FFED00]/5" : "border-border"}`}>
+                          <RadioGroupItem value="twint" id="pm-twint" disabled={!ONLINE_PAYMENT_ENABLED} />
                           <img src={twintLogo} alt="TWINT" className="h-7" />
-                          <Label htmlFor="pm-twint" className="flex-1 cursor-pointer font-semibold">TWINT</Label>
+                          <Label htmlFor="pm-twint" className="flex-1 font-semibold">TWINT</Label>
                         </div>
-                        <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "kreditkarte" ? "border-primary bg-primary/5" : "border-border"}`}>
-                          <RadioGroupItem value="kreditkarte" id="pm-card" />
+                        <div className={`flex items-center space-x-3 p-3 rounded-lg border ${ONLINE_PAYMENT_ENABLED ? "cursor-pointer" : "opacity-50"} ${paymentMethod === "kreditkarte" ? "border-primary bg-primary/5" : "border-border"}`}>
+                          <RadioGroupItem value="kreditkarte" id="pm-card" disabled={!ONLINE_PAYMENT_ENABLED} />
                           <img src={visaLogo} alt="Visa" className="h-5" />
-                          <Label htmlFor="pm-card" className="flex-1 cursor-pointer font-semibold">Kreditkarte</Label>
+                          <Label htmlFor="pm-card" className="flex-1 font-semibold">Kreditkarte</Label>
                         </div>
                         <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "ueberweisung" ? "border-primary bg-primary/5" : "border-border"}`}>
                           <RadioGroupItem value="ueberweisung" id="pm-bank" />
@@ -1281,11 +1292,13 @@ const Buchung = () => {
                           <Label htmlFor="pm-pf" className="flex-1 cursor-pointer font-semibold">Rechnung (PostFinance)</Label>
                         </div>
                       </RadioGroup>
+                      {!ONLINE_PAYMENT_ENABLED && (
+                        <p className="text-xs text-muted-foreground">Onlinezahlung ist derzeit noch nicht verfügbar.</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
-                        {isInvoice
-                          ? "Du erhältst Buchungsbestätigung und Rechnung mit Zahlungsfrist per E-Mail."
-                          : "Die Onlinezahlung wird aktuell manuell abgewickelt – wir melden uns mit dem Zahlungslink. Die Buchung bleibt bis zur Zahlung als offen markiert."}
+                        Du erhältst Buchungsbestätigung und Rechnung mit Zahlungsfrist per E-Mail.
                       </p>
+
                     </CardContent>
                   </Card>
 
