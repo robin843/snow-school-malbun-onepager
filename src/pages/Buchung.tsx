@@ -711,13 +711,47 @@ const Buchung = () => {
   };
 
 
+  /**
+   * Onlinezahlung (TWINT/Kreditkarte) ist erst möglich, wenn ein echter
+   * Zahlungsanbieter angebunden ist und eine Transaktionsnummer liefert.
+   * Es wird nie eine erfundene Referenz erzeugt.
+   */
+  const ONLINE_PAYMENT_ENABLED = false;
+  /** Platzhalter für den späteren Anbieter-Callback: liefert die echte Transaktionsnummer. */
+  const startOnlinePayment = async (): Promise<string | null> => null;
 
   const isInvoice = paymentMethod === "ueberweisung" || paymentMethod === "postfinance";
+
+  /** Meldet YETI eine gescheiterte Zahlung — die Reservierung bleibt bestehen. */
+  const reportPaymentFailed = async () => {
+    if (!reservation?.ticket_id || !reservation.reservation_token) return;
+    try {
+      await supabase.functions.invoke("yeti-confirm", {
+        body: {
+          ticket_id: reservation.ticket_id,
+          reservation_token: reservation.reservation_token,
+          payment_method: "online",
+          payment_failed: true,
+          customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
+          participants: participants.map((pt) => ({
+            first_name: pt.first_name, last_name: pt.last_name, birth_date: pt.birth_date,
+            discipline: pt.discipline, skill_level: LEVEL_MAP[pt.skill_level_num],
+          })),
+        },
+      });
+    } catch {
+      /* best effort */
+    }
+  };
 
   /** Reservierung in eine Buchung umwandeln (Onlinezahlung oder Rechnung). */
   const submit = async () => {
     if (submittingRef.current) return;
     if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) return;
+    if (!isInvoice && !ONLINE_PAYMENT_ENABLED) {
+      toast({ title: "Onlinezahlung nicht verfügbar", description: "Bitte wähle eine Zahlung auf Rechnung.", variant: "destructive" });
+      return;
+    }
     if (!reservation?.ticket_id || !reservation.reservation_token) {
       toast({ title: "Keine Reservierung", description: "Bitte den Termin erneut reservieren.", variant: "destructive" });
       setStep(1);
@@ -734,11 +768,21 @@ const Buchung = () => {
     setSubmitting(true);
     let submittedSuccessfully = false;
     try {
+      let paymentReference: string | undefined;
+      if (!isInvoice) {
+        paymentReference = (await startOnlinePayment()) ?? undefined;
+        if (!paymentReference) {
+          await reportPaymentFailed();
+          throw new Error("Die Zahlung wurde nicht abgeschlossen. Deine Reservierung bleibt noch gültig – bitte versuche es erneut.");
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("yeti-confirm", {
         body: {
           ticket_id: reservation.ticket_id,
           reservation_token: reservation.reservation_token,
           payment_method: isInvoice ? "invoice" : "online",
+          ...(paymentReference ? { payment_reference: paymentReference } : {}),
           customer: { salutation, first_name: firstName, last_name: lastName, email, phone, street, zip, city, country },
           participants: participants.map((pt) => ({
             first_name: pt.first_name, last_name: pt.last_name, birth_date: pt.birth_date,
@@ -747,6 +791,7 @@ const Buchung = () => {
           notes: [`Sprache: ${language}`, notes].filter(Boolean).join(" | ") || undefined,
         },
       });
+
       if (error) throw error;
       if (!data?.success) {
         if (data?.expired) {
