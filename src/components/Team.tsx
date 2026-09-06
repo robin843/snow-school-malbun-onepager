@@ -1,4 +1,4 @@
-import wappen from "@/assets/wappen-malbun.jpg";
+import { useState } from "react";
 import teamPhotos from "@/assets/team-photos.jpg";
 import { Card } from "@/components/ui/card";
 import {
@@ -8,29 +8,54 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import {
+  useYetiPublicInstructors,
+  type PublicInstructor,
+} from "@/hooks/useYetiPublicInstructors";
 
+const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  return (
+    <Card className="overflow-hidden rounded-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      <div className="aspect-[3/4] bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+        {imageFailed ? (
+          <div className="w-24 h-24 rounded-full bg-primary/30 flex items-center justify-center text-4xl font-bold text-primary">
+            {instructor.display_name.charAt(0)}
+          </div>
+        ) : (
+          <img
+            src={instructor.portrait_url}
+            alt={`Portrait von ${instructor.display_name}`}
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
+      <div className="bg-gradient-to-br from-primary to-secondary p-4 text-center">
+        <p className="font-bold text-primary-foreground text-lg truncate">
+          {instructor.display_name}
+        </p>
+        <p className="text-primary-foreground/90 text-sm line-clamp-2">
+          {instructor.role_label}
+        </p>
+        <p className="text-primary-foreground/80 text-xs mt-2 line-clamp-3">
+          {instructor.teaser}
+        </p>
+      </div>
+    </Card>
+  );
+};
 
 const Team = () => {
-  const instructors = [
-    "Christoph", "Engelbert", "Heiner", "Peter",
-    "Lara", "Mia", "Claudia", "Barbara",
-    "Cindy", "Daniel", "David", "Dominique",
-    "Gina", "Graeme", "Heidi", "Ivan",
-    "Katharina", "Klaus", "Leila", "Lena H.",
-    "Lena K.", "Lino", "Lio", "Lisa",
-    "Luca", "Luis", "Lukas", "Luzi",
-    "Max", "Maxi", "Melanie", "Mikka",
-    "Miriam", "Nasti", "Nele", "Nicola",
-    "Nicolaj", "Olivia", "Otto", "Patrizia",
-    "Paula", "Sarah", "Serena", "Simona",
-    "Susanne", "Theresa", "Thomas", "Tim",
-    "Toni", "Valerie", "Yves"
-  ];
+  const { team, isLoading } = useYetiPublicInstructors();
 
-  const groupedInstructors = [];
-  for (let i = 0; i < instructors.length; i += 8) {
-    groupedInstructors.push(instructors.slice(i, i + 8));
+  const groupedInstructors: PublicInstructor[][] = [];
+  for (let i = 0; i < team.length; i += 8) {
+    groupedInstructors.push(team.slice(i, i + 8));
   }
+
 
   return (
     <section id="team" className="py-20 bg-background">
