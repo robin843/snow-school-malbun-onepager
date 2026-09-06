@@ -1271,15 +1271,15 @@ const Buchung = () => {
                     </CardHeader>
                     <CardContent className="pt-6 space-y-3">
                       <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="space-y-2">
-                        <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "twint" ? "border-[#FFED00] bg-[#FFED00]/5" : "border-border"}`}>
-                          <RadioGroupItem value="twint" id="pm-twint" />
+                        <div className={`flex items-center space-x-3 p-3 rounded-lg border ${ONLINE_PAYMENT_ENABLED ? "cursor-pointer" : "opacity-50"} ${paymentMethod === "twint" ? "border-[#FFED00] bg-[#FFED00]/5" : "border-border"}`}>
+                          <RadioGroupItem value="twint" id="pm-twint" disabled={!ONLINE_PAYMENT_ENABLED} />
                           <img src={twintLogo} alt="TWINT" className="h-7" />
-                          <Label htmlFor="pm-twint" className="flex-1 cursor-pointer font-semibold">TWINT</Label>
+                          <Label htmlFor="pm-twint" className="flex-1 font-semibold">TWINT</Label>
                         </div>
-                        <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "kreditkarte" ? "border-primary bg-primary/5" : "border-border"}`}>
-                          <RadioGroupItem value="kreditkarte" id="pm-card" />
+                        <div className={`flex items-center space-x-3 p-3 rounded-lg border ${ONLINE_PAYMENT_ENABLED ? "cursor-pointer" : "opacity-50"} ${paymentMethod === "kreditkarte" ? "border-primary bg-primary/5" : "border-border"}`}>
+                          <RadioGroupItem value="kreditkarte" id="pm-card" disabled={!ONLINE_PAYMENT_ENABLED} />
                           <img src={visaLogo} alt="Visa" className="h-5" />
-                          <Label htmlFor="pm-card" className="flex-1 cursor-pointer font-semibold">Kreditkarte</Label>
+                          <Label htmlFor="pm-card" className="flex-1 font-semibold">Kreditkarte</Label>
                         </div>
                         <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "ueberweisung" ? "border-primary bg-primary/5" : "border-border"}`}>
                           <RadioGroupItem value="ueberweisung" id="pm-bank" />
@@ -1292,11 +1292,13 @@ const Buchung = () => {
                           <Label htmlFor="pm-pf" className="flex-1 cursor-pointer font-semibold">Rechnung (PostFinance)</Label>
                         </div>
                       </RadioGroup>
+                      {!ONLINE_PAYMENT_ENABLED && (
+                        <p className="text-xs text-muted-foreground">Onlinezahlung ist derzeit noch nicht verfügbar.</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
-                        {isInvoice
-                          ? "Du erhältst Buchungsbestätigung und Rechnung mit Zahlungsfrist per E-Mail."
-                          : "Die Onlinezahlung wird aktuell manuell abgewickelt – wir melden uns mit dem Zahlungslink. Die Buchung bleibt bis zur Zahlung als offen markiert."}
+                        Du erhältst Buchungsbestätigung und Rechnung mit Zahlungsfrist per E-Mail.
                       </p>
+
                     </CardContent>
                   </Card>
 
