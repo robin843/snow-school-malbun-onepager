@@ -43,7 +43,9 @@ Deno.serve(async (req) => {
     return json({ team: [], error: 'method_not_allowed' }, 405);
   }
 
-  if (cache && Date.now() - cache.at < TTL_MS) {
+  const refresh = new URL(req.url).searchParams.get('refresh') === '1';
+
+  if (!refresh && cache && Date.now() - cache.at < TTL_MS) {
     return new Response(cache.body, {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'hit' },
@@ -62,6 +64,19 @@ Deno.serve(async (req) => {
       ? payload
       : payload?.team ?? payload?.instructors ?? payload?.data ?? null;
 
+    console.log(
+      'get-public-instructors upstream',
+      JSON.stringify({
+        status: result.status,
+        payloadKeys: payload && typeof payload === 'object' ? Object.keys(payload) : null,
+        rawCount: Array.isArray(rawTeam) ? rawTeam.length : null,
+        firstItemKeys:
+          Array.isArray(rawTeam) && rawTeam[0] && typeof rawTeam[0] === 'object'
+            ? Object.keys(rawTeam[0])
+            : null,
+      }),
+    );
+
     const team = sanitize(rawTeam);
     if (!Array.isArray(rawTeam)) {
       console.error('get-public-instructors malformed payload shape');
@@ -71,6 +86,7 @@ Deno.serve(async (req) => {
     const body = JSON.stringify({ team });
     cache = { at: Date.now(), body };
     return json({ team });
+
   } catch (_err) {
     console.error('get-public-instructors request failed');
     return json({ team: [], error: 'team_unavailable' }, 200);
