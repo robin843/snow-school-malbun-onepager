@@ -42,27 +42,27 @@ const Navigation = () => {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-secondary/95 backdrop-blur-sm shadow-md" : "bg-secondary/90 backdrop-blur-sm"
+        isScrolled ? "bg-background/95 backdrop-blur-sm shadow-md" : "bg-white/95 backdrop-blur-sm"
       }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Schneesportschule Malbun" className="h-12 w-12 object-contain" />
-            <span className="font-bold text-lg hidden sm:inline text-secondary-foreground">
+            <span className="font-bold text-lg hidden sm:inline text-primary">
               Schneesportschule Malbun
             </span>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button size="lg" className="font-semibold bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => navigate("/buchung")}>
+            <Button size="lg" className="font-semibold" onClick={() => navigate("/buchung")}>
               Jetzt buchen
             </Button>
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <button
                   aria-label="Menü öffnen"
-                  className="p-2 rounded-md hover:bg-secondary-foreground/10 transition-colors text-secondary-foreground"
+                  className="p-2 rounded-md hover:bg-muted transition-colors text-foreground"
                 >
                   <Menu size={28} />
                 </button>
@@ -83,7 +83,7 @@ const Navigation = () => {
                   ))}
                   <Button
                     size="lg"
-                    className="mt-6 font-semibold w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                    className="mt-6 font-semibold w-full"
                     onClick={() => {
                       setOpen(false);
                       navigate("/buchung");
