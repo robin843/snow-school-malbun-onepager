@@ -42,14 +42,14 @@ const Navigation = () => {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background/95 backdrop-blur-sm shadow-md" : "bg-white/95 backdrop-blur-sm"
+        isScrolled ? "bg-secondary/95 backdrop-blur-sm shadow-md" : "bg-secondary/90 backdrop-blur-sm"
       }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Schneesportschule Malbun" className="h-12 w-12 object-contain" />
-            <span className="font-bold text-lg hidden sm:inline text-primary">
+            <span className="font-bold text-lg hidden sm:inline text-secondary-foreground">
               Schneesportschule Malbun
             </span>
           </div>
@@ -62,7 +62,7 @@ const Navigation = () => {
               <SheetTrigger asChild>
                 <button
                   aria-label="Menü öffnen"
-                  className="p-2 rounded-md hover:bg-muted transition-colors text-foreground"
+                  className="p-2 rounded-md hover:bg-secondary-foreground/10 transition-colors text-secondary-foreground"
                 >
                   <Menu size={28} />
                 </button>
