@@ -155,6 +155,22 @@ const courses: Course[] = [
     ],
     requirement: "Sicheres paralleles Skifahren auf roter Piste",
   },
+  // Privatkurse — Snowboard
+  {
+    id: "privat-snowboard",
+    title: "Privatkurs Snowboard",
+    subtitle: "Individuell für Erwachsene & Kinder",
+    discipline: "snowboard",
+    audiences: ["kids", "adults"],
+    icon: <User className="w-6 h-6 text-white" />,
+    accent: "primary",
+    meta: [
+      { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
+      { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
+    ],
+    tariffs: privatTariffsSki,
+    notes: ["Max. 5 Personen pro Kurs", "Tricks & Styles auf Anfrage"],
+  },
   // Snowboard Gruppen
   {
     id: "snowboard-anfaenger",
