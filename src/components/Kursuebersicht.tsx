@@ -195,10 +195,10 @@ const courses: Course[] = [
   },
 ];
 
-const accentMap = {
-  primary: "from-primary/90 to-primary/70",
-  secondary: "from-secondary/90 to-secondary/70",
-  accent: "from-accent/90 to-accent/70",
+// Jede Produktgruppe hat ihre eigene Farbe: Ski = Eisblau, Snowboard = Rosé
+const groupHeaderMap = {
+  ski: "bg-gradient-to-br from-ice-blue to-ice-blue/70 text-ice-blue-foreground",
+  snowboard: "bg-gradient-to-br from-blush to-blush/70 text-blush-foreground",
 } as const;
 
 const FlagBadge = ({ flag }: { flag: Flag }) => (
