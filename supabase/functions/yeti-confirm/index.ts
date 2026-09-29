@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
   if (success && (r.already_confirmed || looksIncomplete)) {
     const statusResult = await callYeti('get-booking-status', {
       method: 'GET',
-      query: { ticket_id: p.ticket_id },
+      query: { ticket_id: p.ticket_id, token: p.reservation_token },
     });
     const s = statusResult.json ?? {};
     if (statusResult.status >= 200 && statusResult.status < 300) {
