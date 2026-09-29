@@ -56,34 +56,34 @@ const Jobs = () => {
         </div>
 
         <div className="max-w-4xl mx-auto space-y-8">
-          <Card className="bg-gradient-to-br from-primary to-secondary text-white border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
+          <Card className="bg-gradient-to-br from-ice-blue to-ice-blue/70 text-ice-blue-foreground border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl md:text-3xl">Skilehrer/in (Voll- und/oder Teilzeit)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-white/90 leading-relaxed">
+              <p className="text-ice-blue-foreground/90 leading-relaxed">
                 Du bist sportlich, gerne draussen und hast Freude am Umgang mit Kindern. Mit deiner offenen Art und guten Deutschkenntnissen passt du gut ins Team. Eine Ausbildung ab Kids Instructor bringst du mit - oder bist bereit, sie während der Saison zu absolvieren.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-secondary to-primary text-white border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
+          <Card className="bg-gradient-to-br from-blush to-blush/70 text-blush-foreground border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl md:text-3xl">Kinderbetreuer/in auf Ski (Teilzeit)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-white/90 leading-relaxed">
+              <p className="text-blush-foreground/90 leading-relaxed">
                 Du bist flexibel, gerne draussen und hast Grundkenntnisse im Skifahren. Der Umgang mit Menschen, besonders Kindern, macht dir Freude. Du sprichst gut Deutsch und bist bereit, an einem internen Ausbildungskurs teilzunehmen.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-accent to-primary text-white border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
+          <Card className="bg-gradient-to-br from-pastel-yellow to-pastel-yellow/70 text-pastel-yellow-foreground border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl md:text-3xl">Büroangestellte/r (Voll- und/oder Teilzeit)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-white/90 leading-relaxed">
+              <p className="text-pastel-yellow-foreground/90 leading-relaxed">
                 Du hast eine kaufmännische Ausbildung oder vergleichbare Erfahrung und arbeitest strukturiert sowie selbständig. Mit MS-Office kennst du dich aus, sprichst Deutsch und Englisch und hast Freude am Kundenkontakt. Teamarbeit liegt dir - idealerweise bist du für mehrere Saisons verfügbar.
               </p>
             </CardContent>
