@@ -63,24 +63,28 @@ const Hero = () => {
       ))}
 
       <div className="relative z-10 container mx-auto px-4 text-center animate-fade-in">
-        <div className="inline-block mb-6 transform -rotate-2 bg-primary/90 px-8 py-4 backdrop-blur-sm">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-primary-foreground">
+        <div className="inline-block mb-6 transform -rotate-2 bg-secondary/90 px-8 py-4 backdrop-blur-sm">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-secondary-foreground">
             Die Faszination Wintersport
           </h1>
         </div>
-        <div className="inline-block transform rotate-1 bg-secondary/90 px-6 py-3 backdrop-blur-sm">
+        <div className="inline-block transform rotate-1 bg-secondary/70 px-6 py-3 backdrop-blur-sm">
           <p className="text-xl md:text-2xl lg:text-3xl text-secondary-foreground font-medium">
             Ski- und Snowboardkurse in Malbun
           </p>
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button size="lg" className="text-lg px-8 py-6 font-bold shadow-lg hover:shadow-xl transition-shadow" onClick={() => navigate("/buchung")}>
+          <Button
+            size="lg"
+            className="text-lg px-8 py-6 font-bold shadow-lg hover:shadow-xl transition-shadow bg-accent text-accent-foreground hover:bg-accent/90"
+            onClick={() => navigate("/buchung")}
+          >
             Jetzt buchen
           </Button>
           <Button
             size="lg"
-            className="text-lg px-8 py-6 font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            className="text-lg px-8 py-6 font-semibold bg-primary hover:bg-primary/90"
             onClick={scrollToPreise}
           >
             Preise ansehen

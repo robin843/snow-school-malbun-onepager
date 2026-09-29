@@ -55,7 +55,7 @@ const Navigation = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button size="lg" className="font-semibold" onClick={() => navigate("/buchung")}>
+            <Button size="lg" className="font-semibold bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => navigate("/buchung")}>
               Jetzt buchen
             </Button>
             <Sheet open={open} onOpenChange={setOpen}>
@@ -83,7 +83,7 @@ const Navigation = () => {
                   ))}
                   <Button
                     size="lg"
-                    className="mt-6 font-semibold w-full"
+                    className="mt-6 font-semibold w-full bg-accent text-accent-foreground hover:bg-accent/90"
                     onClick={() => {
                       setOpen(false);
                       navigate("/buchung");
