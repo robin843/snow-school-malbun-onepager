@@ -551,16 +551,16 @@ const Kursuebersicht = () => {
 
           <div className="grid lg:grid-cols-2 gap-6">
             {[
-              { title: "Ski Levels", icon: <Snowflake className="w-6 h-6 text-foreground" />, levels: skiLevels },
-              { title: "Snowboard Levels", icon: <Snowflake className="w-6 h-6 text-foreground" />, levels: snowboardLevels },
-            ].map((block, idx) => (
-              <Card key={idx} className="bg-card/90 backdrop-blur-xl border-2 border-border shadow-xl overflow-hidden rounded-lg">
-                <CardHeader className={`bg-gradient-to-br ${idx === 0 ? "from-primary/90 to-primary/70" : "from-secondary/90 to-secondary/70"} text-white`}>
+              { key: "ski" as const, title: "Ski Levels", icon: <Snowflake className="w-6 h-6 text-foreground" />, levels: skiLevels },
+              { key: "snowboard" as const, title: "Snowboard Levels", icon: <Snowflake className="w-6 h-6 text-foreground" />, levels: snowboardLevels },
+            ].map((block) => (
+              <Card key={block.key} className="bg-card/90 backdrop-blur-xl border-2 border-border shadow-xl overflow-hidden rounded-lg">
+                <CardHeader className={`bg-gradient-to-br ${groupHeaderMap[block.key]}`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/15 rounded-lg flex items-center justify-center ring-2 ring-white/30">
+                    <div className="w-12 h-12 bg-white/60 rounded-lg flex items-center justify-center ring-2 ring-foreground/10">
                       {block.icon}
                     </div>
-                    <CardTitle className="text-2xl font-black text-white">{block.title}</CardTitle>
+                    <CardTitle className="text-2xl font-black text-foreground">{block.title}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-5">
