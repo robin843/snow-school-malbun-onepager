@@ -80,7 +80,7 @@ const Hero = () => {
           </Button>
           <Button
             size="lg"
-            className="text-lg px-8 py-6 font-semibold bg-[hsl(var(--skischulrot))] text-white hover:bg-[hsl(var(--skischulrot))]/90"
+            className="text-lg px-8 py-6 font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
             onClick={scrollToPreise}
           >
             Preise ansehen
