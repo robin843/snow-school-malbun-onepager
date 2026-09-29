@@ -73,22 +73,6 @@ const courses: Course[] = [
     tariffs: privatTariffsSki,
     notes: ["Max. 5 Personen pro Kurs", "Liftkarte & Ausrüstung nicht inkl."],
   },
-  // Privatkurse — Snowboard
-  {
-    id: "privat-snowboard",
-    title: "Privatkurs Snowboard",
-    subtitle: "Individuell für Erwachsene & Kinder",
-    discipline: "snowboard",
-    audiences: ["kids", "adults"],
-    icon: <User className="w-6 h-6 text-white" />,
-    accent: "primary",
-    meta: [
-      { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
-      { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
-    ],
-    tariffs: privatTariffsSki,
-    notes: ["Max. 5 Personen pro Kurs", "Tricks & Styles auf Anfrage"],
-  },
   // Ski Kinder Gruppen
   {
     id: "windel-wedel",
@@ -170,6 +154,22 @@ const courses: Course[] = [
       { icon: <Users className="w-4 h-4" />, label: "Nur Frauen" },
     ],
     requirement: "Sicheres paralleles Skifahren auf roter Piste",
+  },
+  // Privatkurse — Snowboard
+  {
+    id: "privat-snowboard",
+    title: "Privatkurs Snowboard",
+    subtitle: "Individuell für Erwachsene & Kinder",
+    discipline: "snowboard",
+    audiences: ["kids", "adults"],
+    icon: <User className="w-6 h-6 text-white" />,
+    accent: "primary",
+    meta: [
+      { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
+      { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
+    ],
+    tariffs: privatTariffsSki,
+    notes: ["Max. 5 Personen pro Kurs", "Tricks & Styles auf Anfrage"],
   },
   // Snowboard Gruppen
   {
