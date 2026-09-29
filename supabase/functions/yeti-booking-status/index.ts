@@ -4,6 +4,7 @@ import { callYeti } from '../_shared/yeti.ts';
 
 const BodySchema = z.object({
   ticket_id: z.string().trim().min(1).max(100),
+  reservation_token: z.string().trim().min(1).max(200),
 }).strict();
 
 Deno.serve(async (req) => {
@@ -31,7 +32,7 @@ Deno.serve(async (req) => {
 
   const result = await callYeti('get-booking-status', {
     method: 'GET',
-    query: { ticket_id: parsed.data.ticket_id },
+    query: { ticket_id: parsed.data.ticket_id, token: parsed.data.reservation_token },
   });
 
   if (result.status < 200 || result.status >= 300) {
