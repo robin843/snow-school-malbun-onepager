@@ -37,7 +37,6 @@ type Course = {
   discipline: Discipline;
   audiences: Audience[];
   icon: React.ReactNode;
-  accent: "primary" | "secondary" | "accent";
   flag?: Flag;
   meta: { icon: React.ReactNode; label: string }[];
   requirement?: string;
@@ -64,8 +63,7 @@ const courses: Course[] = [
     subtitle: "Individuell für Erwachsene & Kinder",
     discipline: "ski",
     audiences: ["kids", "adults"],
-    icon: <User className="w-6 h-6 text-white" />,
-    accent: "primary",
+    icon: <User className="w-6 h-6 text-foreground" />,
     meta: [
       { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
       { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
@@ -80,8 +78,7 @@ const courses: Course[] = [
     subtitle: "Spielerischer Einstieg für die Kleinsten",
     discipline: "ski",
     audiences: ["kids"],
-    icon: <Baby className="w-6 h-6 text-white" />,
-    accent: "accent",
+    icon: <Baby className="w-6 h-6 text-foreground" />,
     flag: "beliebt",
     meta: [
       { icon: <Users className="w-4 h-4" />, label: "Kinder 2–3 Jahre" },
@@ -97,8 +94,7 @@ const courses: Course[] = [
     subtitle: "Ski-Gruppenkurs nach Swiss Snow League",
     discipline: "ski",
     audiences: ["kids"],
-    icon: <Snowflake className="w-6 h-6 text-white" />,
-    accent: "secondary",
+    icon: <Snowflake className="w-6 h-6 text-foreground" />,
     flag: "beliebt",
     meta: [
       { icon: <Users className="w-4 h-4" />, label: "Ab 4 Jahren" },
@@ -114,8 +110,7 @@ const courses: Course[] = [
     subtitle: "5 Samstage pro Saison",
     discipline: "ski",
     audiences: ["kids"],
-    icon: <Calendar className="w-6 h-6 text-white" />,
-    accent: "accent",
+    icon: <Calendar className="w-6 h-6 text-foreground" />,
     meta: [
       { icon: <Users className="w-4 h-4" />, label: "Ab 4 Jahren" },
       { icon: <Calendar className="w-4 h-4" />, label: "2x 5 Samstage pro Saison" },
@@ -129,8 +124,7 @@ const courses: Course[] = [
     subtitle: "Mittwochs gemischt – Männer & Frauen",
     discipline: "ski",
     audiences: ["adults"],
-    icon: <Trophy className="w-6 h-6 text-white" />,
-    accent: "primary",
+    icon: <Trophy className="w-6 h-6 text-foreground" />,
     flag: "beliebt",
     meta: [
       { icon: <Calendar className="w-4 h-4" />, label: "Jeden Mittwoch" },
@@ -145,8 +139,7 @@ const courses: Course[] = [
     subtitle: "Nur für Frauen – Sonntags",
     discipline: "ski",
     audiences: ["adults"],
-    icon: <Sparkles className="w-6 h-6 text-white" />,
-    accent: "secondary",
+    icon: <Sparkles className="w-6 h-6 text-foreground" />,
     flag: "empfohlen",
     meta: [
       { icon: <Calendar className="w-4 h-4" />, label: "Jeden Sonntag" },
@@ -162,8 +155,7 @@ const courses: Course[] = [
     subtitle: "Individuell für Erwachsene & Kinder",
     discipline: "snowboard",
     audiences: ["kids", "adults"],
-    icon: <User className="w-6 h-6 text-white" />,
-    accent: "primary",
+    icon: <User className="w-6 h-6 text-foreground" />,
     meta: [
       { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
       { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
@@ -178,8 +170,7 @@ const courses: Course[] = [
     subtitle: "Kinder, Jugendliche & Erwachsene",
     discipline: "snowboard",
     audiences: ["kids", "adults"],
-    icon: <Snowflake className="w-6 h-6 text-white" />,
-    accent: "secondary",
+    icon: <Snowflake className="w-6 h-6 text-foreground" />,
     flag: "beliebt",
     meta: [
       { icon: <Calendar className="w-4 h-4" />, label: "Mo–Fr, jede Woche" },
@@ -194,8 +185,7 @@ const courses: Course[] = [
     subtitle: "Sonntags für Geübte",
     discipline: "snowboard",
     audiences: ["kids", "adults"],
-    icon: <Trophy className="w-6 h-6 text-white" />,
-    accent: "primary",
+    icon: <Trophy className="w-6 h-6 text-foreground" />,
     flag: "empfohlen",
     meta: [
       { icon: <Calendar className="w-4 h-4" />, label: "Jeden Sonntag" },
@@ -205,10 +195,10 @@ const courses: Course[] = [
   },
 ];
 
-const accentMap = {
-  primary: "from-primary/90 to-primary/70",
-  secondary: "from-secondary/90 to-secondary/70",
-  accent: "from-accent/90 to-accent/70",
+// Jede Produktgruppe hat ihre eigene Farbe: Ski = Eisblau, Snowboard = Rosé
+const groupHeaderMap = {
+  ski: "bg-gradient-to-br from-ice-blue to-ice-blue/70 text-ice-blue-foreground",
+  snowboard: "bg-gradient-to-br from-blush to-blush/70 text-blush-foreground",
 } as const;
 
 const FlagBadge = ({ flag }: { flag: Flag }) => (
@@ -222,21 +212,21 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
   <div className="group relative animate-fade-in">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
     <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl rounded-lg">
-      <CardHeader className={`relative p-6 bg-gradient-to-br ${accentMap[course.accent]} text-white`}>
+      <CardHeader className={`relative p-6 bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
         {course.flag && (
           <div className="absolute top-4 right-4">
             <FlagBadge flag={course.flag} />
           </div>
         )}
         <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left sm:pr-20">
-          <div className="w-12 h-12 bg-white/15 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-white/30 flex-shrink-0">
+          <div className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-foreground/10 flex-shrink-0">
             {course.icon}
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-xl md:text-2xl font-black text-white leading-tight">
+            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight">
               {course.title}
             </CardTitle>
-            <p className="text-white/90 text-sm font-medium mt-1">{course.subtitle}</p>
+            <p className="text-foreground/75 text-sm font-medium mt-1">{course.subtitle}</p>
           </div>
         </div>
       </CardHeader>
@@ -450,7 +440,11 @@ const Kursuebersicht = () => {
                   }}
                   className={`flex-shrink-0 px-6 py-3 rounded-full text-sm md:text-base font-bold transition-all duration-300 border-2 ${
                     active
-                      ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105"
+                      ? f.id === "ski"
+                        ? "bg-ice-blue text-ice-blue-foreground border-ice-blue shadow-lg scale-105"
+                        : f.id === "snowboard"
+                          ? "bg-blush text-blush-foreground border-blush shadow-lg scale-105"
+                          : "bg-primary text-primary-foreground border-primary shadow-lg scale-105"
                       : "bg-card text-foreground border-border hover:border-primary/40 hover:bg-primary/5"
                   }`}
                 >
@@ -502,7 +496,7 @@ const Kursuebersicht = () => {
             <CardHeader className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-b">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                  <MapPin className="w-6 h-6 text-white" />
+                  <MapPin className="w-6 h-6 text-foreground" />
                 </div>
                 <div>
                   <CardTitle className="text-2xl font-black">Treffpunkte & Hinweise</CardTitle>
@@ -557,16 +551,16 @@ const Kursuebersicht = () => {
 
           <div className="grid lg:grid-cols-2 gap-6">
             {[
-              { title: "Ski Levels", icon: <Snowflake className="w-6 h-6 text-white" />, levels: skiLevels },
-              { title: "Snowboard Levels", icon: <Snowflake className="w-6 h-6 text-white" />, levels: snowboardLevels },
-            ].map((block, idx) => (
-              <Card key={idx} className="bg-card/90 backdrop-blur-xl border-2 border-border shadow-xl overflow-hidden rounded-lg">
-                <CardHeader className={`bg-gradient-to-br ${idx === 0 ? "from-primary/90 to-primary/70" : "from-secondary/90 to-secondary/70"} text-white`}>
+              { key: "ski" as const, title: "Ski Levels", icon: <Snowflake className="w-6 h-6 text-foreground" />, levels: skiLevels },
+              { key: "snowboard" as const, title: "Snowboard Levels", icon: <Snowflake className="w-6 h-6 text-foreground" />, levels: snowboardLevels },
+            ].map((block) => (
+              <Card key={block.key} className="bg-card/90 backdrop-blur-xl border-2 border-border shadow-xl overflow-hidden rounded-lg">
+                <CardHeader className={`bg-gradient-to-br ${groupHeaderMap[block.key]}`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/15 rounded-lg flex items-center justify-center ring-2 ring-white/30">
+                    <div className="w-12 h-12 bg-white/60 rounded-lg flex items-center justify-center ring-2 ring-foreground/10">
                       {block.icon}
                     </div>
-                    <CardTitle className="text-2xl font-black text-white">{block.title}</CardTitle>
+                    <CardTitle className="text-2xl font-black text-foreground">{block.title}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-5">
