@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
     reservation_expires_at: r.reservation_expires_at ?? null,
     ticket_number: r.ticket_number ?? null,
     invoice_number: r.invoice_number ?? null,
+    invoice_due_date: r.invoice_due_date ?? null,
     customer_number: r.customer_number ?? null,
   });
 });
