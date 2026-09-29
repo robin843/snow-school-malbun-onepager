@@ -25,8 +25,8 @@ const Jobs = () => {
     <section id="jobs" className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-block transform -rotate-1 bg-accent px-6 py-3 mb-4 rounded-lg">
-            <h2 className="text-3xl md:text-4xl font-bold text-accent-foreground">
+          <div className="inline-block transform -rotate-1 bg-pastel-yellow px-6 py-3 mb-4 rounded-lg">
+            <h2 className="text-3xl md:text-4xl font-bold text-pastel-yellow-foreground">
               Werde Teil unseres Teams
             </h2>
           </div>
@@ -90,7 +90,7 @@ const Jobs = () => {
           </Card>
 
           <div className="text-center pt-8">
-            <Button size="lg" className="font-bold text-lg px-10 py-6 bg-destructive hover:bg-destructive/90 text-white shadow-lg">
+            <Button size="lg" className="font-bold text-lg px-10 py-6 bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-lg">
               Noch Fragen / Bewerben
             </Button>
           </div>

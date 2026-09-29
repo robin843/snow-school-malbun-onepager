@@ -54,7 +54,7 @@ const faqs = [
 
 const FAQ = () => {
   return (
-    <section id="faq" className="py-24 bg-gradient-to-b from-background to-muted/30">
+    <section id="faq" className="py-24 bg-gradient-to-b from-background to-blush/25">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 space-y-4">
           <div className="inline-flex items-center gap-3 px-6 py-2 bg-primary/10 backdrop-blur-sm rounded-md border border-primary/20">
@@ -69,7 +69,7 @@ const FAQ = () => {
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto bg-card/80 backdrop-blur-xl border-2 border-primary/15 rounded-lg p-6 md:p-8 shadow-xl">
+        <div className="max-w-3xl mx-auto bg-blush/35 backdrop-blur-xl border-2 border-blush rounded-lg p-6 md:p-8 shadow-xl">
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((f, i) => (
               <AccordionItem key={i} value={`item-${i}`}>

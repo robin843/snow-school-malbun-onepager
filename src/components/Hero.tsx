@@ -75,7 +75,7 @@ const Hero = () => {
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button size="lg" className="text-lg px-8 py-6 font-bold shadow-lg hover:shadow-xl transition-shadow" onClick={() => navigate("/buchung")}>
+          <Button size="lg" className="text-lg px-8 py-6 font-bold bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-lg hover:shadow-xl transition-shadow" onClick={() => navigate("/buchung")}>
             Jetzt buchen
           </Button>
           <Button

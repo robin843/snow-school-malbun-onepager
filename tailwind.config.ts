@@ -39,6 +39,18 @@ export default {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        "pastel-yellow": {
+          DEFAULT: "hsl(var(--pastel-yellow))",
+          foreground: "hsl(var(--pastel-yellow-foreground))",
+        },
+        "ice-blue": {
+          DEFAULT: "hsl(var(--ice-blue))",
+          foreground: "hsl(var(--ice-blue-foreground))",
+        },
+        blush: {
+          DEFAULT: "hsl(var(--blush))",
+          foreground: "hsl(var(--blush-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
