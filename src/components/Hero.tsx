@@ -75,12 +75,12 @@ const Hero = () => {
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button size="lg" className="text-base md:text-lg px-6 py-3 font-semibold bg-blush text-blush-foreground hover:bg-blush/90 shadow-md hover:shadow-lg transition-shadow" onClick={() => navigate("/buchung")}>
+          <Button size="lg" className="text-base md:text-lg px-6 py-3 font-semibold bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-md hover:shadow-lg transition-shadow" onClick={() => navigate("/buchung")}>
             Jetzt buchen
           </Button>
           <Button
             size="lg"
-            className="text-base md:text-lg px-6 py-3 font-semibold bg-[hsl(var(--skischulrot))] text-white hover:bg-[hsl(var(--skischulrot))]/90"
+            className="text-base md:text-lg px-6 py-3 font-semibold bg-blush text-blush-foreground hover:bg-blush/90"
             onClick={scrollToPreise}
           >
             Preise ansehen
