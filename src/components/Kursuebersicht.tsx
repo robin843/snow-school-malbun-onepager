@@ -64,8 +64,7 @@ const courses: Course[] = [
     subtitle: "Individuell für Erwachsene & Kinder",
     discipline: "ski",
     audiences: ["kids", "adults"],
-    icon: <User className="w-6 h-6 text-white" />,
-    accent: "primary",
+    icon: <User className="w-6 h-6 text-foreground" />,
     meta: [
       { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
       { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
@@ -80,8 +79,7 @@ const courses: Course[] = [
     subtitle: "Spielerischer Einstieg für die Kleinsten",
     discipline: "ski",
     audiences: ["kids"],
-    icon: <Baby className="w-6 h-6 text-white" />,
-    accent: "accent",
+    icon: <Baby className="w-6 h-6 text-foreground" />,
     flag: "beliebt",
     meta: [
       { icon: <Users className="w-4 h-4" />, label: "Kinder 2–3 Jahre" },
@@ -97,8 +95,7 @@ const courses: Course[] = [
     subtitle: "Ski-Gruppenkurs nach Swiss Snow League",
     discipline: "ski",
     audiences: ["kids"],
-    icon: <Snowflake className="w-6 h-6 text-white" />,
-    accent: "secondary",
+    icon: <Snowflake className="w-6 h-6 text-foreground" />,
     flag: "beliebt",
     meta: [
       { icon: <Users className="w-4 h-4" />, label: "Ab 4 Jahren" },
@@ -114,8 +111,7 @@ const courses: Course[] = [
     subtitle: "5 Samstage pro Saison",
     discipline: "ski",
     audiences: ["kids"],
-    icon: <Calendar className="w-6 h-6 text-white" />,
-    accent: "accent",
+    icon: <Calendar className="w-6 h-6 text-foreground" />,
     meta: [
       { icon: <Users className="w-4 h-4" />, label: "Ab 4 Jahren" },
       { icon: <Calendar className="w-4 h-4" />, label: "2x 5 Samstage pro Saison" },
@@ -129,8 +125,7 @@ const courses: Course[] = [
     subtitle: "Mittwochs gemischt – Männer & Frauen",
     discipline: "ski",
     audiences: ["adults"],
-    icon: <Trophy className="w-6 h-6 text-white" />,
-    accent: "primary",
+    icon: <Trophy className="w-6 h-6 text-foreground" />,
     flag: "beliebt",
     meta: [
       { icon: <Calendar className="w-4 h-4" />, label: "Jeden Mittwoch" },
@@ -145,8 +140,7 @@ const courses: Course[] = [
     subtitle: "Nur für Frauen – Sonntags",
     discipline: "ski",
     audiences: ["adults"],
-    icon: <Sparkles className="w-6 h-6 text-white" />,
-    accent: "secondary",
+    icon: <Sparkles className="w-6 h-6 text-foreground" />,
     flag: "empfohlen",
     meta: [
       { icon: <Calendar className="w-4 h-4" />, label: "Jeden Sonntag" },
@@ -162,8 +156,7 @@ const courses: Course[] = [
     subtitle: "Individuell für Erwachsene & Kinder",
     discipline: "snowboard",
     audiences: ["kids", "adults"],
-    icon: <User className="w-6 h-6 text-white" />,
-    accent: "primary",
+    icon: <User className="w-6 h-6 text-foreground" />,
     meta: [
       { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
       { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
@@ -178,8 +171,7 @@ const courses: Course[] = [
     subtitle: "Kinder, Jugendliche & Erwachsene",
     discipline: "snowboard",
     audiences: ["kids", "adults"],
-    icon: <Snowflake className="w-6 h-6 text-white" />,
-    accent: "secondary",
+    icon: <Snowflake className="w-6 h-6 text-foreground" />,
     flag: "beliebt",
     meta: [
       { icon: <Calendar className="w-4 h-4" />, label: "Mo–Fr, jede Woche" },
@@ -194,8 +186,7 @@ const courses: Course[] = [
     subtitle: "Sonntags für Geübte",
     discipline: "snowboard",
     audiences: ["kids", "adults"],
-    icon: <Trophy className="w-6 h-6 text-white" />,
-    accent: "primary",
+    icon: <Trophy className="w-6 h-6 text-foreground" />,
     flag: "empfohlen",
     meta: [
       { icon: <Calendar className="w-4 h-4" />, label: "Jeden Sonntag" },
@@ -502,7 +493,7 @@ const Kursuebersicht = () => {
             <CardHeader className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-b">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                  <MapPin className="w-6 h-6 text-white" />
+                  <MapPin className="w-6 h-6 text-foreground" />
                 </div>
                 <div>
                   <CardTitle className="text-2xl font-black">Treffpunkte & Hinweise</CardTitle>
@@ -557,8 +548,8 @@ const Kursuebersicht = () => {
 
           <div className="grid lg:grid-cols-2 gap-6">
             {[
-              { title: "Ski Levels", icon: <Snowflake className="w-6 h-6 text-white" />, levels: skiLevels },
-              { title: "Snowboard Levels", icon: <Snowflake className="w-6 h-6 text-white" />, levels: snowboardLevels },
+              { title: "Ski Levels", icon: <Snowflake className="w-6 h-6 text-foreground" />, levels: skiLevels },
+              { title: "Snowboard Levels", icon: <Snowflake className="w-6 h-6 text-foreground" />, levels: snowboardLevels },
             ].map((block, idx) => (
               <Card key={idx} className="bg-card/90 backdrop-blur-xl border-2 border-border shadow-xl overflow-hidden rounded-lg">
                 <CardHeader className={`bg-gradient-to-br ${idx === 0 ? "from-primary/90 to-primary/70" : "from-secondary/90 to-secondary/70"} text-white`}>
