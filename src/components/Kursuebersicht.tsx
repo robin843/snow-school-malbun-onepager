@@ -440,7 +440,11 @@ const Kursuebersicht = () => {
                   }}
                   className={`flex-shrink-0 px-6 py-3 rounded-full text-sm md:text-base font-bold transition-all duration-300 border-2 ${
                     active
-                      ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105"
+                      ? f.id === "ski"
+                        ? "bg-ice-blue text-ice-blue-foreground border-ice-blue shadow-lg scale-105"
+                        : f.id === "snowboard"
+                          ? "bg-blush text-blush-foreground border-blush shadow-lg scale-105"
+                          : "bg-primary text-primary-foreground border-primary shadow-lg scale-105"
                       : "bg-card text-foreground border-border hover:border-primary/40 hover:bg-primary/5"
                   }`}
                 >
