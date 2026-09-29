@@ -37,7 +37,6 @@ type Course = {
   discipline: Discipline;
   audiences: Audience[];
   icon: React.ReactNode;
-  accent: "primary" | "secondary" | "accent";
   flag?: Flag;
   meta: { icon: React.ReactNode; label: string }[];
   requirement?: string;
