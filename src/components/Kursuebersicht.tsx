@@ -212,21 +212,21 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
   <div className="group relative animate-fade-in">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
     <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl rounded-lg">
-      <CardHeader className={`relative p-6 bg-gradient-to-br ${accentMap[course.accent]} text-white`}>
+      <CardHeader className={`relative p-6 bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
         {course.flag && (
           <div className="absolute top-4 right-4">
             <FlagBadge flag={course.flag} />
           </div>
         )}
         <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left sm:pr-20">
-          <div className="w-12 h-12 bg-white/15 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-white/30 flex-shrink-0">
+          <div className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-foreground/10 flex-shrink-0">
             {course.icon}
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-xl md:text-2xl font-black text-white leading-tight">
+            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight">
               {course.title}
             </CardTitle>
-            <p className="text-white/90 text-sm font-medium mt-1">{course.subtitle}</p>
+            <p className="text-foreground/75 text-sm font-medium mt-1">{course.subtitle}</p>
           </div>
         </div>
       </CardHeader>
