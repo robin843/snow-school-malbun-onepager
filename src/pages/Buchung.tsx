@@ -814,7 +814,7 @@ const Buchung = () => {
       // Unklare oder unvollständige Antwort: echten Buchungsstand abfragen, statt erneut zu buchen.
       if (!confirmed?.success || (isInvoice && !confirmed?.invoice_number)) {
         const { data: statusData } = await supabase.functions.invoke("yeti-booking-status", {
-          body: { ticket_id: reservation.ticket_id },
+          body: { ticket_id: reservation.ticket_id, reservation_token: reservation.reservation_token },
         });
         const finalStatus = statusData?.status;
         if (finalStatus && ["confirmed", "invoice_pending", "paid"].includes(String(finalStatus)) && (statusData?.invoice_number || !isInvoice)) {
