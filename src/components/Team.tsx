@@ -19,7 +19,7 @@ const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
 
   return (
     <Card className="overflow-hidden rounded-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <div className="aspect-[3/4] bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+      <div className="aspect-[3/4] bg-gradient-to-br from-ice-blue to-blush flex items-center justify-center">
         {showImage ? (
           <img
             src={instructor.portrait_url}
@@ -34,17 +34,17 @@ const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
           </div>
         )}
       </div>
-      <div className="bg-gradient-to-br from-primary to-secondary p-4 text-center">
-        <p className="font-bold text-primary-foreground text-lg truncate">
+      <div className="bg-ice-blue p-4 text-center">
+        <p className="font-bold text-ice-blue-foreground text-lg truncate">
           {instructor.display_name}
         </p>
         {instructor.role_label && (
-          <p className="text-primary-foreground/90 text-sm line-clamp-2">
+          <p className="text-ice-blue-foreground/90 text-sm line-clamp-2">
             {instructor.role_label}
           </p>
         )}
         {instructor.teaser && (
-          <p className="text-primary-foreground/80 text-xs mt-2 line-clamp-3">
+          <p className="text-ice-blue-foreground/80 text-xs mt-2 line-clamp-3">
             {instructor.teaser}
           </p>
         )}
@@ -67,8 +67,8 @@ const Team = () => {
     <section id="team" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-block transform rotate-1 bg-secondary px-6 py-3 mb-4 rounded-lg">
-            <h2 className="text-3xl md:text-4xl font-bold text-secondary-foreground">
+          <div className="inline-block transform rotate-1 bg-blush px-6 py-3 mb-4 rounded-lg">
+            <h2 className="text-3xl md:text-4xl font-bold text-blush-foreground">
               Über uns
             </h2>
           </div>

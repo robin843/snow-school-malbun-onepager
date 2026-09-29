@@ -304,7 +304,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
         <div className="pt-3 mt-auto">
           <Button
             onClick={onBook}
-            className="w-full font-bold bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-lg hover:shadow-xl transition-all"
+            className="w-full font-bold bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-lg hover:shadow-xl transition-all"
           >
             Jetzt buchen
           </Button>
@@ -414,7 +414,7 @@ const Kursuebersicht = () => {
 
   return (
     <section id="kurse" className="relative py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-primary/5 to-secondary/5" />
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-ice-blue/25 to-pastel-yellow/20" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.08),transparent_50%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,hsl(var(--secondary)/0.08),transparent_50%)]" />
 
@@ -527,7 +527,7 @@ const Kursuebersicht = () => {
                   </div>
                 ))}
               </div>
-              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 text-sm text-muted-foreground flex items-start gap-2">
+              <div className="p-4 rounded-lg bg-ice-blue/45 border border-ice-blue text-sm text-muted-foreground flex items-start gap-2">
                 <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span>
                   <strong className="text-foreground">Hinweis:</strong> Liftkarte und Ausrüstung sind
@@ -600,11 +600,11 @@ const Kursuebersicht = () => {
         {/* CTA */}
         <div className="text-center mt-16">
           <div className="relative inline-block">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary rounded-lg blur-2xl opacity-30 animate-pulse" />
+            <div className="absolute inset-0 bg-pastel-yellow rounded-lg blur-2xl opacity-30 animate-pulse" />
             <Button
               size="lg"
               onClick={() => handleBook()}
-              className="relative font-black text-lg px-12 py-7 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-105"
+              className="relative font-black text-lg px-12 py-7 bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-2xl transition-all duration-300 hover:scale-105"
             >
               Kurs jetzt buchen
             </Button>

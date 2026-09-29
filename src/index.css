@@ -34,6 +34,14 @@ All colors MUST be HSL.
 
     --skischulrot: 0 85% 45%;
 
+    /* Pastel palette sampled from the supplied reference */
+    --pastel-yellow: 44 94% 81%;
+    --pastel-yellow-foreground: 215 51% 25%;
+    --ice-blue: 200 87% 87%;
+    --ice-blue-foreground: 215 51% 25%;
+    --blush: 358 58% 87%;
+    --blush-foreground: 215 51% 25%;
+
     --border: 210 30% 88%;
     --input: 210 30% 88%;
     --ring: 210 80% 45%;
