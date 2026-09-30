@@ -216,17 +216,19 @@ Deno.serve(async (req) => {
     success = isFinal || success;
   }
 
-  const fallbackStatus = p.payment_method === 'invoice' ? 'invoice_pending' : 'paid';
+  const bookingStatus = r.status ?? (p.payment_method === 'invoice' ? 'confirmed' : 'paid');
+  const paymentStatus = r.payment_status ?? (p.payment_method === 'invoice' ? 'invoice_open' : 'paid');
+  const invoiceDueDate = r.invoice_due_date ?? r.due_date ?? null;
 
   await supabase
     .from('submitted_bookings')
     .update({
       status: success ? 'success' : 'failed',
-      booking_status: success ? (r.status ?? 'confirmed') : 'failed',
-      payment_status: success ? (r.payment_status ?? fallbackStatus) : 'unpaid',
+      booking_status: success ? bookingStatus : 'failed',
+      payment_status: success ? paymentStatus : 'unpaid',
       payment_method: p.payment_method,
       invoice_number: r.invoice_number ?? null,
-      invoice_due_date: r.invoice_due_date ?? r.due_date ?? null,
+      invoice_due_date: invoiceDueDate,
       customer_number: r.customer_number ?? null,
       yeti_customer_id: r.customer_id ?? null,
       customer_email: success ? p.customer.email : null,
@@ -268,11 +270,13 @@ Deno.serve(async (req) => {
     code: 'CONFIRM_OK',
     correlation_id: correlationId,
     already_confirmed: Boolean(r.already_confirmed),
-    status: r.status ?? null,
-    payment_status: r.payment_status ?? null,
+    status: bookingStatus,
+    payment_status: paymentStatus,
     ticket_number: r.ticket_number ?? null,
     invoice_number: r.invoice_number ?? null,
-    invoice_due_date: r.invoice_due_date ?? r.due_date ?? null,
+    invoice_due_date: invoiceDueDate,
+    guest_message: r.guest_message ?? null,
+    delivery: r.delivery ?? null,
     customer_number: r.customer_number ?? null,
     customer_id: r.customer_id ?? null,
     price: r.price ?? (typeof (r.total_amount ?? r.total_price) === 'number'
