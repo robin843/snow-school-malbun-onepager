@@ -19,8 +19,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AGB_VERSION, PRIVACY_VERSION } from "@/config/legal";
-import twintLogo from "@/assets/twint-logo.png";
-import visaLogo from "@/assets/visa-logo.svg";
 import Sponsoren from "@/components/Sponsoren";
 import { useYetiProducts, computeProductTotal, type YetiProduct } from "@/hooks/useYetiProducts";
 import { useYetiAvailability, dayHasCapacity, type YetiDay } from "@/hooks/useYetiAvailability";
@@ -397,6 +395,8 @@ const Buchung = () => {
     customer_number: string | null;
     invoice_number: string | null;
     invoice_due_date: string | null;
+    guest_message: string | null;
+    delivery: { booking_confirmation?: unknown } | null;
   } | null>(null);
 
   /**
@@ -835,14 +835,16 @@ const Buchung = () => {
         customer_number: confirmed.customer_number ?? null,
         invoice_number: confirmed.invoice_number ?? null,
         invoice_due_date: confirmed.invoice_due_date ?? null,
+        guest_message: confirmed.guest_message ?? null,
+        delivery: confirmed.delivery ?? null,
       });
       toast({
-        title: isInvoice ? "Buchung bestätigt – Rechnung folgt" : "Buchung bestätigt!",
+        title: "Buchung verbindlich bestätigt",
         description: [
           confirmed.ticket_number ? `Ticket-Nr. ${confirmed.ticket_number}` : null,
           confirmed.customer_number ? `Kundennummer ${confirmed.customer_number}` : null,
           confirmed.invoice_number ? `Rechnung ${confirmed.invoice_number}` : null,
-        ].filter(Boolean).join(" · ") || "Bestätigung folgt per E-Mail.",
+        ].filter(Boolean).join(" · ") || "Die Buchungsbestätigung wird per E-Mail versendet.",
       });
       submittedSuccessfully = true;
       confirmedRef.current = true;
@@ -1322,36 +1324,18 @@ const Buchung = () => {
 
                     <CardHeader className="border-b bg-muted/30">
                       <CardTitle>Zahlungsart</CardTitle>
-                      <CardDescription>Onlinezahlung oder Zahlung auf Rechnung.</CardDescription>
+                      <CardDescription>Aktuell ist die Buchung auf Rechnung verfügbar.</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-3">
                       <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="space-y-2">
-                        <div className={`flex items-center space-x-3 p-3 rounded-lg border ${ONLINE_PAYMENT_ENABLED ? "cursor-pointer" : "opacity-50"} ${paymentMethod === "twint" ? "border-[#FFED00] bg-[#FFED00]/5" : "border-border"}`}>
-                          <RadioGroupItem value="twint" id="pm-twint" disabled={!ONLINE_PAYMENT_ENABLED} />
-                          <img src={twintLogo} alt="TWINT" className="h-7" />
-                          <Label htmlFor="pm-twint" className="flex-1 font-semibold">TWINT</Label>
-                        </div>
-                        <div className={`flex items-center space-x-3 p-3 rounded-lg border ${ONLINE_PAYMENT_ENABLED ? "cursor-pointer" : "opacity-50"} ${paymentMethod === "kreditkarte" ? "border-primary bg-primary/5" : "border-border"}`}>
-                          <RadioGroupItem value="kreditkarte" id="pm-card" disabled={!ONLINE_PAYMENT_ENABLED} />
-                          <img src={visaLogo} alt="Visa" className="h-5" />
-                          <Label htmlFor="pm-card" className="flex-1 font-semibold">Kreditkarte</Label>
-                        </div>
                         <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "ueberweisung" ? "border-primary bg-primary/5" : "border-border"}`}>
                           <RadioGroupItem value="ueberweisung" id="pm-bank" />
                           <Building2 className="w-5 h-5 text-muted-foreground" />
-                          <Label htmlFor="pm-bank" className="flex-1 cursor-pointer font-semibold">Rechnung (Banküberweisung)</Label>
-                        </div>
-                        <div className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer ${paymentMethod === "postfinance" ? "border-primary bg-primary/5" : "border-border"}`}>
-                          <RadioGroupItem value="postfinance" id="pm-pf" />
-                          <Building2 className="w-5 h-5 text-[#FFCC00]" />
-                          <Label htmlFor="pm-pf" className="flex-1 cursor-pointer font-semibold">Rechnung (PostFinance)</Label>
+                          <Label htmlFor="pm-bank" className="flex-1 cursor-pointer font-semibold">Rechnung</Label>
                         </div>
                       </RadioGroup>
-                      {!ONLINE_PAYMENT_ENABLED && (
-                        <p className="text-xs text-muted-foreground">Onlinezahlung ist derzeit noch nicht verfügbar.</p>
-                      )}
                       <p className="text-xs text-muted-foreground">
-                        Du erhältst Buchungsbestätigung und Rechnung mit Zahlungsfrist per E-Mail.
+                        Mit dem Klick auf „Verbindlich buchen“ wird deine Buchung verbindlich. Die Buchungsbestätigung erhältst du per E-Mail. Die Rechnung mit den Zahlungsinformationen folgt separat, sobald diese verfügbar sind.
                       </p>
 
                     </CardContent>
@@ -1381,7 +1365,21 @@ const Buchung = () => {
                     <CardTitle className="flex items-center gap-2">
                       <Check className="w-5 h-5 text-primary" /> Buchung bestätigt
                     </CardTitle>
-                    <CardDescription>Du erhältst die Bestätigung per E-Mail.</CardDescription>
+                    <CardDescription>
+                      {(() => {
+                        const confirmation = confirmResult.delivery?.booking_confirmation;
+                        const status = typeof confirmation === "string"
+                          ? confirmation
+                          : confirmation && typeof confirmation === "object" && "status" in confirmation
+                            ? String(confirmation.status)
+                            : confirmation === true
+                              ? "sent"
+                              : "";
+                        return /sent|delivered|success/i.test(status)
+                          ? "Deine Buchung ist verbindlich bestätigt. Die Buchungsbestätigung wird per E-Mail versendet. Die Rechnung mit Zahlungsinformationen folgt separat."
+                          : "Deine Buchung ist verbindlich bestätigt. Die Bestätigung wird nachversendet; wir melden uns bei Bedarf.";
+                      })()}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-2 text-sm">
                     {confirmResult.ticket_number && (
@@ -1441,7 +1439,7 @@ const Buchung = () => {
                     <Button type="button" onClick={submit} disabled={submitting || reservationExpired} size="lg">
                       {submitting ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Wird gesendet…</>
-                      ) : isInvoice ? "Buchen & Rechnung erhalten" : "Buchung abschliessen"}
+                      ) : isInvoice ? "Verbindlich buchen" : "Buchung abschliessen"}
                     </Button>
                   )}
                 </div>
