@@ -29,6 +29,19 @@ type Discipline = "ski" | "snowboard";
 type ProductType = "private" | "group";
 type PaymentMethod = "twint" | "kreditkarte" | "ueberweisung" | "postfinance";
 
+const bookingConfirmationWasSent = (delivery: unknown) => {
+  if (!delivery || typeof delivery !== "object") return false;
+  const confirmation = (delivery as Record<string, unknown>).booking_confirmation;
+  if (confirmation === true) return true;
+  if (typeof confirmation === "string") return /^(sent|delivered|success|succeeded)$/i.test(confirmation);
+  if (!confirmation || typeof confirmation !== "object") return false;
+  const result = confirmation as Record<string, unknown>;
+  return result.sent === true
+    || result.delivered === true
+    || result.success === true
+    || (typeof result.status === "string" && /^(sent|delivered|success|succeeded)$/i.test(result.status));
+};
+
 interface Participant {
   first_name: string;
   last_name: string;
@@ -838,13 +851,16 @@ const Buchung = () => {
         guest_message: confirmed.guest_message ?? null,
         delivery: confirmed.delivery ?? null,
       });
+      const confirmationWasSent = bookingConfirmationWasSent(confirmed.delivery);
       toast({
         title: "Buchung verbindlich bestätigt",
         description: [
           confirmed.ticket_number ? `Ticket-Nr. ${confirmed.ticket_number}` : null,
           confirmed.customer_number ? `Kundennummer ${confirmed.customer_number}` : null,
           confirmed.invoice_number ? `Rechnung ${confirmed.invoice_number}` : null,
-        ].filter(Boolean).join(" · ") || "Die Buchungsbestätigung wird per E-Mail versendet.",
+        ].filter(Boolean).join(" · ") || (confirmationWasSent
+          ? "Die Buchungsbestätigung wird per E-Mail versendet."
+          : "Die Bestätigung wird nachversendet; wir melden uns bei Bedarf."),
       });
       submittedSuccessfully = true;
       confirmedRef.current = true;
@@ -1366,19 +1382,9 @@ const Buchung = () => {
                       <Check className="w-5 h-5 text-primary" /> Buchung bestätigt
                     </CardTitle>
                     <CardDescription>
-                      {(() => {
-                        const confirmation = confirmResult.delivery?.booking_confirmation;
-                        const status = typeof confirmation === "string"
-                          ? confirmation
-                          : confirmation && typeof confirmation === "object" && "status" in confirmation
-                            ? String(confirmation.status)
-                            : confirmation === true
-                              ? "sent"
-                              : "";
-                        return /sent|delivered|success/i.test(status)
-                          ? "Deine Buchung ist verbindlich bestätigt. Die Buchungsbestätigung wird per E-Mail versendet. Die Rechnung mit Zahlungsinformationen folgt separat."
-                          : "Deine Buchung ist verbindlich bestätigt. Die Bestätigung wird nachversendet; wir melden uns bei Bedarf.";
-                      })()}
+                      {bookingConfirmationWasSent(confirmResult.delivery)
+                        ? "Deine Buchung ist verbindlich bestätigt. Die Buchungsbestätigung wird per E-Mail versendet. Die Rechnung mit Zahlungsinformationen folgt separat."
+                        : "Deine Buchung ist verbindlich bestätigt. Die Bestätigung wird nachversendet; wir melden uns bei Bedarf."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-2 text-sm">
