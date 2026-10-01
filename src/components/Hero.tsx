@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useYetiProducts } from "@/hooks/useYetiProducts";
 import VoiceBot from "@/components/VoiceBot";
 import heroVillage from "@/assets/hero-village.jpg";
 import heroPanorama from "@/assets/hero-panorama.jpg";
@@ -12,11 +13,12 @@ import heroChairlift from "@/assets/hero-chairlift.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { bookable } = useYetiProducts();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   
   const scrollToPreise = () => {
-    const element = document.getElementById("preise");
+    const element = document.getElementById("kurse");
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
     }
@@ -75,8 +77,8 @@ const Hero = () => {
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button size="lg" className="text-base md:text-lg px-6 py-3 font-semibold bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-md hover:shadow-lg transition-shadow" onClick={() => navigate("/buchung")}>
-            Jetzt buchen
+          <Button size="lg" className="text-base md:text-lg px-6 py-3 font-semibold bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-md hover:shadow-lg transition-shadow" onClick={() => bookable.length ? navigate("/buchung") : scrollToPreise()}>
+            {bookable.length ? "Jetzt buchen" : "Kurse ansehen"}
           </Button>
           <Button
             size="lg"
