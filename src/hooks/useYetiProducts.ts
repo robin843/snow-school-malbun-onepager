@@ -1,63 +1,55 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isOnlineBookable } from "@/lib/publicProductPricing";
+export { computeProductTotal } from "@/lib/publicProductPricing";
 
 export interface YetiPriceTier {
   day_count: number;
   cumulative_price: number;
-  product_id: string;
 }
 
 export interface YetiProduct {
   id: string;
   name: string;
-  description: string | null;
+  title: string;
+  subtitle: string;
   type: string;
+  discipline: "ski" | "snowboard" | "other";
+  audience: "kids" | "adults" | "mixed" | null;
+  icon_key: "user" | "users" | "baby" | "calendar" | "snowflake" | "trophy" | "sparkles" | null;
+  badge: "beliebt" | "empfohlen" | null;
+  requirement: string | null;
+  meta: { icon: "calendar" | "clock" | "users" | "map"; label: string }[];
+  notes: string[];
   pricing_type: "hourly" | "tiered" | "fixed" | "flat" | string;
   price: number;
   price_tiers: YetiPriceTier[];
+  private_rates: { duration_minutes: number; persons: number; price: number }[];
   duration_minutes: number | null;
   min_age: number | null;
   max_age: number | null;
   currency: string;
-  vat_rate: number | null;
   sort_order: number;
+  online_bookable: boolean;
 }
 
-/** Products that are not customer-bookable courses. */
-const INTERNAL_TYPES = ["office_shift", "lunch"];
+let catalogRequest: Promise<YetiProduct[]> | null = null;
+let catalogRequestedAt = 0;
 
-const isBookable = (p: YetiProduct) => {
-  if (INTERNAL_TYPES.includes(p.type)) return false;
-  if (p.pricing_type === "tiered") return p.price_tiers.length > 0;
-  return p.price > 0;
-};
-
-/** Total price for a product, computed from YETI pricing data. */
-export const computeProductTotal = (
-  product: YetiProduct | undefined,
-  opts: { days: number; hoursPerDay: number; participants: number },
-): number => {
-  if (!product) return 0;
-  const days = Math.max(1, opts.days);
-  const participants = Math.max(1, opts.participants);
-
-  if (product.pricing_type === "hourly") {
-    return Math.round(product.price * opts.hoursPerDay * days * 100) / 100;
+const loadCatalog = (): Promise<YetiProduct[]> => {
+  if (!catalogRequest || Date.now() - catalogRequestedAt > 60_000) {
+    catalogRequestedAt = Date.now();
+    catalogRequest = supabase.functions.invoke("yeti-products", { method: "GET" })
+      .then(({ data, error }) => {
+        if (error) throw error;
+        if (!Array.isArray(data?.products)) throw new Error("Invalid YETI website catalog");
+        return data.products as YetiProduct[];
+      }).catch((error: unknown) => {
+        catalogRequest = null; // Retry after a transient outage on the next visit.
+        throw error;
+      });
   }
-
-  if (product.pricing_type === "tiered") {
-    const tiers = [...product.price_tiers].sort((a, b) => a.day_count - b.day_count);
-    if (tiers.length === 0) return 0;
-    const match = tiers.filter((t) => t.day_count <= days).pop() ?? tiers[0];
-    const extra = Math.max(0, days - match.day_count);
-    const lastStep =
-      tiers.length > 1
-        ? tiers[tiers.length - 1].cumulative_price - tiers[tiers.length - 2].cumulative_price
-        : match.cumulative_price;
-    return (match.cumulative_price + extra * lastStep) * participants;
-  }
-
-  return product.price * participants;
+  return catalogRequest;
 };
 
 export const useYetiProducts = () => {
@@ -69,11 +61,7 @@ export const useYetiProducts = () => {
     let cancelled = false;
     (async () => {
       try {
-        const { data, error: fnError } = await supabase.functions.invoke("yeti-products", {
-          method: "GET",
-        });
-        if (fnError) throw fnError;
-        const list: YetiProduct[] = Array.isArray(data?.products) ? data.products : [];
+        const list = await loadCatalog();
         if (!cancelled) setProducts(list);
       } catch (err) {
         console.error("yeti-products failed:", err);
@@ -82,24 +70,15 @@ export const useYetiProducts = () => {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  const bookable = useMemo(
-    () =>
-      products
-        .filter(isBookable)
-        .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)),
-    [products],
-  );
-
+  const bookable = useMemo(() =>
+    products.filter(isOnlineBookable)
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)),
+  [products]);
   const privateProducts = useMemo(() => bookable.filter((p) => p.type === "private"), [bookable]);
-  const groupProducts = useMemo(
-    () => bookable.filter((p) => p.type.startsWith("group")),
-    [bookable],
-  );
+  const groupProducts = useMemo(() => bookable.filter((p) => p.type.startsWith("group")), [bookable]);
 
   return { products, bookable, privateProducts, groupProducts, loading, error };
 };

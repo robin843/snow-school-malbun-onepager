@@ -20,17 +20,16 @@ Deno.serve(async (req) => {
     });
   }
 
-  const result = await callYeti('get-products', { method: 'GET' });
+  const result = await callYeti('get-website-products', { method: 'GET' });
   if (result.status < 200 || result.status >= 300) {
-    console.error('get-products failed', result.status, result.json ?? result.raw);
-    return json({ products: [], error: 'products_unavailable' }, 200);
+    console.error('get-website-products failed', result.status, result.json ?? result.raw);
+    return json({ error: 'products_unavailable' }, 503);
   }
 
-  const products = Array.isArray(result.json)
-    ? result.json
-    : result.json?.products ?? result.json?.data ?? [];
+  const products = result.json?.products;
+  if (!Array.isArray(products)) return json({ error: 'invalid_catalog_contract' }, 503);
 
-  const body = JSON.stringify({ products });
+  const body = JSON.stringify({ products, season: result.json?.season });
   cache = { at: Date.now(), body };
-  return json({ products });
+  return json({ products, season: result.json?.season });
 });

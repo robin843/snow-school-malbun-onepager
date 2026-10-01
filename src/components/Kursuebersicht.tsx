@@ -17,8 +17,9 @@ import {
   Star,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useYetiProducts, type YetiProduct } from "@/hooks/useYetiProducts";
 
-type Discipline = "ski" | "snowboard";
+type Discipline = "ski" | "snowboard" | "other";
 type Audience = "kids" | "adults";
 type Flag = "beliebt" | "empfohlen";
 
@@ -26,6 +27,7 @@ type TariffRow = {
   label: string;
   sub?: string;
   chf: string;
+  currency: string;
   flag?: Flag;
   highlight?: boolean;
 };
@@ -42,163 +44,60 @@ type Course = {
   requirement?: string;
   tariffs?: TariffRow[];
   notes?: string[];
+  bookable: boolean;
+  type: "private" | "group" | "other";
 };
 
-const privatTariffsSki: TariffRow[] = [
-  { label: "Einzellektion 09:00–10:00", sub: "55 Min.", chf: "75", flag: "empfohlen" },
-  { label: "Einzellektion 12:00–13:00", sub: "55 Min.", chf: "75" },
-  { label: "Einzellektion 13:00–14:00", sub: "55 Min.", chf: "75" },
-  { label: "Zusatzperson Einzellektion", chf: "20" },
-  { label: "Doppellektion 10:00–12:00", sub: "115 Min.", chf: "190" },
-  { label: "Doppellektion 12:00–14:00", sub: "115 Min.", chf: "150", flag: "empfohlen" },
-  { label: "Doppellektion 14:00–16:00", sub: "115 Min.", chf: "170" },
-  { label: "Zusatzperson Doppellektion", chf: "40" },
-];
+const cardIcon = (key: YetiProduct["icon_key"]): React.ReactNode => {
+  const icons = { user: User, users: Users, baby: Baby, calendar: Calendar,
+    snowflake: Snowflake, trophy: Trophy, sparkles: Sparkles };
+  const Icon = icons[key ?? "snowflake"] ?? Snowflake;
+  return <Icon className="w-6 h-6 text-foreground" />;
+};
+const metaIcon = (key: YetiProduct["meta"][number]["icon"]): React.ReactNode => {
+  const icons = { calendar: Calendar, clock: Clock, users: Users, map: MapPin };
+  const Icon = icons[key] ?? Info;
+  return <Icon className="w-4 h-4" />;
+};
 
-const courses: Course[] = [
-  // Privatkurse — Ski
-  {
-    id: "privat-ski",
-    title: "Privatkurs Ski",
-    subtitle: "Individuell für Erwachsene & Kinder",
-    discipline: "ski",
-    audiences: ["kids", "adults"],
-    icon: <User className="w-6 h-6 text-foreground" />,
-    meta: [
-      { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
-      { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
-    ],
-    tariffs: privatTariffsSki,
-    notes: ["Max. 5 Personen pro Kurs", "Liftkarte & Ausrüstung nicht inkl."],
-  },
-  // Ski Kinder Gruppen
-  {
-    id: "windel-wedel",
-    title: "Windel-Wedel-Kurs",
-    subtitle: "Spielerischer Einstieg für die Kleinsten",
-    discipline: "ski",
-    audiences: ["kids"],
-    icon: <Baby className="w-6 h-6 text-foreground" />,
-    flag: "beliebt",
-    meta: [
-      { icon: <Users className="w-4 h-4" />, label: "Kinder 2–3 Jahre" },
-      { icon: <Calendar className="w-4 h-4" />, label: "Mo–Mi, jede Woche" },
-      { icon: <Clock className="w-4 h-4" />, label: "10:00–12:00 Uhr" },
-      { icon: <MapPin className="w-4 h-4" />, label: "Hotel Gorfion" },
-    ],
-    notes: ["Kinderland mit Karussell & Teppichlift", "Eltern dürfen gerne dabei sein"],
-  },
-  {
-    id: "ganztages-kinder",
-    title: "Ganztageskurs Kinder",
-    subtitle: "Ski-Gruppenkurs nach Swiss Snow League",
-    discipline: "ski",
-    audiences: ["kids"],
-    icon: <Snowflake className="w-6 h-6 text-foreground" />,
-    flag: "beliebt",
-    meta: [
-      { icon: <Users className="w-4 h-4" />, label: "Ab 4 Jahren" },
-      { icon: <Calendar className="w-4 h-4" />, label: "Mo–Fr, jede Woche" },
-      { icon: <Clock className="w-4 h-4" />, label: "10:00–12:00 & 14:00–16:00" },
-      { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark" },
-    ],
-    notes: ["Klassengrösse 5–13 Kinder", "Mittagsbetreuung optional", "Anfänger-Einstieg nur Mo"],
-  },
-  {
-    id: "samstagskurse",
-    title: "Samstagskurse Kinder",
-    subtitle: "5 Samstage pro Saison",
-    discipline: "ski",
-    audiences: ["kids"],
-    icon: <Calendar className="w-6 h-6 text-foreground" />,
-    meta: [
-      { icon: <Users className="w-4 h-4" />, label: "Ab 4 Jahren" },
-      { icon: <Calendar className="w-4 h-4" />, label: "2x 5 Samstage pro Saison" },
-      { icon: <Clock className="w-4 h-4" />, label: "10:00–12:00 & 14:00–16:00" },
-    ],
-    notes: ["Anfänger-Einstieg nur am 1. Samstag"],
-  },
-  {
-    id: "carving-mittwoch",
-    title: "Carvingkurs Erwachsene",
-    subtitle: "Mittwochs gemischt – Männer & Frauen",
-    discipline: "ski",
-    audiences: ["adults"],
-    icon: <Trophy className="w-6 h-6 text-foreground" />,
-    flag: "beliebt",
-    meta: [
-      { icon: <Calendar className="w-4 h-4" />, label: "Jeden Mittwoch" },
-      { icon: <Clock className="w-4 h-4" />, label: "14:00–16:00 Uhr" },
-      { icon: <Users className="w-4 h-4" />, label: "Gemischt" },
-    ],
-    requirement: "Sicheres paralleles Skifahren auf roter Piste",
-  },
-  {
-    id: "carving-ladies",
-    title: "Carvingkurs Ladies Only",
-    subtitle: "Nur für Frauen – Sonntags",
-    discipline: "ski",
-    audiences: ["adults"],
-    icon: <Sparkles className="w-6 h-6 text-foreground" />,
-    flag: "empfohlen",
-    meta: [
-      { icon: <Calendar className="w-4 h-4" />, label: "Jeden Sonntag" },
-      { icon: <Clock className="w-4 h-4" />, label: "14:00–16:00 Uhr" },
-      { icon: <Users className="w-4 h-4" />, label: "Nur Frauen" },
-    ],
-    requirement: "Sicheres paralleles Skifahren auf roter Piste",
-  },
-  // Privatkurse — Snowboard
-  {
-    id: "privat-snowboard",
-    title: "Privatkurs Snowboard",
-    subtitle: "Individuell für Erwachsene & Kinder",
-    discipline: "snowboard",
-    audiences: ["kids", "adults"],
-    icon: <User className="w-6 h-6 text-foreground" />,
-    meta: [
-      { icon: <Clock className="w-4 h-4" />, label: "Täglich, stündlicher Start" },
-      { icon: <MapPin className="w-4 h-4" />, label: "Gorfion / Malbipark / Täli" },
-    ],
-    tariffs: privatTariffsSki,
-    notes: ["Max. 5 Personen pro Kurs", "Tricks & Styles auf Anfrage"],
-  },
-  // Snowboard Gruppen
-  {
-    id: "snowboard-anfaenger",
-    title: "Snowboard Anfängerkurs",
-    subtitle: "Kinder, Jugendliche & Erwachsene",
-    discipline: "snowboard",
-    audiences: ["kids", "adults"],
-    icon: <Snowflake className="w-6 h-6 text-foreground" />,
-    flag: "beliebt",
-    meta: [
-      { icon: <Calendar className="w-4 h-4" />, label: "Mo–Fr, jede Woche" },
-      { icon: <Clock className="w-4 h-4" />, label: "14:00–16:00 Uhr" },
-      { icon: <Users className="w-4 h-4" />, label: "Gemischte Altersgruppe" },
-    ],
-    notes: ["Klassengrösse 3–10 Personen"],
-  },
-  {
-    id: "snowboard-fortgeschritten",
-    title: "Snowboard Fortgeschrittenenkurs",
-    subtitle: "Sonntags für Geübte",
-    discipline: "snowboard",
-    audiences: ["kids", "adults"],
-    icon: <Trophy className="w-6 h-6 text-foreground" />,
-    flag: "empfohlen",
-    meta: [
-      { icon: <Calendar className="w-4 h-4" />, label: "Jeden Sonntag" },
-      { icon: <Clock className="w-4 h-4" />, label: "14:00–16:00 Uhr" },
-    ],
-    requirement: "Sicheres Fahren auf blauer Piste",
-  },
-];
-
+/** Presentation only: labels, prices and UUIDs are supplied by YETI. */
+const productToCourse = (p: YetiProduct): Course => {
+  const tariffs: TariffRow[] = p.type === "private"
+    ? p.private_rates.length
+      ? p.private_rates.filter((r) => r.persons === 1).map((r) => ({
+          label: `${r.duration_minutes / 60} ${r.duration_minutes === 60 ? "Stunde" : "Stunden"} · 1 Person`,
+          chf: String(r.price), currency: p.currency,
+        }))
+      : p.price > 0 ? [{ label: p.duration_minutes ? `${p.duration_minutes} Minuten` : "Produktpreis",
+          chf: String(p.price), currency: p.currency }] : []
+    : p.pricing_type === "tiered"
+      ? p.price_tiers.map((r) => ({
+          label: `${r.day_count} ${r.day_count === 1 ? "Tag" : "Tage"} · 1 Person`,
+          chf: String(r.cumulative_price), currency: p.currency,
+        }))
+      : p.price > 0 ? [{ label: p.duration_minutes ? `${p.duration_minutes} Minuten` : "Preis",
+          chf: String(p.price), currency: p.currency }] : [];
+  return {
+    id: p.id,
+    title: p.title,
+    subtitle: p.subtitle,
+    discipline: p.discipline,
+    audiences: p.audience === "kids" ? ["kids"] : p.audience === "adults" ? ["adults"] : ["kids", "adults"],
+    icon: cardIcon(p.icon_key),
+    flag: p.badge ?? undefined,
+    meta: p.meta.map((m) => ({ icon: metaIcon(m.icon), label: m.label })),
+    requirement: p.requirement ?? undefined,
+    tariffs: tariffs.length ? tariffs : undefined,
+    notes: p.notes,
+    bookable: p.online_bookable,
+    type: p.type === "private" ? "private" : p.type.startsWith("group") ? "group" : "other",
+  };
+};
 // Jede Produktgruppe hat ihre eigene Farbe: Ski = Eisblau, Snowboard = Rosé
 const groupHeaderMap = {
   ski: "bg-gradient-to-br from-ice-blue to-ice-blue/70 text-ice-blue-foreground",
   snowboard: "bg-gradient-to-br from-blush to-blush/70 text-blush-foreground",
+  other: "bg-gradient-to-br from-muted to-muted/70 text-foreground",
 } as const;
 
 const FlagBadge = ({ flag }: { flag: Flag }) => (
@@ -274,7 +173,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
                   </div>
                   {t.sub && <div className="text-xs text-muted-foreground">{t.sub}</div>}
                 </div>
-                <div className="text-base font-black text-primary flex-shrink-0">CHF {t.chf}.-</div>
+                <div className="text-base font-black text-primary flex-shrink-0">{t.currency} {t.chf}.-</div>
               </div>
             ))}
           </div>
@@ -294,9 +193,10 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
         <div className="pt-3 mt-auto">
           <Button
             onClick={onBook}
+            disabled={!course.bookable}
             className="w-full font-bold bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-lg hover:shadow-xl transition-all"
           >
-            Jetzt buchen
+            {course.bookable ? "Jetzt buchen" : "Online noch nicht buchbar"}
           </Button>
         </div>
       </CardContent>
@@ -378,26 +278,27 @@ const Kursuebersicht = () => {
   const navigate = useNavigate();
   const [main, setMain] = useState<MainFilter>("all");
   const [sub, setSub] = useState<SubFilter>("all");
+  const { products, bookable, loading, error } = useYetiProducts();
 
   const filtered = useMemo(() => {
-    return courses.filter((c) => {
+    return products.map(productToCourse).filter((c) => {
       if (main === "all") return true;
       if (c.discipline !== main) return false;
       if (sub === "all") return true;
       return c.audiences.includes(sub);
     });
-  }, [main, sub]);
+  }, [products, main, sub]);
 
   const handleBook = (course?: Course) => {
     if (!course) {
       navigate("/buchung");
       return;
     }
-    const productType = course.id.startsWith("privat") ? "private" : "group";
+    if (!course.bookable || course.type === "other") return;
     const params = new URLSearchParams({
-      type: productType,
+      type: course.type,
       sport: course.discipline,
-      course: course.id,
+      product: course.id,
     });
     navigate(`/buchung?${params.toString()}`);
   };
@@ -429,7 +330,8 @@ const Kursuebersicht = () => {
         <div className="max-w-3xl mx-auto mb-10 space-y-3">
           {/* Main filter */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:justify-center md:mx-0 md:px-0">
-            {mainFilters.map((f) => {
+            {(products.some((p) => p.discipline === "other")
+              ? [...mainFilters, { id: "other" as const, label: "Weitere" }] : mainFilters).map((f) => {
               const active = main === f.id;
               return (
                 <button
@@ -478,7 +380,11 @@ const Kursuebersicht = () => {
         </div>
 
         {/* Cards grid */}
-        {filtered.length > 0 ? (
+        {loading ? (
+          <div className="text-center text-muted-foreground py-16">Kurse werden geladen…</div>
+        ) : error ? (
+          <div className="text-center text-destructive py-16" role="alert">Kurse konnten nicht geladen werden. Bitte versuche es später erneut.</div>
+        ) : filtered.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {filtered.map((c) => (
               <CourseCardView key={c.id} course={c} onBook={() => handleBook(c)} />
@@ -506,12 +412,8 @@ const Kursuebersicht = () => {
             </CardHeader>
             <CardContent className="p-6 md:p-8 space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
-                {[
-                  { t: "Windel-Wedel (2–3 J.)", v: "Start Mo 10:00 beim Hotel Gorfion" },
-                  { t: "Anfänger Kids Village (ab 4 J.)", v: "Start Mo 10:00 Hotel Gorfion" },
-                  { t: "Fortgeschrittene ab Blue Prince", v: "Start Mo 10:00 Malbipark, Rückkehr 12:00 Gorfion" },
-                  { t: "Privatunterricht", v: "Empfohlen 12–14 Uhr (geringere Liftauslastung)" },
-                ].map((it, i) => (
+                {products.flatMap((p) => p.meta.filter((m) => m.icon === "map")
+                  .map((m) => ({ t: p.name, v: m.label }))).map((it, i) => (
                   <div
                     key={i}
                     className="p-4 rounded-lg bg-muted/40 border border-border hover:border-primary/40 transition-colors"
@@ -524,8 +426,8 @@ const Kursuebersicht = () => {
               <div className="p-4 rounded-lg bg-ice-blue/45 border border-ice-blue text-sm text-muted-foreground flex items-start gap-2">
                 <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span>
-                  <strong className="text-foreground">Hinweis:</strong> Liftkarte und Ausrüstung sind
-                  bei keinem Kurs inkludiert. Alle Preise inkl. MwSt.
+                  <strong className="text-foreground">Hinweis:</strong> Kursdetails und Preise stammen direkt aus
+                  den aktiven Produkten der aktuellen YETI-Saison.
                 </span>
               </div>
             </CardContent>
@@ -598,9 +500,10 @@ const Kursuebersicht = () => {
             <Button
               size="lg"
               onClick={() => handleBook()}
+              disabled={bookable.length === 0}
               className="relative font-black text-lg px-12 py-7 bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-2xl transition-all duration-300 hover:scale-105"
             >
-              Kurs jetzt buchen
+              {bookable.length ? "Kurs jetzt buchen" : "Online noch nicht buchbar"}
             </Button>
           </div>
         </div>

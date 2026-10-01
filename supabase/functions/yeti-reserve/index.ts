@@ -84,15 +84,19 @@ Deno.serve(async (req) => {
   const acceptedAt = new Date().toISOString();
   const idempotencyKey = data.submission_id ?? crypto.randomUUID();
 
-  const productsResult = await callYeti('get-products', { method: 'GET' });
-  const products = Array.isArray(productsResult.json?.products)
-    ? productsResult.json.products
-    : Array.isArray(productsResult.json)
-      ? productsResult.json
-      : [];
+  const productsResult = await callYeti('get-website-products', { method: 'GET' });
+  if (productsResult.status !== 200 || !Array.isArray(productsResult.json?.products)) {
+    return json({ success: false, message: SAFE_ERROR }, 503);
+  }
+  const products = productsResult.json.products;
   const selectedProduct = products.find((product: any) => product.id === data.booking.product_id);
+  if (!selectedProduct || selectedProduct.online_bookable !== true ||
+      selectedProduct.discipline !== data.booking.sport ||
+      (data.booking.product_type === 'private') !== (selectedProduct.type === 'private')) {
+    return json({ success: false, message: 'Dieser Kurs ist derzeit nicht online buchbar.' }, 409);
+  }
 
-  if (selectedProduct && data.booking.product_type === 'group') {
+  if (data.booking.product_type === 'group') {
     const isSaturdayCourse = /samstag/i.test(String(selectedProduct.name ?? ''));
     const invalidDate = data.booking.dates.find((slot) => {
       const dow = new Date(`${slot.date}T00:00:00Z`).getUTCDay();

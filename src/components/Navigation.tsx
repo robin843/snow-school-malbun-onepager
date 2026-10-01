@@ -3,10 +3,12 @@ import { Menu, Instagram, MountainSnow, Camera, CloudSun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useNavigate } from "react-router-dom";
+import { useYetiProducts } from "@/hooks/useYetiProducts";
 import logo from "@/assets/logo-malbun.jpg";
 
 const Navigation = () => {
   const navigate = useNavigate();
+  const { bookable } = useYetiProducts();
   const [isScrolled, setIsScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -22,6 +24,12 @@ const Navigation = () => {
       const el = document.getElementById(id);
       if (el) el.scrollIntoView({ behavior: "smooth" });
     }, 100);
+  };
+  const openOffersOrCheckout = () => {
+    setOpen(false);
+    if (bookable.length) navigate("/buchung");
+    else if (document.getElementById("kurse")) scrollToSection("kurse");
+    else navigate("/");
   };
 
   const links = [
@@ -55,8 +63,8 @@ const Navigation = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button size="lg" className="font-semibold bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90" onClick={() => navigate("/buchung")}>
-              Jetzt buchen
+            <Button size="lg" className="font-semibold bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90" onClick={openOffersOrCheckout}>
+              {bookable.length ? "Jetzt buchen" : "Kurse ansehen"}
             </Button>
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -84,12 +92,9 @@ const Navigation = () => {
                   <Button
                     size="lg"
                     className="mt-6 font-semibold w-full bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90"
-                    onClick={() => {
-                      setOpen(false);
-                      navigate("/buchung");
-                    }}
+                    onClick={openOffersOrCheckout}
                   >
-                    Jetzt buchen
+                    {bookable.length ? "Jetzt buchen" : "Kurse ansehen"}
                   </Button>
                   <div className="mt-8 pt-6 border-t border-border">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">

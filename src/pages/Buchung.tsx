@@ -93,35 +93,23 @@ const PRODUCT_LABELS: Record<ProductType, string> = {
   group: "Gruppenkurs",
 };
 
-/** Kurs-ID aus der Kursübersicht -> Namens-Hinweis für das passende YETI-Produkt. */
-const COURSE_PRODUCT_HINTS: Record<string, string[]> = {
-  "windel-wedel": ["windel"],
-  "samstagskurse": ["samstag"],
-  "ganztages-kinder": ["gruppenkurs"],
-  "carving-mittwoch": ["gruppenkurs"],
-  "carving-ladies": ["gruppenkurs"],
-  "snowboard-anfaenger": ["gruppenkurs"],
-  "snowboard-fortgeschritten": ["gruppenkurs"],
-  "privat-ski": ["privatstunde 75"],
-  "privat-snowboard": ["privatstunde 75"],
-};
-
 const priceBasisLabel = (p: YetiProduct) => {
-  if (p.pricing_type === "hourly") return `${p.currency} ${p.price}.– / Stunde`;
+  if (p.type === "private") {
+    const first = p.private_rates.find((r) => r.duration_minutes === 60 && r.persons === 1);
+    return first ? `${p.currency} ${first.price}.– / 60 Min.` : "Preis auf Anfrage";
+  }
   if (p.pricing_type === "tiered") {
     const tiers = [...p.price_tiers].sort((a, b) => a.day_count - b.day_count);
     const first = tiers[0];
     return first ? `ab ${p.currency} ${first.cumulative_price}.– / Person` : "–";
   }
-  return `${p.currency} ${p.price}.– / Person`;
+  return "Preis auf Anfrage";
 };
 
 const productFromPrice = (list: YetiProduct[]) => {
-  const values = list.map((p) =>
-    p.pricing_type === "tiered"
-      ? Math.min(...p.price_tiers.map((t) => t.cumulative_price))
-      : p.price,
-  );
+  const values = list.flatMap((p) => p.type === "private"
+    ? p.private_rates.filter((r) => r.persons === 1).map((r) => r.price)
+    : p.price_tiers.map((t) => t.cumulative_price));
   return values.length ? Math.min(...values) : null;
 };
 
@@ -279,19 +267,8 @@ const Buchung = () => {
     const s = searchParams.get("sport");
     return s === "snowboard" || s === "ski" ? s : "ski";
   });
-  const courseTitles: Record<string, string> = {
-    "privat-ski": "Privatkurs Ski",
-    "privat-snowboard": "Privatkurs Snowboard",
-    "windel-wedel": "Windel-Wedel-Kurs",
-    "ganztages-kinder": "Ganztageskurs Kinder",
-    "samstagskurse": "Samstagskurse Kinder",
-    "carving-mittwoch": "Carvingkurs Erwachsene",
-    "carving-ladies": "Carvingkurs Ladies Only",
-    "snowboard-anfaenger": "Snowboard Anfängerkurs",
-    "snowboard-fortgeschritten": "Snowboard Fortgeschrittenenkurs",
-  };
-  const courseKey = searchParams.get("course") ?? "";
-  const selectedCourseTitle = courseTitles[courseKey];
+  const requestedProductId = searchParams.get("product") ?? "";
+  const requestedAppliedRef = useRef(false);
   const [participantCount, setParticipantCount] = useState(1);
   const [dates, setDates] = useState<DateSlot[]>([
     { date: "", start_time: "09:00", end_time: "12:00" },
@@ -311,19 +288,25 @@ const Buchung = () => {
   const { privateProducts, groupProducts, loading: productsLoading, error: productsError } = useYetiProducts();
   const [productId, setProductId] = useState<string>("");
 
-  const availableProducts: YetiProduct[] = productType === "private" ? privateProducts : groupProducts;
+  const availableProducts: YetiProduct[] = (productType === "private" ? privateProducts : groupProducts)
+    .filter((p) => p.discipline === sport);
   const selectedProduct = availableProducts.find((p) => p.id === productId);
+  const requestedProduct = availableProducts.find((p) => p.id === requestedProductId);
+  const selectedCourseTitle = requestedProduct?.title;
 
-  // Passendes YETI-Produkt vorauswählen (Kurs aus der Kursübersicht bzw. erstes Produkt).
+  // Exact product ID from the public card. Never silently substitute another course.
   useEffect(() => {
+    if (requestedProductId) {
+      if (!requestedAppliedRef.current && availableProducts.some((p) => p.id === requestedProductId)) {
+        requestedAppliedRef.current = true;
+        setProductId(requestedProductId);
+      }
+      return;
+    }
     if (availableProducts.length === 0) return;
     if (availableProducts.some((p) => p.id === productId)) return;
-    const hints = COURSE_PRODUCT_HINTS[courseKey] ?? [];
-    const hinted = availableProducts.find((p) =>
-      hints.some((h) => p.name.toLowerCase().includes(h)),
-    );
-    setProductId((hinted ?? availableProducts[0]).id);
-  }, [availableProducts, productId, courseKey]);
+    setProductId(availableProducts[0].id);
+  }, [availableProducts, productId, requestedProductId]);
 
   const courseMode = courseModeFor(productType, selectedProduct);
 
@@ -464,7 +447,6 @@ const Buchung = () => {
       window.removeEventListener("pagehide", onLeave);
       onLeave();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -567,7 +549,6 @@ const Buchung = () => {
     setDates([{ date: "", start_time: "09:00", end_time: "12:00" }]);
     releaseReservation();
     setReservation(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseMode, productId]);
 
   // Termin-, Dauer-, Sport- oder Teilnehmerwechsel: bestehende Reservierung freigeben.
@@ -585,13 +566,18 @@ const Buchung = () => {
       setReservation(null);
       refetchAvailability();
     }
+    // Intentionally react to changed selection, not changing callback identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reservationKey]);
 
 
   const validateStep1 = () => {
-    if (!productId) {
-      toast({ title: "Kurs wählen", description: "Bitte einen Kurs auswählen.", variant: "destructive" });
+    if (!selectedProduct?.online_bookable) {
+      toast({ title: "Kurs nicht buchbar", description: "Bitte einen aktuell online buchbaren YETI-Kurs auswählen.", variant: "destructive" });
+      return false;
+    }
+    if (total <= 0) {
+      toast({ title: "Preis nicht verfügbar", description: "Für diese genaue Kurswahl ist noch kein freigegebener Preis hinterlegt.", variant: "destructive" });
       return false;
     }
     if (dates.some((d) => !isISODate(d.date) || d.date < todayISO())) {
@@ -865,11 +851,12 @@ const Buchung = () => {
       submittedSuccessfully = true;
       confirmedRef.current = true;
       reservationRef.current = null;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Booking confirm error:", err);
+      const message = err instanceof Error ? err.message : null;
       setConfirmError(
-        typeof err?.message === "string" && err.message.length < 300
-          ? err.message
+        message && message.length < 300
+          ? message
           : "Die Buchung konnte gerade nicht abgeschlossen werden. Bitte versuche es innerhalb der Reservierungszeit erneut.",
       );
     } finally {
@@ -963,8 +950,8 @@ const Buchung = () => {
                         </SelectContent>
                       </Select>
                       {productsError && <p className="text-xs text-destructive">{productsError}</p>}
-                      {selectedProduct?.description && (
-                        <p className="text-xs text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
+                      {selectedProduct?.subtitle && (
+                        <p className="text-xs text-muted-foreground leading-relaxed">{selectedProduct.subtitle}</p>
                       )}
                       {selectedProduct && (selectedProduct.min_age || selectedProduct.max_age) && (
                         <p className="text-xs text-muted-foreground">
@@ -1486,7 +1473,11 @@ const Buchung = () => {
                   <div className="flex justify-between items-center pt-2">
                     <span className="font-bold">Total</span>
                     <span className="text-2xl font-bold text-primary">
-                      {productsLoading ? "…" : `${reservation?.currency ?? selectedProduct?.currency ?? "CHF"} ${reservation?.total ?? total}.–`}
+                      {productsLoading ? "…" : reservation?.total != null
+                        ? `${reservation.currency} ${reservation.total}.–`
+                        : total > 0 && selectedProduct?.online_bookable
+                          ? `${selectedProduct.currency} ${total}.–`
+                          : "Preis nicht verfügbar"}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
