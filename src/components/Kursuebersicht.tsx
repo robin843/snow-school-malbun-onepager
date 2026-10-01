@@ -427,7 +427,7 @@ const Kursuebersicht = () => {
                 <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span>
                   <strong className="text-foreground">Hinweis:</strong> Kursdetails und Preise stammen direkt aus
-                  den aktiven Produkten der aktuellen YETI-Saison.
+                  den erfassten Produkten der aktuellen YETI-Saison.
                 </span>
               </div>
             </CardContent>
