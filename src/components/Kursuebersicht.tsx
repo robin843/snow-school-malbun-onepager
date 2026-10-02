@@ -136,8 +136,8 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
             {course.icon}
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight min-h-[3.5rem] md:min-h-[4rem] flex flex-wrap items-center justify-center gap-x-2 gap-y-1 sm:justify-start">
-              <span className="line-clamp-1">{titleMain}</span>
+            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight min-h-[3.5rem] md:min-h-[4rem] flex items-center justify-center gap-x-2 sm:justify-start">
+              <span className="flex-1 min-w-0 line-clamp-1 text-center sm:text-left">{titleMain}</span>
               {titleDur && (
                 <span className="flex-shrink-0 text-sm font-black uppercase tracking-wider bg-white/60 backdrop-blur-md rounded-md px-2 py-0.5 ring-1 ring-foreground/10">
                   {titleDur}
