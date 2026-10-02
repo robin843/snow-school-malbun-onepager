@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useYetiProducts } from "@/hooks/useYetiProducts";
 import VoiceBot from "@/components/VoiceBot";
+import BrushHeading from "@/components/BrushHeading";
 import heroVillage from "@/assets/hero-village.jpg";
 import heroPanorama from "@/assets/hero-panorama.jpg";
 import heroChildren from "@/assets/hero-children.jpg";
@@ -65,15 +66,15 @@ const Hero = () => {
       ))}
 
       <div className="relative z-10 container mx-auto px-4 text-center animate-fade-in">
-        <div className="inline-block mb-6 transform -rotate-2 bg-primary/90 px-8 py-4 backdrop-blur-sm">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-primary-foreground">
+        <div className="mb-6 -rotate-2">
+          <BrushHeading as="h1" tone="blush" textClassName="text-4xl md:text-6xl lg:text-7xl">
             Die Faszination Wintersport
-          </h1>
+          </BrushHeading>
         </div>
-        <div className="inline-block transform rotate-1 bg-secondary/90 px-6 py-3 backdrop-blur-sm">
-          <p className="text-xl md:text-2xl lg:text-3xl text-secondary-foreground font-medium">
+        <div className="rotate-1">
+          <BrushHeading as="p" tone="ice" textClassName="text-xl md:text-2xl lg:text-3xl font-medium">
             Ski- und Snowboardkurse in Malbun
-          </p>
+          </BrushHeading>
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Heart, Mountain } from "lucide-react";
+import BrushHeading from "@/components/BrushHeading";
 
 const Jobs = () => {
   const benefits = [
@@ -25,11 +26,7 @@ const Jobs = () => {
     <section id="jobs" className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-block transform -rotate-1 bg-pastel-yellow px-6 py-3 mb-4 rounded-lg">
-            <h2 className="text-3xl md:text-4xl font-bold text-pastel-yellow-foreground">
-              Werde Teil unseres Teams
-            </h2>
-          </div>
+          <BrushHeading tone="blush" className="mb-4 -rotate-1">Werde Teil unseres Teams</BrushHeading>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Teile deine Leidenschaft für den Wintersport mit unseren Gästen
           </p>
