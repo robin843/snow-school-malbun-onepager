@@ -132,10 +132,10 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
             {course.icon}
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight">
+            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight line-clamp-2 min-h-[3.5rem] md:min-h-[4rem]">
               {course.title}
             </CardTitle>
-            <p className="text-foreground/75 text-sm font-medium mt-1">{course.subtitle}</p>
+            <p className="text-foreground/75 text-sm font-medium mt-1 line-clamp-1">{course.subtitle}</p>
           </div>
         </div>
       </CardHeader>
