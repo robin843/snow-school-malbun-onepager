@@ -131,7 +131,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
             <FlagBadge flag={course.flag} />
           </div>
         )}
-        <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left sm:pr-20">
+        <div className={`flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left ${course.flag ? "sm:pr-20" : ""}`}>
           <div className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-foreground/10 flex-shrink-0">
             {course.icon}
           </div>
