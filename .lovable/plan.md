@@ -19,20 +19,23 @@
 - "Werde Teil unseres Teams": Rosé statt Gelb.
 - Stelleninserate: Skilehrer Eisblau; Kinderbetreuung und Büro Rosé.
 
-## 5. Unsere Levels
-- Ski, Swiss Snow Academy: ohne "Black", ohne Kasten und Pokal, geschrieben wie die Leagues:
-  - Zeile 1: Academy Rookie
-  - Zeile 2: Freestyle · Freeride · Race
-- Snowboard: neue Zeile "Red Academy" (Freestyle · Turns) nach der Blue League, danach "Swiss Snow Academy" (Freestyle · Freeride · Turns), ohne Kasten und Pokal.
-- Falls deine angekündigte Übersicht davon abweicht, passe ich das an.
+## 5. Unsere Levels (gemäss deiner Übersicht)
+- Gleiche schlichte Darstellung für alle Stufen, ohne Kasten und Pokal. Reihenfolge von unten nach oben wie im Bild:
+- **Ski:** Swiss Snow Kids Village → Blue League (Blue Prince & Princess, Blue King & Queen, Blue Star) → Red League (Red Prince & Princess, Red King & Queen, Red Star) → Swiss Snow Academy: Zeile 1 "Academy Rookie", Zeile 2 "Freestyle · Freeride · Race".
+- **Snowboard:** Swiss Snow Kids Village → Blue League (wie Ski) → Red Academy (Freestyle · Turns) → Swiss Snow Academy (Freestyle · Freeride · Turns).
+- Kein "Black" mehr. Die Felder "Entdecken und Wissen", "Können" und "Wissen" aus der Grafik übernehme ich nicht, weil es keine Kursstufen sind.
 
 ## 6. Skischulleitung, Kontakt, Karte
 - "Über uns" wird zu "Skischulleitung", mit deinem Text über Christoph Bühler (genau so, wie du ihn geschickt hast).
 - Bürozeiten: Montag bis Sonntag, 09:00–12:00 und 13:00–16:00 Uhr.
 - Standort: deine Google-Karte (My Maps) wird eingebettet. Wenn sie nicht öffentlich eingebettet werden kann, sage ich dir Bescheid und lasse die jetzige Karte stehen.
 
+## 7. FAQ 1:1 aus deinem PDF
+- Die jetzigen, automatisch erzeugten Fragen werden durch die Fragen und Antworten aus dem PDF ersetzt, Wort für Wort.
+- Vier Gruppen mit Zwischentitel: Ausrüstung und Liftkarte (3), Gruppen-, Samstags-, Windelwedelkurs (7), Treffpunkte (2), Sonstiges (4).
+- Nur offensichtliche Tippfehler korrigiere ich, z. B. "Is die" → "Ist die", "Sammelpatz" → "Sammelplatz", "Sportsportlehrer" → "Schneesportlehrer". Der Inhalt bleibt unverändert. "bergbahnen.li" wird ein Link.
+
 ## Offen / wartet auf dich
-- FAQ 1:1 von schneesportschule.li/faq: Ich übernehme den Text von der Seite. Wenn das PDF kommt, gleiche ich ihn damit ab.
 - Texte der Skilehrer im Team kommen später über YETI. Hier ändert sich vorerst nichts.
 - Preise in YETI nachtragen (siehe Punkt 3).
 
