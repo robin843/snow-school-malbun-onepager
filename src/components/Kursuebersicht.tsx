@@ -66,7 +66,7 @@ const metaIcon = (key: YetiProduct["meta"][number]["icon"]): React.ReactNode => 
 const productToCourse = (p: YetiProduct): Course => {
   const tariffs: TariffRow[] = p.type === "private"
     ? p.private_rates.length
-      ? p.private_rates.filter((r) => r.persons === 1).sort((a, b) => a.duration_minutes - b.duration_minutes).map((r) => ({
+      ? p.private_rates.filter((r) => r.persons === 1 && r.duration_minutes <= 120).sort((a, b) => a.duration_minutes - b.duration_minutes).map((r) => ({
           label: `${r.duration_minutes / 60} ${r.duration_minutes === 60 ? "Stunde" : "Stunden"} · 1 Person`,
           group: r.duration_minutes <= 60 ? "Einzellektion (1 Std.)" : r.duration_minutes <= 120 ? "Doppellektion (2 Std.)" : `${r.duration_minutes / 60} Stunden`,
           chf: String(r.price), currency: p.currency,
@@ -110,11 +110,18 @@ const FlagBadge = ({ flag }: { flag: Flag }) => (
   </span>
 );
 
-const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => (
-  <div className="group relative animate-fade-in">
+const VISIBLE_TARIFFS = 2;
+
+const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => {
+  const [expanded, setExpanded] = useState(false);
+  const allTariffs = course.tariffs ?? [];
+  const shownTariffs = expanded ? allTariffs : allTariffs.slice(0, VISIBLE_TARIFFS);
+  const hiddenCount = allTariffs.length - VISIBLE_TARIFFS;
+  return (
+  <div className="group relative animate-fade-in h-full">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
     <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl rounded-lg">
-      <CardHeader className={`relative p-6 bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
+      <CardHeader className={`relative p-6 min-h-[11rem] justify-center bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
         {course.flag && (
           <div className="absolute top-4 right-4">
             <FlagBadge flag={course.flag} />
@@ -153,11 +160,11 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
           </div>
         )}
 
-        {course.tariffs && (
+        {allTariffs.length > 0 && (
           <div className="space-y-1.5 pt-1">
-            {course.tariffs.map((t, i) => (
+            {shownTariffs.map((t, i) => (
               <div key={i}>
-              {t.group && t.group !== course.tariffs![i - 1]?.group && (
+              {t.group && t.group !== shownTariffs[i - 1]?.group && (
                 <div className={`text-xs font-black uppercase tracking-wider text-foreground/80 pb-1 ${i > 0 ? "mt-4 pt-3 border-t-2 border-dashed border-border" : ""}`}>
                   {t.group}
                 </div>
@@ -185,6 +192,15 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
               </div>
               </div>
             ))}
+            {hiddenCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="w-full text-xs font-bold text-primary hover:underline pt-1"
+              >
+                {expanded ? "Weniger anzeigen" : `Alle ${allTariffs.length} Tarife anzeigen`}
+              </button>
+            )}
           </div>
         )}
 
@@ -211,7 +227,8 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
       </CardContent>
     </Card>
   </div>
-);
+  );
+};
 
 const mainFilters = [
   { id: "all" as const, label: "Alle" },
