@@ -1,37 +1,42 @@
-# Integrationstests für den YETI-Reservierungsvertrag vervollständigen
+# Feedback-Runde: Titel, Farben, Levels, Texte
 
-Nur Tests — kein Produktivcode, keine Migration, kein Deployment von Funktionen.
+## 1. Pinselstrich-Hintergrund für Titel
+- Neuer Titel-Stil wie im Beispielbild: unregelmässiger, ausgefranster Farbstreifen hinter dem Text, darauf dunkelblaue Schrift (keine Verläufe mehr).
+- Hero: "Die Faszination Wintersport" und "Ski- und Snowboardkurse in Malbun".
+- Abschnitts-Titel abwechselnd: Kursübersicht (rot), Unsere Levels (blau), Skischulleitung (rot), Unser Team (blau), Werde Teil unseres Teams (rot), Kontakt & Standort (blau), Häufige Fragen (rot).
+- "Rot" und "Blau" sind dabei die bestehenden Pastelltöne Rosé und Eisblau.
 
-## Ist-Stand
+## 2. Aufräumen bei den Titeln
+- Die kleinen Kästen "Kurse & Tarife", "Swiss Snow League" und "FAQ" werden entfernt.
+- "Häufige Fragen" bekommt dieselbe Schrift, Grösse und Gestaltung wie die anderen Titel. Die abgeschnittenen "g" werden behoben.
 
-`supabase/functions/yeti-reserve/index.test.ts` deckt bereits ab:
-1. Reservierung ohne Personendaten (+ Ablehnung von Kunden-/Teilnehmerdaten)
-2.+3. Rechnungsabschluss mit genau einer Rechnung, Wiederholung keine zweite
-4. Online-Abschluss ohne `payment_reference` wird abgelehnt
-6. `payment_failed` hält die Reservierung offen (anschliessender Rechnungsabschluss klappt)
-7. Ungültige/abgelaufene Reservierung kann nicht bestätigt werden
+## 3. Kurskarten
+- Privatkurs Ski und Snowboard: Preise in zwei beschriftete Blöcke "Einzellektion (1 Std.)" und "Doppellektion (2 Std.)" aufteilen, mit Trennlinie dazwischen.
+- Fehlende Preise (Windel-Wedel, Ganztageskurs, Samstagskurs, Carving CHF 99, Snowboard-Kurse inkl. CHF 90): **werden in YETI nachgetragen** und erscheinen danach automatisch. Auf der Website wird nichts fest eingetragen.
 
-## Fehlend
+## 4. Farbregeln
+- Gelb nur noch für Kontakt-Aktionen: Buchen, Fragen, Bewerben.
+- "Werde Teil unseres Teams": Rosé statt Gelb.
+- Stelleninserate: Skilehrer Eisblau; Kinderbetreuung und Büro Rosé.
 
-**Test 5 — Online-Abschluss mit gültiger Referenz erzeugt genau eine Zahlung**
-- Reservierung anlegen (Privatkurs, zukünftiges Datum)
-- `yeti-confirm` mit `payment_method: "online"` und `payment_reference: "TEST-<zufällig>"` → `success: true`, `payment_status`/`status` bezahlt, `payment_reference` zurückgeliefert
-- Erneuter Abschluss desselben Tickets → keine zweite Zahlung (gleiche Antwort, kein neuer `invoice_number`/zweiter Datensatz)
-- Annahme: YETI akzeptiert die Test-Referenz (wie beim Rechnungsabschluss gegen die echte Schnittstelle getestet). Schlägt das fehl, breche ich ab und melde, was auf YETI-Seite fehlt.
+## 5. Unsere Levels
+- Ski, Swiss Snow Academy: ohne "Black", ohne Kasten und Pokal, geschrieben wie die Leagues:
+  - Zeile 1: Academy Rookie
+  - Zeile 2: Freestyle · Freeride · Race
+- Snowboard: neue Zeile "Red Academy" (Freestyle · Turns) nach der Blue League, danach "Swiss Snow Academy" (Freestyle · Freeride · Turns), ohne Kasten und Pokal.
+- Falls deine angekündigte Übersicht davon abweicht, passe ich das an.
 
-**Test 8 — Änderung der Auswahl gibt die alte Reservierung frei**
-- Reservierung anlegen
-- `yeti-release` mit `ticket_id` + `reservation_token` aufrufen → Erfolg (YETI-Antwort 404 wird wie heute toleriert, lokale Freigabe zählt)
-- `yeti-confirm` auf die freigegebene Reservierung → `success: false`
-- Neue Reservierung auf demselben Slot klappt anschliessend
+## 6. Skischulleitung, Kontakt, Karte
+- "Über uns" wird zu "Skischulleitung", mit deinem Text über Christoph Bühler (genau so, wie du ihn geschickt hast).
+- Bürozeiten: Montag bis Sonntag, 09:00–12:00 und 13:00–16:00 Uhr.
+- Standort: deine Google-Karte (My Maps) wird eingebettet. Wenn sie nicht öffentlich eingebettet werden kann, sage ich dir Bescheid und lasse die jetzige Karte stehen.
 
-**Test 7 erweitern — abgelaufene Reservierung erzeugt keine Teil-Datensätze**
-- Bestehender Test 7 bleibt; zusätzlich prüfen, dass die Antwort keine Rechnungs- oder Kundenkennungen enthält (`invoice_number`, `customer_number` fehlen) und ein anschliessender kompletter Ablauf (Reservierung + Rechnungsabschluss) sauber durchläuft — Beweis, dass kein halber Datensatz den Flow blockiert.
+## Offen / wartet auf dich
+- FAQ 1:1 von schneesportschule.li/faq: Ich übernehme den Text von der Seite. Wenn das PDF kommt, gleiche ich ihn damit ab.
+- Texte der Skilehrer im Team kommen später über YETI. Hier ändert sich vorerst nichts.
+- Preise in YETI nachtragen (siehe Punkt 3).
 
 ## Technische Details
-
-- Alle Ergänzungen in `supabase/functions/yeti-reserve/index.test.ts` (bestehende Datei, gleiches Muster: `call`-Helper, `CONSENT`/`CUSTOMER`/`PARTICIPANTS`, zukünftige Daten per Offset).
-- Für Test 8 `yeti-release` über denselben `call`-Helper ansprechen.
-- Datums-Offsets so wählen, dass keine Kollision mit den bestehenden Tests entsteht (Offsets 26+ bzw. eigene Uhrzeiten).
-- Ausführen mit den Umgebungsvariablen `VITE_SUPABASE_URL` und `VITE_SUPABASE_PUBLISHABLE_KEY` gegen die bereitgestellten Funktionen; Ergebnis pro Test melden.
-- Kein Deployment nötig: `yeti-release` und beide Funktionen sind bereits deployed.
+- Neue wiederverwendbare `BrushHeading`-Komponente mit `tone="blush" | "ice"`. Der ausgefranste Rand entsteht über eine SVG-Maske bzw. einen SVG-Hintergrund, die Farben kommen aus den bestehenden Tokens. Der Header bleibt unverändert.
+- Betroffene Dateien: Hero, Kursuebersicht (Titel, Badges, Levels-Daten, Gruppierung der Privat-Tarife nach `duration_minutes`), Team bzw. Über-uns-Abschnitt, Jobs, Kontakt, FAQ.
+- Die Logik für YETI, Preise und Buchungssperre bleibt unverändert. Es wird nichts veröffentlicht.
