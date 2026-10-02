@@ -114,6 +114,10 @@ const VISIBLE_TARIFFS = 2;
 
 const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => {
   const [expanded, setExpanded] = useState(false);
+  // Zeitangabe (z. B. "2h") aus dem Titel lösen, aber sichtbar behalten.
+  const durMatch = course.title.match(/\s(\d+h)$/i);
+  const titleMain = durMatch ? course.title.slice(0, durMatch.index).trim() : course.title;
+  const titleDur = durMatch ? durMatch[1] : null;
   const allTariffs = course.tariffs ?? [];
   const shownTariffs = expanded ? allTariffs : allTariffs.slice(0, VISIBLE_TARIFFS);
   const hiddenCount = allTariffs.length - VISIBLE_TARIFFS;
@@ -132,8 +136,13 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
             {course.icon}
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight line-clamp-2 min-h-[3.5rem] md:min-h-[4rem]">
-              {course.title}
+            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight min-h-[3.5rem] md:min-h-[4rem] flex flex-wrap items-center justify-center gap-x-2 gap-y-1 sm:justify-start">
+              <span className="line-clamp-1">{titleMain}</span>
+              {titleDur && (
+                <span className="flex-shrink-0 text-sm font-black uppercase tracking-wider bg-white/60 backdrop-blur-md rounded-md px-2 py-0.5 ring-1 ring-foreground/10">
+                  {titleDur}
+                </span>
+              )}
             </CardTitle>
             <p className="text-foreground/75 text-sm font-medium mt-1 line-clamp-1">{course.subtitle}</p>
           </div>
@@ -317,7 +326,8 @@ const Kursuebersicht = () => {
         <div className="text-center mb-12 space-y-5">
           <BrushHeading tone="blush" className="-rotate-1">Kursübersicht</BrushHeading>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Ski- und Snowboardkurse nach Swiss Snow League – wähle Disziplin und Zielgruppe
+            Ski- und Snowboardkurse nach Swiss Snow League – wähle Disziplin und Zielgruppe. Die
+            Zeit kannst du dann direkt im Buchungsformular auswählen.
           </p>
         </div>
 
