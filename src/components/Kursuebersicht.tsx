@@ -258,12 +258,21 @@ const Kursuebersicht = () => {
   const { products, bookable, loading, error } = useYetiProducts();
 
   const filtered = useMemo(() => {
+    const disciplineOrder: Record<Discipline, number> = { ski: 0, snowboard: 1, other: 2 };
+    const typeOrder: Record<Course["type"], number> = { group: 0, private: 1, other: 2 };
+    const audienceOrder = (c: Course) =>
+      c.audiences.length > 1 ? 2 : c.audiences[0] === "kids" ? 0 : 1;
     return products.map(productToCourse).filter((c) => {
       if (main === "all") return true;
       if (c.discipline !== main) return false;
       if (sub === "all") return true;
       return c.audiences.includes(sub);
-    });
+    }).sort((a, b) =>
+      disciplineOrder[a.discipline] - disciplineOrder[b.discipline] ||
+      typeOrder[a.type] - typeOrder[b.type] ||
+      audienceOrder(a) - audienceOrder(b) ||
+      a.title.localeCompare(b.title, "de")
+    );
   }, [products, main, sub]);
 
   const handleBook = (course?: Course) => {
