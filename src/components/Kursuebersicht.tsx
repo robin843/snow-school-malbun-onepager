@@ -227,7 +227,8 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
       </CardContent>
     </Card>
   </div>
-);
+  );
+};
 
 const mainFilters = [
   { id: "all" as const, label: "Alle" },
