@@ -114,10 +114,12 @@ const VISIBLE_TARIFFS = 2;
 
 const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => {
   const [expanded, setExpanded] = useState(false);
-  // Zeitangabe (z. B. "2h") aus dem Titel lösen, aber sichtbar behalten.
-  const durMatch = course.title.match(/\s(\d+h)$/i);
-  const titleMain = durMatch ? course.title.slice(0, durMatch.index).trim() : course.title;
-  const titleDur = durMatch ? durMatch[1] : null;
+  // Zeitangaben (z. B. "2h", "4 Std.") aus dem Titel entfernen – die Zeit wird im Buchungsformular gewählt.
+  const titleMain = course.title
+    .replace(/\s*[(\[]?\s*\d+(?:[.,]\d+)?\s*(?:h|std\.?|stunden?)\s*[)\]]?(?=\s|$|[-–,])/gi, "")
+    .replace(/\s*[-–,]\s*$/, "")
+    .replace(/\s{2,}/g, " ")
+    .trim() || course.title;
   const allTariffs = course.tariffs ?? [];
   const shownTariffs = expanded ? allTariffs : allTariffs.slice(0, VISIBLE_TARIFFS);
   const hiddenCount = allTariffs.length - VISIBLE_TARIFFS;
@@ -136,15 +138,10 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
             {course.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight min-h-[3.5rem] md:min-h-[4rem] flex items-center justify-center gap-x-2 sm:justify-start">
-              <span className="flex-1 min-w-0 line-clamp-1 text-center sm:text-left">{titleMain}</span>
-              {titleDur && (
-                <span className="flex-shrink-0 text-sm font-black uppercase tracking-wider bg-white/60 backdrop-blur-md rounded-md px-2 py-0.5 ring-1 ring-foreground/10">
-                  {titleDur}
-                </span>
-              )}
+            <CardTitle className="text-lg md:text-xl font-black text-foreground leading-snug min-h-[3.5rem] flex items-center justify-center text-center sm:justify-start sm:text-left break-words hyphens-auto" lang="de">
+              <span className="min-w-0">{titleMain}</span>
             </CardTitle>
-            <p className="text-foreground/75 text-sm font-medium mt-1 line-clamp-1">{course.subtitle}</p>
+            <p className="text-foreground/75 text-sm font-medium mt-1">{course.subtitle}</p>
           </div>
         </div>
       </CardHeader>
