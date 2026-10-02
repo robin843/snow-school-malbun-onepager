@@ -1,4 +1,5 @@
 import { useState } from "react";
+import BrushHeading from "@/components/BrushHeading";
 import teamPhotos from "@/assets/team-photos.jpg";
 import { Card } from "@/components/ui/card";
 import {
@@ -67,62 +68,25 @@ const Team = () => {
     <section id="team" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-block transform rotate-1 bg-blush px-6 py-3 mb-4 rounded-lg">
-            <h2 className="text-3xl md:text-4xl font-bold text-blush-foreground">
-              Über uns
-            </h2>
-          </div>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Erfahrene und zertifizierte Skilehrer mit Leidenschaft für den Wintersport
-          </p>
+          <BrushHeading tone="blush" className="mb-4 rotate-1">Skischulleitung</BrushHeading>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-start max-w-6xl mx-auto mb-16">
+        <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto mb-16">
           <div className="flex justify-center animate-fade-in">
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 to-secondary/20 transform -rotate-2 rounded-lg"></div>
-              <img
-                src={teamPhotos}
-                alt="Christoph und Engelbert Bühler"
-                className="relative rounded-lg shadow-2xl w-full object-cover"
-              />
-            </div>
+            <img
+              src={teamPhotos}
+              alt="Christoph und Engelbert Bühler"
+              className="rounded-lg shadow-2xl w-full object-cover"
+            />
           </div>
-
-          <div className="animate-slide-in">
-            <div className="transform -rotate-2 bg-primary/10 p-1 inline-block mb-6">
-              <h3 className="text-2xl font-bold text-primary px-4 py-2">
-                Skischulleitung
-              </h3>
-            </div>
-            <div className="space-y-4 text-foreground">
-              <p className="text-lg leading-relaxed">
-                <span className="font-bold text-primary">Engelbert Bühler</span> leitet gemeinsam
-                mit seiner Frau und seinem Sohn Engelbert unsere traditionsreiche Schneesportschule.
-              </p>
-              <p className="leading-relaxed">
-                Seine Leidenschaft zu den Bergen und dem Wintersport übertrug sich bereits auf einen
-                Grossteil seiner Kindheit und Jugend im Bergdorf Triesenberg. Auch heute fördert
-                Engelbert als erfahrener Schneesportlehrer noch persönlich um die Anliegen seiner
-                Gäste und stellt ein Höchstmass an Professionalität, Qualität und Sicherheit im
-                täglichen Familienbetrieb sicher.
-              </p>
-              <div className="transform rotate-1 bg-secondary/10 p-1 inline-block mt-6 rounded-lg">
-                <p className="text-lg font-semibold text-secondary px-4 py-2">
-                  "Strahlende und glückliche Gäste sind unsere grösste Motivation"
-                </p>
-              </div>
-            </div>
-          </div>
+          <p className="text-lg leading-relaxed text-foreground text-center md:text-left">
+            <span className="font-bold">Christoph Bühler</span> führt heute mit viel Herzblut die Schneesportschule Malbun, die sein Vater Engelbert im Jahr 1986 gegründet und über viele Jahre mit Leidenschaft aufgebaut hat. Die Begeisterung für die Berge und den Schneesport wurde Christoph sozusagen in die Wiege gelegt. Was einst als Familienbetrieb begann, ist bis heute eine Herzensangelegenheit geblieben: Menschen für den Wintersport zu begeistern, Kindern ein strahlendes Lächeln ins Gesicht zu zaubern und unseren Gästen unvergessliche Tage im Schnee zu schenken. Mit viel persönlichem Engagement, Freude und familiärer Herzlichkeit führt Christoph die Tradition weiter und entwickelt unsere Schneesportschule gleichzeitig mit viel Leidenschaft für die Zukunft.
+          </p>
         </div>
 
         <div className="mt-20">
           <div className="text-center mb-12">
-            <div className="inline-block transform -rotate-1 bg-primary px-6 py-3 mb-4 rounded-lg">
-              <h3 className="text-3xl md:text-4xl font-bold text-primary-foreground">
-                Unser Team
-              </h3>
-            </div>
+            <BrushHeading as="h3" tone="ice" className="mb-4 -rotate-1">Unser Team</BrushHeading>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Über 50 begeisterte Ski- und Snowboardlehrer
             </p>

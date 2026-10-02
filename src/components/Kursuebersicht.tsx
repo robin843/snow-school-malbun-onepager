@@ -16,6 +16,7 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
+import BrushHeading from "@/components/BrushHeading";
 import { useNavigate } from "react-router-dom";
 import { useYetiProducts, type YetiProduct } from "@/hooks/useYetiProducts";
 
@@ -26,6 +27,7 @@ type Flag = "beliebt" | "empfohlen";
 type TariffRow = {
   label: string;
   sub?: string;
+  group?: string;
   chf: string;
   currency: string;
   flag?: Flag;
@@ -64,8 +66,9 @@ const metaIcon = (key: YetiProduct["meta"][number]["icon"]): React.ReactNode => 
 const productToCourse = (p: YetiProduct): Course => {
   const tariffs: TariffRow[] = p.type === "private"
     ? p.private_rates.length
-      ? p.private_rates.filter((r) => r.persons === 1).map((r) => ({
+      ? p.private_rates.filter((r) => r.persons === 1).sort((a, b) => a.duration_minutes - b.duration_minutes).map((r) => ({
           label: `${r.duration_minutes / 60} ${r.duration_minutes === 60 ? "Stunde" : "Stunden"} · 1 Person`,
+          group: r.duration_minutes <= 60 ? "Einzellektion (1 Std.)" : r.duration_minutes <= 120 ? "Doppellektion (2 Std.)" : `${r.duration_minutes / 60} Stunden`,
           chf: String(r.price), currency: p.currency,
         }))
       : p.price > 0 ? [{ label: p.duration_minutes ? `${p.duration_minutes} Minuten` : "Produktpreis",
@@ -153,8 +156,13 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
         {course.tariffs && (
           <div className="space-y-1.5 pt-1">
             {course.tariffs.map((t, i) => (
+              <div key={i}>
+              {t.group && t.group !== course.tariffs![i - 1]?.group && (
+                <div className={`text-xs font-black uppercase tracking-wider text-foreground/80 pb-1 ${i > 0 ? "mt-4 pt-3 border-t-2 border-dashed border-border" : ""}`}>
+                  {t.group}
+                </div>
+              )}
               <div
-                key={i}
                 className={`relative flex justify-between items-center gap-3 p-2.5 pl-3 rounded-lg border transition-colors ${
                   t.flag
                     ? "bg-accent/5 border-accent/40 border-l-4 border-l-accent"
@@ -174,6 +182,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
                   {t.sub && <div className="text-xs text-muted-foreground">{t.sub}</div>}
                 </div>
                 <div className="text-base font-black text-primary flex-shrink-0">{t.currency} {t.chf}.-</div>
+              </div>
               </div>
             ))}
           </div>
@@ -219,59 +228,27 @@ const subFilters = [
 type MainFilter = "all" | Discipline;
 type SubFilter = "all" | Audience;
 
-// Swiss Snow League Levels
-const skiLevels = [
-  {
-    group: "Swiss Snow Kids Village",
-    color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/40 dark:text-emerald-300",
-    items: ["Swiss Snow Kids Village (grün)"],
-  },
-  {
-    group: "Blue League",
-    color: "bg-blue-500/15 text-blue-700 border-blue-500/40 dark:text-blue-300",
-    items: ["Blue Prince & Princess", "Blue King & Queen", "Blue Star"],
-  },
-  {
-    group: "Red League",
-    color: "bg-red-500/15 text-red-700 border-red-500/40 dark:text-red-300",
-    items: ["Red Prince & Princess", "Red King & Queen", "Red Star"],
-  },
-  {
-    group: "Swiss Snow Academy",
-    color: "bg-foreground/10 text-foreground border-foreground/40",
-    highlight: true,
-    items: [
-      "Black Academy Rookie",
-      "Black Academy Freestyle",
-      "Black Academy Freeride",
-      "Black Academy Race",
-    ],
-  },
+// Swiss Snow League Levels (each inner array = one line of badges)
+type LevelGroup = { group: string; color: string; rows: string[][] };
+const kidsColor = "bg-emerald-500/15 text-emerald-700 border-emerald-500/40 dark:text-emerald-300";
+const blueColor = "bg-blue-500/15 text-blue-700 border-blue-500/40 dark:text-blue-300";
+const redColor = "bg-red-500/15 text-red-700 border-red-500/40 dark:text-red-300";
+const academyColor = "bg-foreground/10 text-foreground border-foreground/40";
+const kidsVillage: LevelGroup = { group: "Swiss Snow Kids Village", color: kidsColor, rows: [["Swiss Snow Kids Village"]] };
+const blueLeague: LevelGroup = { group: "Blue League", color: blueColor, rows: [["Blue Prince & Princess", "Blue King & Queen", "Blue Star"]] };
+
+const skiLevels: LevelGroup[] = [
+  kidsVillage,
+  blueLeague,
+  { group: "Red League", color: redColor, rows: [["Red Prince & Princess", "Red King & Queen", "Red Star"]] },
+  { group: "Swiss Snow Academy", color: academyColor, rows: [["Academy Rookie"], ["Freestyle", "Freeride", "Race"]] },
 ];
 
-const snowboardLevels = [
-  {
-    group: "Swiss Snow Kids Village",
-    color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/40 dark:text-emerald-300",
-    items: ["Swiss Snow Kids Village (grün)"],
-  },
-  {
-    group: "Blue League",
-    color: "bg-blue-500/15 text-blue-700 border-blue-500/40 dark:text-blue-300",
-    items: ["Blue Prince & Princess", "Blue King & Queen", "Blue Star"],
-  },
-  {
-    group: "Swiss Snow Academy",
-    color: "bg-foreground/10 text-foreground border-foreground/40",
-    highlight: true,
-    items: [
-      "Red Academy Freestyle",
-      "Red Academy Turns",
-      "Academy Freestyle",
-      "Academy Freeride",
-      "Academy Turns",
-    ],
-  },
+const snowboardLevels: LevelGroup[] = [
+  kidsVillage,
+  blueLeague,
+  { group: "Red Academy", color: redColor, rows: [["Freestyle", "Turns"]] },
+  { group: "Swiss Snow Academy", color: academyColor, rows: [["Freestyle", "Freeride", "Turns"]] },
 ];
 
 const Kursuebersicht = () => {
@@ -312,15 +289,7 @@ const Kursuebersicht = () => {
       <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
         <div className="text-center mb-12 space-y-5">
-          <div className="inline-flex items-center gap-3 px-6 py-2 bg-primary/10 backdrop-blur-sm rounded-md border border-primary/20 animate-fade-in">
-            <Award className="w-5 h-5 text-primary" />
-            <span className="text-sm font-semibold text-primary tracking-wider uppercase">
-              Kurse & Tarife
-            </span>
-          </div>
-          <h2 className="text-4xl md:text-6xl font-extrabold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent leading-tight">
-            Kursübersicht
-          </h2>
+          <BrushHeading tone="blush" className="-rotate-1">Kursübersicht</BrushHeading>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Ski- und Snowboardkurse nach Swiss Snow League – wähle Disziplin und Zielgruppe
           </p>
@@ -437,15 +406,7 @@ const Kursuebersicht = () => {
         {/* Swiss Snow League Levels */}
         <div id="levels" className="max-w-7xl mx-auto mt-16">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-3 px-6 py-2 bg-secondary/10 backdrop-blur-sm rounded-md border border-secondary/20 mb-4">
-              <Trophy className="w-5 h-5 text-secondary" />
-              <span className="text-sm font-semibold text-secondary tracking-wider uppercase">
-                Swiss Snow League
-              </span>
-            </div>
-            <h3 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-tight">
-              Unsere Levels
-            </h3>
+            <BrushHeading as="h3" tone="ice" className="rotate-1">Unsere Levels</BrushHeading>
             <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
               Vom ersten Schritt im Kids Village bis zur Academy – klar strukturierte Levels für jeden Fortschritt.
             </p>
@@ -467,22 +428,17 @@ const Kursuebersicht = () => {
                 </CardHeader>
                 <CardContent className="p-6 space-y-5">
                   {block.levels.map((lvl, i) => (
-                    <div key={i} className={lvl.highlight ? "p-4 rounded-lg bg-gradient-to-br from-muted/60 to-muted/30 border-2 border-foreground/20" : ""}>
-                      <div className="flex items-center gap-2 mb-3">
-                        {lvl.highlight && <Trophy className="w-4 h-4 text-foreground" />}
-                        <h4 className="font-black text-sm uppercase tracking-wider text-foreground">
-                          {lvl.group}
-                        </h4>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {lvl.items.map((item, j) => (
-                          <Badge
-                            key={j}
-                            variant="outline"
-                            className={`text-xs font-semibold py-1.5 px-3 ${lvl.color}`}
-                          >
-                            {item}
-                          </Badge>
+                    <div key={i}>
+                      <h4 className="font-black text-sm uppercase tracking-wider text-foreground mb-3">{lvl.group}</h4>
+                      <div className="space-y-2">
+                        {lvl.rows.map((row, r) => (
+                          <div key={r} className="flex flex-wrap gap-2">
+                            {row.map((item) => (
+                              <Badge key={item} variant="outline" className={`text-xs font-semibold py-1.5 px-3 ${lvl.color}`}>
+                                {item}
+                              </Badge>
+                            ))}
+                          </div>
                         ))}
                       </div>
                     </div>

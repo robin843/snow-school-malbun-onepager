@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import BrushHeading from "@/components/BrushHeading";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 
 const Kontakt = () => {
@@ -6,11 +7,7 @@ const Kontakt = () => {
     <section id="kontakt" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-block transform rotate-1 bg-ice-blue px-6 py-3 mb-4 rounded-lg">
-            <h2 className="text-3xl md:text-4xl font-bold text-ice-blue-foreground">
-              Kontakt & Standort
-            </h2>
-          </div>
+          <BrushHeading tone="ice" className="mb-4 rotate-1">Kontakt & Standort</BrushHeading>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Wir freuen uns auf Ihre Anfrage
           </p>
@@ -74,9 +71,8 @@ const Kontakt = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Bürozeiten</h3>
                   <p className="text-muted-foreground">
-                    Montag - Freitag: 08:00 - 17:00<br />
-                    Samstag: 08:00 - 12:00<br />
-                    Sonntag: Geschlossen
+                    Montag – Sonntag<br />
+                    09:00 – 12:00 und 13:00 – 16:00 Uhr
                   </p>
                 </div>
               </div>
@@ -90,7 +86,7 @@ const Kontakt = () => {
             <CardContent>
               <div className="bg-muted rounded-lg overflow-hidden h-[400px]">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2711.8474936926646!2d9.608775776622827!3d47.10026897116344!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x479b20f8f8f8f8f9%3A0x8f8f8f8f8f8f8f8f!2sMalbun%2C%209497%20Triesenberg%2C%20Liechtenstein!5e0!3m2!1sde!2sch!4v1234567890123!5m2!1sde!2sch"
+                  src="https://www.google.com/maps/d/embed?mid=1D0f2WKwU3o-UrNpJM3kVtVJur8s"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
