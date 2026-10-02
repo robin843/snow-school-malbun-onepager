@@ -40,8 +40,8 @@ const Jobs = () => {
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <CardHeader>
-                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <benefit.icon className="w-8 h-8 text-accent" />
+                <div className="w-16 h-16 bg-ice-blue rounded-full flex items-center justify-center mx-auto mb-4">
+                  <benefit.icon className="w-8 h-8 text-ice-blue-foreground" />
                 </div>
                 <CardTitle className="text-xl">{benefit.title}</CardTitle>
               </CardHeader>
@@ -75,12 +75,12 @@ const Jobs = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-pastel-yellow to-pastel-yellow/70 text-pastel-yellow-foreground border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
+          <Card className="bg-gradient-to-br from-blush to-blush/70 text-blush-foreground border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl md:text-3xl">Büroangestellte/r (Voll- und/oder Teilzeit)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-pastel-yellow-foreground/90 leading-relaxed">
+              <p className="text-blush-foreground/90 leading-relaxed">
                 Du hast eine kaufmännische Ausbildung oder vergleichbare Erfahrung und arbeitest strukturiert sowie selbständig. Mit MS-Office kennst du dich aus, sprichst Deutsch und Englisch und hast Freude am Kundenkontakt. Teamarbeit liegt dir - idealerweise bist du für mehrere Saisons verfügbar.
               </p>
             </CardContent>
