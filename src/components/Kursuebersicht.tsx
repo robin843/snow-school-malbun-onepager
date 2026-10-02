@@ -66,7 +66,7 @@ const metaIcon = (key: YetiProduct["meta"][number]["icon"]): React.ReactNode => 
 const productToCourse = (p: YetiProduct): Course => {
   const tariffs: TariffRow[] = p.type === "private"
     ? p.private_rates.length
-      ? p.private_rates.filter((r) => r.persons === 1).map((r) => ({
+      ? p.private_rates.filter((r) => r.persons === 1).sort((a, b) => a.duration_minutes - b.duration_minutes).map((r) => ({
           label: `${r.duration_minutes / 60} ${r.duration_minutes === 60 ? "Stunde" : "Stunden"} · 1 Person`,
           group: r.duration_minutes <= 60 ? "Einzellektion (1 Std.)" : r.duration_minutes <= 120 ? "Doppellektion (2 Std.)" : `${r.duration_minutes / 60} Stunden`,
           chf: String(r.price), currency: p.currency,
