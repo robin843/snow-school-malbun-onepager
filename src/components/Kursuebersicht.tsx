@@ -135,7 +135,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
           <div className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-foreground/10 flex-shrink-0">
             {course.icon}
           </div>
-          <div className="min-w-0">
+          <div className="flex-1 min-w-0">
             <CardTitle className="text-xl md:text-2xl font-black text-foreground leading-tight min-h-[3.5rem] md:min-h-[4rem] flex items-center justify-center gap-x-2 sm:justify-start">
               <span className="flex-1 min-w-0 line-clamp-1 text-center sm:text-left">{titleMain}</span>
               {titleDur && (
