@@ -50,6 +50,9 @@ type Course = {
   type: "private" | "group" | "other";
 };
 
+/** Windel-Wedelkurs: maximal 3 Tage – YETI-Stufen darüber werden nicht angezeigt. */
+const WINDEL_MAX_DAYS = 3;
+
 const cardIcon = (key: YetiProduct["icon_key"]): React.ReactNode => {
   const icons = { user: User, users: Users, baby: Baby, calendar: Calendar,
     snowflake: Snowflake, trophy: Trophy, sparkles: Sparkles };
@@ -74,7 +77,10 @@ const productToCourse = (p: YetiProduct): Course => {
       : p.price > 0 ? [{ label: p.duration_minutes ? `${p.duration_minutes} Minuten` : "Produktpreis",
           chf: String(p.price), currency: p.currency }] : []
     : p.pricing_type === "tiered"
-      ? p.price_tiers.map((r) => ({
+      ? p.price_tiers
+          // Windel-Wedelkurs wird maximal 3 Tage angeboten – höhere YETI-Stufen bleiben unberücksichtigt.
+          .filter((r) => !/windel/i.test(p.title) || r.day_count <= WINDEL_MAX_DAYS)
+          .map((r) => ({
           label: `${r.day_count} ${r.day_count === 1 ? "Tag" : "Tage"} · 1 Person`,
           chf: String(r.cumulative_price), currency: p.currency,
         }))
