@@ -161,7 +161,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
         )}
 
         {allTariffs.length > 0 && (
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-1.5 pt-1 min-h-[10.5rem]">
             {shownTariffs.map((t, i) => (
               <div key={i}>
               {t.group && t.group !== shownTariffs[i - 1]?.group && (
