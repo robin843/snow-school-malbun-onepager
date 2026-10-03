@@ -19,7 +19,7 @@ const Action = z.discriminatedUnion('action', [
       source: z.literal('website'),
       participants: z.array(participant).min(1).max(100),
       selections: z.array(z.discriminatedUnion('kind', [
-        z.object({ kind: z.literal('group'), participant_ref: ref, period_key: s(100), product_id: s(100), dates: z.array(date).min(1).max(10), block: time.optional() }).strict(),
+        z.object({ kind: z.literal('group'), participant_ref: ref, period_key: s(100), product_id: s(100), dates: z.array(date).min(1).max(10), block: z.string().regex(/^\d{2}:\d{2}-\d{2}:\d{2}$/).optional() }).strict(),
         z.object({ kind: z.literal('private'), participant_refs: z.array(ref).min(1).max(10), product_id: s(100), items: z.array(z.object({ date, time_start: time, time_end: time }).strict()).min(1).max(30) }).strict(),
       ])).min(1).max(200),
     }).strict(),

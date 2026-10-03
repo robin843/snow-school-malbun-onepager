@@ -1,6 +1,8 @@
 // Typed mirror of the YETI `course-booking` action envelope (issue #36).
-// ASSUMPTION: core commit 1073dc95 was not readable from this workspace; shapes follow the
-// envelope supplied in the issue. Unknown/extra fields are ignored, missing required fields fail closed.
+// ASSUMPTIONS (core source not readable here): shapes follow the envelope in the issue plus the
+// review of 2d7d1e3 — `blocks` is string[] of exact "HH:MM-HH:MM" ids (standard "10:00-12:00",
+// "14:00-16:00"); a group 2h selection sends `block` as that exact id; `complete` is idempotent per
+// ticket_id + reservation_token (retrying returns the existing confirmation, never a second invoice).
 
 export type Discipline = "ski" | "snowboard";
 
@@ -22,7 +24,7 @@ export interface CourseOption {
   product_id: string | null;
   product_name: string | null;
   duration_minutes: number;
-  blocks: number;
+  blocks: string[];
   tiers: CourseTier[];
   bookable: boolean;
 }
@@ -47,7 +49,7 @@ export interface CompleteRequest {
   customer: { email: string; first_name: string; last_name: string; phone: string; street: string; zip: string; city: string; country: string };
   participants: (ReserveParticipant & { first_name: string; last_name: string })[];
 }
-export interface CompleteResponse { success: boolean; status: string; invoice_number: string; total_amount: number; delivery?: unknown }
+export interface CompleteResponse { success: true; status: string; invoice_number: string; total_amount: number; delivery?: unknown }
 
 export type CourseBookingAction =
   | { action: "options"; from: string; to: string }
