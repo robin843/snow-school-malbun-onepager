@@ -60,7 +60,8 @@ export default function FamilyPrivateSection({ ctx, sourceError, participants, c
             </div>
             {product && persons > 0 && !durationsFor(product, persons).length && <p className="text-sm text-destructive">Für {persons} Personen gibt es keinen Tarif.</p>}
             {product && persons > 0 && c.items.map((it, k) => {
-              const dur = it.time_start && it.time_end ? toMin(it.time_end) - toMin(it.time_start) : durationsFor(product, persons)[0];
+              const durs = durationsFor(product, persons);
+              const dur = it.time_start && it.time_end ? toMin(it.time_end) - toMin(it.time_start) : (it.duration_minutes && durs.includes(it.duration_minutes) ? it.duration_minutes : durs[0]);
               const key = availabilityKey(product.id, persons, dur);
               const days = ctx.availability[key];
               const complete = it.date && it.time_start && it.time_end;
@@ -71,8 +72,8 @@ export default function FamilyPrivateSection({ ctx, sourceError, participants, c
               return (
                 <div key={k} className="grid gap-2 sm:grid-cols-5 items-center">
                   <Input type="date" min={today()} value={it.date} onChange={(e) => updItem(i, k, { date: e.target.value })} />
-                  <select className="border rounded-md h-10 px-2 bg-background" value={dur} onChange={(e) => updItem(i, k, { time_start: "", time_end: "", ...(void e, {}) , ...{ time_end: "" } }) || updItem(i, k, { time_start: "", time_end: "" })}>
-                    {durationsFor(product, persons).map((d) => <option key={d} value={d}>{d / 60} Std.</option>)}
+                  <select className="border rounded-md h-10 px-2 bg-background" value={dur} onChange={(e) => updItem(i, k, { duration_minutes: Number(e.target.value), time_start: "", time_end: "" })}>
+                    {durs.map((d) => <option key={d} value={d}>{d / 60} Std.</option>)}
                   </select>
                   <select className="border rounded-md h-10 px-2 bg-background" value={it.time_start} onChange={(e) => updItem(i, k, { time_start: e.target.value, time_end: e.target.value ? endFor(e.target.value, dur) : "" })}>
                     <option value="">Startzeit…</option>

@@ -15,7 +15,8 @@ export interface PrivateProduct {
 }
 export interface AvailabilitySlot { start: string; end: string; free_instructors: number }
 export interface AvailabilityDay { date: string; slots: AvailabilitySlot[] }
-export interface PrivateItem { date: string; time_start: string; time_end: string }
+/** `duration_minutes` is a UI hint only; the payload sends date/time_start/time_end. */
+export interface PrivateItem { date: string; time_start: string; time_end: string; duration_minutes?: number }
 export interface FamilyPrivateChoice { kind: "private"; participant_refs: string[]; product_id: string; items: PrivateItem[] }
 
 /** Same start/end grid as the existing private booking UI (Buchung.tsx PRIVATE_TIME_MATRIX). */
