@@ -63,7 +63,9 @@ export function createCourseBookingClient(t: Transport = proxyTransport) {
     },
     /** Throws unless the server confirms; callers must not treat a failure as cancelled. */
     async cancel(ticket_id: string, reservation_token: string, keepalive = false) {
-      await send("cancel_failed", { action: "cancel", ticket_id, reservation_token }, { keepalive });
+      const j = await send("cancel_failed", { action: "cancel", ticket_id, reservation_token }, { keepalive }) as Record<string, unknown> | null;
+      if (!j || j.success !== true || j.status !== "released") throw new CourseBookingError("cancel_failed", 200, j);
+      return { already_released: j.already_released === true };
     },
   };
 }
