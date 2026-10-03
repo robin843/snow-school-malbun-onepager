@@ -99,6 +99,7 @@ function FamilyBookingInner() {
     }).then(({ data, error }) => {
       if (error) throw error;
       const days = parseAvailability(data).filter((d) => d.date === date);
+      setFailedKeys((f) => { const n = new Set(f); n.delete(reqKey); return n; });
       setPrivateCtx((c) => c && { ...c, availability: { ...c.availability, [key]: [...(c.availability[key] ?? []).filter((d) => d.date !== date), ...days] } });
     }).catch(() => {
       requested.current.delete(reqKey);
