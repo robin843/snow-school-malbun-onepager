@@ -48,7 +48,7 @@ function mock(overrides: Partial<Record<CourseBookingAction["action"], Handler>>
     if (b.action === "options") return { status: 200, json: { success: true, status: "ok", contract_version: "bc-2627-website-v1", options: OPTIONS, informational: [] } };
     if (b.action === "reserve") return okReserve(counts.reserve);
     if (b.action === "complete") return okComplete;
-    return { status: 200, json: { success: true } };
+    return { status: 200, json: { success: true, status: "released", already_released: false } };
   };
   const of = <A extends CourseBookingAction["action"]>(a: A) => calls.filter((c): c is Extract<CourseBookingAction, { action: A }> => c.action === a);
   return { calls, of, client: createCourseBookingClient(t) };

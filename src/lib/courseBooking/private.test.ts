@@ -47,7 +47,7 @@ function mock(over: Partial<Record<CourseBookingAction["action"], (b: CourseBook
     const o = over[b.action]; if (o) return o(b, n[b.action]);
     if (b.action === "reserve") return okReserve(n.reserve);
     if (b.action === "complete") return { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-1", total_amount: 590 } };
-    return { status: 200, json: { success: true } };
+    return { status: 200, json: { success: true, status: "released", already_released: false } };
   };
   const of = <A extends CourseBookingAction["action"]>(a: A) => calls.filter((c): c is Extract<CourseBookingAction, { action: A }> => c.action === a);
   return { of, client: createCourseBookingClient(t) };
