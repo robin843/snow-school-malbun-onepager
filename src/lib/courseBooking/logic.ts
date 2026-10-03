@@ -1,6 +1,7 @@
 import type {
-  CourseInstance, CourseOption, CourseTier, CompleteResponse, Discipline, GroupSelection, PrivateSelection, ReserveRequest, ReserveResponse,
+  CourseOption, CourseTier, CompleteResponse, DeliveryState, Discipline, GroupSelection, PrivateSelection, ReserveRequest, ReserveResponse,
 } from "./contract.ts";
+import { CONTRACT_VERSION } from "./contract.ts";
 import { privateIntervals, validatePrivateChoice, type FamilyPrivateChoice, type PrivateContext } from "./private.ts";
 export type { FamilyPrivateChoice, PrivateContext } from "./private.ts";
 
@@ -35,11 +36,10 @@ export function isValidISODate(v: unknown): v is string {
 }
 const isTime = (v: unknown): v is string => typeof v === "string" && TIME.test(v);
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-export const blockId = (i: { time_start: string; time_end: string }) => `${i.time_start}-${i.time_end}`;
-
-const validInstance = (i: unknown): i is CourseInstance =>
-  isObj(i) && isStr(i.instance_id) && isValidISODate(i.date) && isTime(i.time_start) && isTime(i.time_end) &&
-  toMin(i.time_end as string) > toMin(i.time_start as string);
+const validBlock = (b: unknown): b is string => {
+  if (typeof b !== "string" || !BLOCK.test(b)) return false;
+  const [s, e] = b.split("-"); return toMin(e) > toMin(s);
+};
 const validTier = (t: unknown): t is CourseTier =>
   isObj(t) && Number.isInteger(t.day_count) && (t.day_count as number) >= 1 && isNum(t.price) && t.price > 0 && isStr(t.source_tariff_id);
 
@@ -48,18 +48,21 @@ function validOption(o: unknown): o is CourseOption {
   return isStr(o.period_key) && isStr(o.course_id) && isStr(o.course_name) && typeof o.course_type === "string" &&
     (o.discipline === "ski" || o.discipline === "snowboard") &&
     (o.skill_level_id === null || isStr(o.skill_level_id)) && isNullableNum(o.age_min) && isNullableNum(o.age_max) &&
-    Array.isArray(o.teaching_dates) && o.teaching_dates.every(isValidISODate) &&
+    Array.isArray(o.dates) && o.dates.every(isValidISODate) &&
     Array.isArray(o.cancelled_dates) && o.cancelled_dates.every(isValidISODate) &&
-    Array.isArray(o.instances) && o.instances.every(validInstance) &&
     Array.isArray(o.tiers) && o.tiers.every(validTier) &&
-    Array.isArray(o.blocks) && o.blocks.every((b) => typeof b === "string" && BLOCK.test(b)) &&
+    Array.isArray(o.blocks) && o.blocks.length > 0 && new Set(o.blocks).size === o.blocks.length && o.blocks.every(validBlock) &&
+    (o.block_mode === "all" || o.block_mode === "choose_one") &&
+    isObj(o.block_dates) && Object.entries(o.block_dates).every(([b, ds]) =>
+      (o.blocks as string[]).includes(b) && Array.isArray(ds) && ds.every(isValidISODate)) &&
     (o.product_id === null || isStr(o.product_id)) && (o.product_name === null || typeof o.product_name === "string") &&
     isNum(o.duration_minutes) && o.duration_minutes > 0 && typeof o.bookable === "boolean";
 }
 
 /** Envelope must be exact; any malformed option is dropped (never shown as available). */
 export function parseOptions(json: unknown): CourseOption[] {
-  if (!isObj(json) || json.status !== "success" || !Array.isArray(json.options)) throw new Error("invalid_options");
+  if (!isObj(json) || json.success !== true || json.status !== "ok" || json.contract_version !== CONTRACT_VERSION ||
+      !Array.isArray(json.options)) throw new Error("invalid_options");
   return json.options.filter(validOption);
 }
 
@@ -71,7 +74,7 @@ export function isSellable(o: CourseOption): boolean {
 
 export function activeDates(o: CourseOption): string[] {
   const cancelled = new Set(o.cancelled_dates);
-  return [...new Set(o.teaching_dates)].filter((d) => !cancelled.has(d)).sort();
+  return [...new Set(o.dates)].filter((d) => !cancelled.has(d)).sort();
 }
 
 export function ageOn(birth: string, on: string): number {
@@ -84,10 +87,12 @@ const ageFits = (o: CourseOption, birth: string, date: string) => {
   return (o.age_min == null || a >= o.age_min) && (o.age_max == null || a <= o.age_max);
 };
 
-/** 2h courses: choose exactly one real block id. Full (4h) courses: no block, every real block included. */
-export const requiresBlock = (o: CourseOption) => o.duration_minutes <= 120;
+/** block_mode "choose_one": pick exactly one real block id. "all" (4h): every block on every selected date. */
+export const requiresBlock = (o: CourseOption) => o.block_mode === "choose_one";
 export const blockIdsOnDate = (o: CourseOption, date: string) =>
-  new Set(o.instances.filter((i) => i.date === date).map(blockId));
+  new Set(o.blocks.filter((b) => (o.block_dates[b] ?? []).includes(date)));
+/** Exact `blocks` the backend expects for a group selection. */
+export const selectionBlocks = (o: CourseOption, c: { block?: string }) => (requiresBlock(o) ? (c.block ? [c.block] : []) : [...o.blocks]);
 
 /** Base eligibility (discipline, level, at least one date the age fits). Each selected date is checked separately. */
 export function eligibleOptions(options: CourseOption[], p: FamilyParticipant): CourseOption[] {
@@ -128,7 +133,7 @@ export function validateChoice(o: CourseOption | undefined, c: FamilyGroupChoice
 
 /** Concrete time intervals occupied by a choice. */
 function intervals(o: CourseOption, c: FamilyGroupChoice): { date: string; s: number; e: number }[] {
-  const ids = requiresBlock(o) ? (c.block ? [c.block] : []) : o.blocks;
+  const ids = selectionBlocks(o, c);
   return c.dates.flatMap((date) => ids.map((b) => { const [s, e] = b.split("-"); return { date, s: toMin(s), e: toMin(e) }; }));
 }
 
@@ -184,7 +189,9 @@ export function validateFamily(
 export const includedParticipants = (ps: FamilyParticipant[]) => ps.filter((p) => !p.excluded);
 
 /** Requires a valid family (see validateFamily); never silently drops a listed participant. */
-export function buildReserveRequest(participants: FamilyParticipant[], choices: FamilyChoice[], idempotencyKey: string): ReserveRequest {
+export function buildReserveRequest(
+  participants: FamilyParticipant[], choices: FamilyChoice[], idempotencyKey: string, options: CourseOption[],
+): ReserveRequest {
   const included = includedParticipants(participants);
   const missing = included.filter((p) => !choices.some((c) => choiceRefs(c).includes(p.ref)));
   if (missing.length) throw new Error("participant_without_selection");
@@ -199,10 +206,13 @@ export function buildReserveRequest(participants: FamilyParticipant[], choices: 
           items: [...c.items].sort((a, b) => (a.date + a.time_start).localeCompare(b.date + b.time_start))
             .map(({ date, time_start, time_end }) => ({ date, time_start, time_end })),
         }
-        : {
-          kind: "group", participant_ref: c.participant_ref, period_key: c.period_key, product_id: c.product_id,
-          dates: [...c.dates].sort(), ...(c.block ? { block: c.block } : {}),
-        }),
+        : (() => {
+          const o = options.find((x) => x.period_key === c.period_key && x.product_id === c.product_id);
+          if (!o) throw new Error("unknown_option");
+          const blocks = selectionBlocks(o, c);
+          if (!blocks.length) throw new Error("missing_block");
+          return { kind: "group", participant_ref: c.participant_ref, period_key: c.period_key, product_id: c.product_id, dates: [...c.dates].sort(), blocks };
+        })()),
     },
   };
 }
@@ -216,7 +226,7 @@ export function fingerprint(req: ReserveRequest): string {
 const isIsoTs = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v)) && /^\d{4}-\d{2}-\d{2}T/.test(v);
 
 export function parseReserve(json: unknown): ReserveResponse {
-  if (!isObj(json) || !isStr(json.status) || /error|fail|cancel|expired/i.test(json.status) ||
+  if (!isObj(json) || json.success !== true || json.status !== "held" ||
       !isStr(json.ticket_id) || !isStr(json.reservation_token) || typeof json.ticket_number !== "string" ||
       !isNum(json.total_amount) || json.total_amount <= 0 ||
       typeof json.currency !== "string" || !/^[A-Z]{3}$/.test(json.currency) || !isIsoTs(json.reservation_expires_at)) {
@@ -224,10 +234,31 @@ export function parseReserve(json: unknown): ReserveResponse {
   }
   return json as unknown as ReserveResponse;
 }
+
+const deliveryState = (v: unknown): DeliveryState => (v === "sent" || v === "pending" || v === "failed" ? v : "unknown");
+
+/** Only a definitive confirmation counts; delivery is reported honestly (missing/odd values -> "unknown"). */
 export function parseComplete(json: unknown): CompleteResponse {
-  if (!isObj(json) || json.success !== true || !isStr(json.status) || !/^(confirmed|invoice_open|invoice_pending)$/.test(json.status) ||
-      !isStr(json.invoice_number) || !isNum(json.total_amount) || json.total_amount <= 0) {
+  if (!isObj(json) || json.success !== true || json.status !== "confirmed" ||
+      !isStr(json.invoice_number) || !isNum(json.total_amount) || json.total_amount <= 0 ||
+      typeof json.currency !== "string" || !/^[A-Z]{3}$/.test(json.currency)) {
     throw new Error("complete_failed");
   }
-  return json as unknown as CompleteResponse;
+  const d = isObj(json.delivery) ? json.delivery : {};
+  return {
+    success: true, status: "confirmed", invoice_number: json.invoice_number, total_amount: json.total_amount, currency: json.currency,
+    ticket_number: typeof json.ticket_number === "string" ? json.ticket_number : undefined,
+    due_date: isValidISODate(json.due_date) ? json.due_date : null,
+    already_confirmed: json.already_confirmed === true,
+    delivery: { booking_confirmation: deliveryState(d.booking_confirmation), invoice: deliveryState(d.invoice) },
+  };
+}
+
+/** Honest German notice for the confirmation page; never claims "sent" unless the server said so. */
+export function deliveryNotice(d: CompleteResponse["delivery"]): { ok: boolean; text: string } {
+  if (d.booking_confirmation === "sent" && d.invoice === "sent") return { ok: true, text: "Bestätigung und Rechnung wurden per E-Mail verschickt." };
+  if (d.booking_confirmation === "failed" || d.invoice === "failed") {
+    return { ok: false, text: "Die Buchung ist verbindlich bestätigt, aber der E-Mail-Versand ist fehlgeschlagen. Die Skischule meldet sich bei dir – bitte notiere die Rechnungsnummer." };
+  }
+  return { ok: false, text: "Die Buchung ist verbindlich bestätigt. Der E-Mail-Versand von Bestätigung bzw. Rechnung ist noch ausstehend." };
 }
