@@ -274,6 +274,8 @@ const Buchung = () => {
     { date: "", start_time: "09:00", end_time: "12:00" },
   ]);
   const [language, setLanguage] = useState<string>("Deutsch");
+  const [courseLevel, setCourseLevel] = useState<string>("");
+  useEffect(() => { setCourseLevel(""); }, [sport]);
   const [notes, setNotes] = useState("");
 
   const durationMinutes = useMemo(() => {
@@ -984,6 +986,19 @@ const Buchung = () => {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Level</Label>
+                      <Select value={courseLevel} onValueChange={setCourseLevel}>
+                        <SelectTrigger><SelectValue placeholder="Level wählen (optional)" /></SelectTrigger>
+                        <SelectContent>
+                          {(sport === "snowboard" ? SNOWBOARD_LEVELS : SKI_LEVELS).map((l) => (
+                            <SelectItem key={l} value={l}>{l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Unsicher? Wähle «Weiss nicht» – wir teilen dich vor Ort ein.</p>
                     </div>
 
                     <div className="space-y-2">
