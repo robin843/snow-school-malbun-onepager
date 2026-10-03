@@ -55,7 +55,7 @@ export class FamilyBookingFlow {
     if (this.s.invoice || this.s.completeAttempted) throw new Error("completion_pending");
     const errs = this.validate(options, participants, choices, privateCtx);
     if (errs.length) throw Object.assign(new Error("invalid_selection"), { errors: errs });
-    const draft = buildReserveRequest(participants, choices, "");
+    const draft = buildReserveRequest(participants, choices, "", options);
     const fp = fingerprint(draft);
     if (this.s.reservation && this.s.fp === fp) return this.s.reservation;
     if (this.s.reservePending && this.s.fp !== fp) throw new Error("reserve_pending_retry");
@@ -69,7 +69,8 @@ export class FamilyBookingFlow {
       this.s.reservePending = false;
     } catch (e) {
       // Definitive rejection (4xx / malformed 200): nothing held, payload may change. Unknown outcome: keep pending.
-      if (e instanceof CourseBookingError && !e.unknownOutcome) this.s.reservePending = false;
+      if (e instanceof CourseBookingError && e.released) this.s = empty(); // next user retry gets a NEW key
+      else if (e instanceof CourseBookingError && !e.unknownOutcome) this.s.reservePending = false;
       this.persist();
       throw e;
     }

@@ -11,7 +11,18 @@ export class CourseBookingError extends Error {
   status?: number;
   body?: unknown;
   constructor(code: string, status?: number, body?: unknown) { super(code); this.status = status; this.body = body; }
-  get unknownOutcome() { return this.status === undefined || this.status >= 500; }
+  /** Server error code (e.g. "reservation_released"), retained through the proxy. */
+  get code(): string | undefined {
+    const b = this.body as { code?: unknown } | null | undefined;
+    return b && typeof b === "object" && typeof b.code === "string" ? b.code : undefined;
+  }
+  get retryable(): boolean | undefined {
+    const b = this.body as { retryable?: unknown } | null | undefined;
+    return b && typeof b === "object" && typeof b.retryable === "boolean" ? b.retryable : undefined;
+  }
+  /** The hold behind this identity is gone (released/expired): never reuse its key/token. */
+  get released() { return this.code === "reservation_released"; }
+  get unknownOutcome() { return this.retryable !== false && (this.status === undefined || this.status >= 500); }
 }
 
 /** Calls our server proxy; the YETI API key never reaches the browser. */
