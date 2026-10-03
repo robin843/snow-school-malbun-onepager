@@ -13,7 +13,7 @@ export const Action = z.discriminatedUnion('action', [
     action: z.literal('reserve'),
     reservation: z.object({
       idempotency_key: z.string().trim().min(8).max(200),
-      source: z.literal('website'),
+      source: z.literal('website').optional(),
       participants: z.array(participant).min(1).max(100),
       selections: z.array(z.discriminatedUnion('kind', [
         z.object({ kind: z.literal('group'), participant_ref: ref, period_key: s(100), product_id: s(100), dates: z.array(date).min(1).max(10), blocks: z.array(z.string().regex(/^\d{2}:\d{2}-\d{2}:\d{2}$/)).min(1).max(2) }).strict(),
