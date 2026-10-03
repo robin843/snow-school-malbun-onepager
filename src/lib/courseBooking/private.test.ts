@@ -89,7 +89,7 @@ test("mixed family: two kids share one private session + non-overlapping group c
     grp("p1", JAN, AM),
     grp("p3", JAN, AM),
     priv(["p1", "p2"], [["2027-01-04", "14:00", "16:00"]]), // p1 afternoon after morning group
-    priv(["p2"], [["2027-01-04", "10:00", "11:00"]]).items.length ? { ...priv(["p2"], [["2027-01-04", "10:00", "11:00"]]) } : grp("p2", JAN),
+    priv(["p2"], [["2027-01-04", "09:00", "10:00"]]),
   ];
   assert.deepEqual(flow.validate([groupOpt], people, choices, CTX), []);
   const r = await flow.reserve([groupOpt], people, choices, CTX);
@@ -97,7 +97,7 @@ test("mixed family: two kids share one private session + non-overlapping group c
   const sel = of("reserve")[0].reservation.selections;
   assert.deepEqual(sel.filter((s): s is PrivateSelection => s.kind === "private"), [
     { kind: "private", participant_refs: ["p1", "p2"], product_id: "priv-ski", items: [{ date: "2027-01-04", time_start: "14:00", time_end: "16:00" }] },
-    { kind: "private", participant_refs: ["p2"], product_id: "priv-ski", items: [{ date: "2027-01-04", time_start: "10:00", time_end: "11:00" }] },
+    { kind: "private", participant_refs: ["p2"], product_id: "priv-ski", items: [{ date: "2027-01-04", time_start: "09:00", time_end: "10:00" }] },
   ]);
   assert.equal(sel.filter((s): s is GroupSelection => s.kind === "group").length, 2);
   assert.deepEqual(of("reserve")[0].reservation.participants.map((p) => p.ref), ["p1", "p2", "p3"]);
@@ -140,7 +140,7 @@ test("private gates: unavailable slot, no free instructor, missing availability,
     [two, [priv(["p1", "p2"], [["2027-01-04", "10:30", "12:30"]])], CTX], // not on website grid
     [two, [priv(["p1", "p2"], [["2027-01-04", "10:00", "12:00"]], "priv-inactive")], CTX],
     [two, [priv(["p1", "p2"], [["2027-01-04", "10:00", "12:00"], ["2027-01-04", "10:00", "12:00"]])], CTX],
-    [[kid(1), kid(2)], [priv(["p1"], [["2027-01-04", "10:00", "11:00"]])], CTX], // p2 silently without selection
+    [[kid(1), kid(2)], [priv(["p1"], [["2027-01-04", "09:00", "10:00"]])], CTX], // p2 silently without selection
   ];
   for (const [ps, cs, ctx] of bad) await assert.rejects(flow.reserve([groupOpt], ps, cs, ctx), /invalid_selection/, JSON.stringify(cs));
   assert.equal(of("reserve").length, 0);
@@ -149,7 +149,7 @@ test("private gates: unavailable slot, no free instructor, missing availability,
 test("private is never capacity-free: many participants each need their own slot coverage", () => {
   const people = Array.from({ length: 22 }, (_, i) => kid(i));
   const flow = new FamilyBookingFlow(mock().client, { genKey: gen });
-  const choices: FamilyChoice[] = people.map((p) => priv([p.ref], [["2027-01-05", "10:00", "11:00"]])); // 0 free instructors that morning
+  const choices: FamilyChoice[] = people.map((p) => priv([p.ref], [["2027-01-05", "09:00", "10:00"]])); // 0 free instructors that morning
   assert.ok(flow.validate([groupOpt], people, choices, ctxWith({ [availabilityKey("priv-ski", 1, 60)]: [day("2027-01-05", [["09:00", "12:00", 0]])] })).length >= 22);
 });
 
