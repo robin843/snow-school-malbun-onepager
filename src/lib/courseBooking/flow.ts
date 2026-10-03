@@ -12,6 +12,8 @@ export interface FlowState {
   key: string | null;
   reservation: ReserveResponse | null;
   completeAttempted: boolean;
+  /** Last reserve outcome unknown (timeout/5xx): only an identical retry is allowed. */
+  reservePending: boolean;
   invoice: CompleteResponse | null;
 }
 export interface FlowStore { load(): FlowState | null; save(s: FlowState | null): void }
@@ -21,7 +23,7 @@ export const sessionStore = (name = "family-booking-flow-v1"): FlowStore => ({
   save: (s) => { if (s) sessionStorage.setItem(name, JSON.stringify(s)); else sessionStorage.removeItem(name); },
 });
 
-const empty = (): FlowState => ({ fp: null, key: null, reservation: null, completeAttempted: false, invoice: null });
+const empty = (): FlowState => ({ fp: null, key: null, reservation: null, completeAttempted: false, reservePending: false, invoice: null });
 
 /** Framework-free controller: one reservation, one server total, one invoice. */
 export class FamilyBookingFlow {
@@ -41,6 +43,7 @@ export class FamilyBookingFlow {
   /** A completion was sent but its outcome is unknown → only retry complete (idempotent), never re-reserve. */
   get completionPending() { return this.s.completeAttempted && !this.s.invoice; }
   get idempotencyKey() { return this.s.key; }
+  get reservePending() { return this.s.reservePending; }
   private persist() { this.store.save(this.s); }
 
   validate(options: CourseOption[], participants: FamilyParticipant[], choices: FamilyGroupChoice[]) {
@@ -55,11 +58,21 @@ export class FamilyBookingFlow {
     const draft = buildReserveRequest(participants, choices, "");
     const fp = fingerprint(draft);
     if (this.s.reservation && this.s.fp === fp) return this.s.reservation;
+    if (this.s.reservePending && this.s.fp !== fp) throw new Error("reserve_pending_retry");
     if (this.s.reservation) await this.abandon(); // throws if cancel not confirmed
     if (this.s.fp !== fp || !this.s.key) { this.s.fp = fp; this.s.key = this.gen(); }
+    this.s.reservePending = true;
     this.persist(); // key survives timeouts/reloads
     draft.reservation.idempotency_key = this.s.key;
-    this.s.reservation = await this.client.reserve(draft);
+    try {
+      this.s.reservation = await this.client.reserve(draft);
+      this.s.reservePending = false;
+    } catch (e) {
+      // Definitive rejection (4xx / malformed 200): nothing held, payload may change. Unknown outcome: keep pending.
+      if (e instanceof CourseBookingError && !e.unknownOutcome) this.s.reservePending = false;
+      this.persist();
+      throw e;
+    }
     this.persist();
     return this.s.reservation;
   }

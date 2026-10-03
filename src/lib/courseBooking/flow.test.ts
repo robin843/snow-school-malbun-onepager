@@ -1,22 +1,32 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import type { CourseBookingAction, CourseOption } from "./contract.ts";
-import { createCourseBookingClient, type Transport } from "./client.ts";
-import { FamilyBookingFlow } from "./flow.ts";
-import { eligibleOptions, parseOptions, previewPrice, requiresBlock, type FamilyGroupChoice, type FamilyParticipant } from "./logic.ts";
+import type { CourseBookingAction, CourseOption, CompleteRequest, ReserveRequest } from "./contract.ts";
+import { createCourseBookingClient, CourseBookingError, type Transport } from "./client.ts";
+import { FamilyBookingFlow, memoryStore } from "./flow.ts";
+import {
+  eligibleOptions, isValidISODate, parseComplete, parseOptions, parseReserve, previewPrice, requiresBlock, validateChoice,
+  buildReserveRequest, type FamilyGroupChoice, type FamilyParticipant,
+} from "./logic.ts";
 
-const dates = ["2027-01-04", "2027-01-05", "2027-01-06", "2027-01-07", "2027-01-08"];
-const inst = (ds: string[], blocks: [string, string][]) =>
-  ds.flatMap((d) => blocks.map(([a, b], i) => ({ instance_id: `${d}-${i}`, date: d, time_start: a, time_end: b })));
+// Real contract fixtures: standard blocks 10–12 and 14–16, blocks as string[].
+const AM = "10:00-12:00";
+const PM = "14:00-16:00";
+const JAN = ["2027-01-04", "2027-01-05", "2027-01-06", "2027-01-07", "2027-01-08"];
+const FEB = ["2027-02-08", "2027-02-09", "2027-02-10", "2027-02-11", "2027-02-12"];
+const inst = (ds: string[], blocks: string[]) => ds.flatMap((d) => blocks.map((b, i) => {
+  const [s, e] = b.split("-"); return { instance_id: `${d}-${i}`, date: d, time_start: s, time_end: e };
+}));
 const tiers = [1, 2, 3, 4, 5].map((n) => ({ day_count: n, price: 60 * n, source_tariff_id: `t${n}` }));
 const base = (o: Partial<CourseOption>): CourseOption => ({
-  period_key: "p", course_id: "c", course_name: "Kurs", course_type: "group", discipline: "ski", skill_level_id: "blue",
-  age_min: 4, age_max: 12, teaching_dates: dates, cancelled_dates: [], instances: inst(dates, [["10:00", "12:00"], ["13:30", "15:30"]]),
-  product_id: "prod-2h", product_name: "2h", duration_minutes: 120, blocks: 2, tiers, bookable: true, ...o,
+  period_key: "p", course_id: "c", course_name: "Gruppenkurs Ski Kinder", course_type: "group", discipline: "ski", skill_level_id: "blue",
+  age_min: 4, age_max: 12, teaching_dates: JAN, cancelled_dates: [], instances: inst(JAN, [AM, PM]),
+  product_id: "prod-2h", product_name: "2h", duration_minutes: 120, blocks: [AM, PM], tiers, bookable: true, ...o,
 });
 const OPTIONS: CourseOption[] = [
-  base({ period_key: "kids-2h", product_id: "prod-2h" }),
-  base({ period_key: "kids-4h", product_id: "prod-4h", duration_minutes: 240, blocks: 1 }),
+  base({ period_key: "jan-2h", product_id: "prod-2h" }),
+  base({ period_key: "feb-2h", product_id: "prod-2h", teaching_dates: FEB, instances: inst(FEB, [AM, PM]) }),
+  base({ period_key: "jan-4h", product_id: "prod-4h", duration_minutes: 240 }),
+  base({ period_key: "jan-4h-broken", product_id: "prod-4hb", duration_minutes: 240, instances: [...inst(JAN.slice(0, 4), [AM, PM]), ...inst(JAN.slice(4), [AM])] }),
   base({ period_key: "red-2h", product_id: "prod-red", skill_level_id: "red" }),
   base({ period_key: "adult", product_id: "prod-adult", age_min: 16, age_max: null, skill_level_id: null, cancelled_dates: ["2027-01-06"] }),
   base({ period_key: "board", product_id: "prod-board", discipline: "snowboard", skill_level_id: null, age_min: 8 }),
@@ -25,7 +35,12 @@ const OPTIONS: CourseOption[] = [
   base({ period_key: "unlinked", product_id: null }),
 ];
 
-function mock(overrides: Partial<Record<CourseBookingAction["action"], (b: any, n: number) => { status: number; json: unknown }>> = {}) {
+type Resp = { status: number; json: unknown };
+type Handler = (b: CourseBookingAction, n: number) => Resp | Promise<Resp>;
+const okReserve = (n: number): Resp => ({ status: 200, json: { status: "provisional", ticket_id: `T${n}`, ticket_number: `T-2027-${n}`, reservation_token: `tok${n}`, reservation_expires_at: "2027-01-01T00:15:00Z", total_amount: 1234, currency: "CHF", quote: {} } });
+const okComplete: Resp = { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-2027-1", total_amount: 1234, delivery: {} } };
+
+function mock(overrides: Partial<Record<CourseBookingAction["action"], Handler>> = {}) {
   const calls: CourseBookingAction[] = [];
   const counts: Record<string, number> = {};
   const t: Transport = async (b) => {
@@ -33,116 +48,247 @@ function mock(overrides: Partial<Record<CourseBookingAction["action"], (b: any, 
     counts[b.action] = (counts[b.action] ?? 0) + 1;
     const o = overrides[b.action]; if (o) return o(b, counts[b.action]);
     if (b.action === "options") return { status: 200, json: { status: "success", options: OPTIONS, informational: [] } };
-    if (b.action === "reserve") return { status: 200, json: { status: "provisional", ticket_id: `T${counts.reserve}`, ticket_number: "T-1", reservation_token: `tok${counts.reserve}`, reservation_expires_at: "2027-01-01T00:15:00Z", total_amount: 1234, currency: "CHF", quote: {} } };
-    if (b.action === "complete") return { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-2027-1", total_amount: 1234, delivery: {} } };
+    if (b.action === "reserve") return okReserve(counts.reserve);
+    if (b.action === "complete") return okComplete;
     return { status: 200, json: { success: true } };
   };
-  return { calls, client: createCourseBookingClient(t) };
+  const of = <A extends CourseBookingAction["action"]>(a: A) => calls.filter((c): c is Extract<CourseBookingAction, { action: A }> => c.action === a);
+  return { calls, of, client: createCourseBookingClient(t) };
 }
 let k = 0; const gen = () => `00000000-0000-4000-8000-${String(++k).padStart(12, "0")}`;
-
 const kid = (i: number, level = "blue"): FamilyParticipant => ({ ref: `p${i}`, first_name: `Kind${i}`, last_name: "Muster", birth_date: "2019-03-01", discipline: "ski", skill_level: level });
-const CUSTOMER = { email: "a@b.ch", first_name: "A", last_name: "B", phone: "+41790000000", street: "S 1", zip: "9497", city: "Malbun", country: "LI" };
+const CUSTOMER: CompleteRequest["customer"] = { email: "a@b.ch", first_name: "A", last_name: "B", phone: "+41790000000", street: "S 1", zip: "9497", city: "Malbun", country: "LI" };
+const ch = (ref: string, period_key: string, product_id: string, dates: string[], block?: string): FamilyGroupChoice => ({ participant_ref: ref, period_key, product_id, dates, ...(block ? { block } : {}) });
+const opt = (k: string) => OPTIONS.find((o) => o.period_key === k)!;
 
-test("only real sellable options; inactive/unlinked/Carving excluded; age/level/discipline filtered", async () => {
-  const { client } = mock();
-  const opts = await client.options("2026-12-01", "2027-04-30");
-  assert.deepEqual(eligibleOptions(opts, kid(1)).map((o) => o.period_key), ["kids-2h", "kids-4h"]);
-  const adult: FamilyParticipant = { ...kid(9), birth_date: "1980-01-01", skill_level: "red" };
-  assert.deepEqual(eligibleOptions(opts, adult).map((o) => o.period_key), ["adult"]);
-  assert.equal(requiresBlock(opts[0]), true);
-  assert.equal(requiresBlock(opts[1]), false); // 4h includes both blocks
-  assert.equal(previewPrice(opts[0], 6), null); // no extrapolation
+test("block must be the exact contract id ('10:00-12:00'), start time alone is rejected", () => {
+  assert.equal(validateChoice(opt("jan-2h"), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 2), AM), kid(1)), null);
+  assert.equal(validateChoice(opt("jan-2h"), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 2), PM), kid(1)), null);
+  assert.notEqual(validateChoice(opt("jan-2h"), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 2), "10:00"), kid(1)), null);
+  assert.notEqual(validateChoice(opt("jan-2h"), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 2), "13:30-15:30"), kid(1)), null);
+  const req = buildReserveRequest([kid(1)], [ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM)], "k");
+  assert.deepEqual(req.reservation.selections[0], { kind: "group", participant_ref: "p1", period_key: "jan-2h", product_id: "prod-2h", dates: ["2027-01-04"], block: AM });
 });
 
-test("options errors fail closed", async () => {
-  await assert.rejects(mock({ options: () => ({ status: 503, json: null }) }).client.options("a", "b"));
-  assert.throws(() => parseOptions({ status: "error" }));
+test("full 4h: no block, both real blocks required on every selected day", () => {
+  assert.equal(requiresBlock(opt("jan-4h")), false);
+  assert.equal(validateChoice(opt("jan-4h"), ch("p1", "jan-4h", "prod-4h", JAN), kid(1)), null);
+  assert.notEqual(validateChoice(opt("jan-4h"), ch("p1", "jan-4h", "prod-4h", JAN, AM), kid(1)), null);
+  assert.equal(validateChoice(opt("jan-4h-broken"), ch("p1", "jan-4h-broken", "prod-4hb", JAN.slice(0, 4)), kid(1)), null);
+  assert.match(validateChoice(opt("jan-4h-broken"), ch("p1", "jan-4h-broken", "prod-4hb", JAN), kid(1)) ?? "", /beide Zeitblöcke/);
 });
 
-test(">20 participants, >40 selections, mixed courses: one reserve, one total, invoice exactly once", async () => {
-  const { client, calls } = mock();
+test("only real sellable options; inactive/unlinked/Carving excluded; no extrapolation", async () => {
+  const opts = await mock().client.options("2026-12-01", "2027-04-30");
+  assert.deepEqual(eligibleOptions(opts, kid(1)).map((o) => o.period_key), ["jan-2h", "feb-2h", "jan-4h", "jan-4h-broken"]);
+  assert.deepEqual(eligibleOptions(opts, { ...kid(9), birth_date: "1980-01-01", skill_level: "red" }).map((o) => o.period_key), ["adult"]);
+  assert.equal(previewPrice(opts[0], 6), null);
+});
+
+test("strict parsing: dates, nested option fields, reserve/complete envelopes", () => {
+  assert.equal(isValidISODate("2027-02-31"), false);
+  assert.equal(isValidISODate("2027-02-28"), true);
+  const bad = [
+    { ...base({ period_key: "b1" }), blocks: 2 },
+    base({ period_key: "b2", teaching_dates: ["2027-02-31"] }),
+    base({ period_key: "b3", tiers: [{ day_count: 1, price: 0, source_tariff_id: "x" }] }),
+    base({ period_key: "b4", instances: [{ instance_id: "i", date: "2027-01-04", time_start: "12:00", time_end: "10:00" }] }),
+    base({ period_key: "b5", blocks: ["10:00"] }),
+  ];
+  assert.deepEqual(parseOptions({ status: "success", options: [...bad, base({ period_key: "good" })] }).map((o) => o.period_key), ["good"]);
+  assert.throws(() => parseOptions({ status: "error", options: [] }));
+  const r = (okReserve(1).json as Record<string, unknown>);
+  assert.ok(parseReserve(r));
+  for (const patch of [{ total_amount: 0 }, { total_amount: Infinity }, { currency: "chf" }, { reservation_expires_at: "soon" }, { status: "" }, { status: "error" }, { reservation_token: "" }]) {
+    assert.throws(() => parseReserve({ ...r, ...patch }), JSON.stringify(patch));
+  }
+  const c = okComplete.json as Record<string, unknown>;
+  assert.ok(parseComplete(c));
+  for (const patch of [{ success: "true" }, { status: "failed" }, { invoice_number: "" }, { total_amount: -1 }]) assert.throws(() => parseComplete({ ...c, ...patch }));
+});
+
+test("age is checked on each selected date", async () => {
+  const { client, of } = mock();
+  const opts = await client.options("a", "b");
+  const turns13 = { ...kid(1), birth_date: "2014-02-01" }; // 12 in January, 13 in February
+  const flow = new FamilyBookingFlow(client, { genKey: gen });
+  await flow.reserve(opts, [turns13], [ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM)]);
+  await flow.abandon();
+  await assert.rejects(flow.reserve(opts, [turns13], [ch("p1", "feb-2h", "prod-2h", FEB.slice(0, 1), AM)]), /invalid_selection/);
+  assert.equal(of("reserve").length, 1);
+});
+
+test("validation before reserve: names, duplicates, overlaps, unknown refs, silent drop, Carving, cancelled date", async () => {
+  const { client, of } = mock();
+  const opts = await client.options("a", "b");
+  const flow = new FamilyBookingFlow(client, { genKey: gen });
+  const adult = { ...kid(2), birth_date: "1980-01-01" };
+  const cases: [FamilyParticipant[], FamilyGroupChoice[]][] = [
+    [[{ ...kid(1), last_name: " " }], [ch("p1", "jan-4h", "prod-4h", JAN)]],
+    [[{ ...kid(1), birth_date: "2019-02-31" }], [ch("p1", "jan-4h", "prod-4h", JAN)]],
+    [[kid(1), kid(1)], [ch("p1", "jan-4h", "prod-4h", JAN)]],
+    [[kid(1)], [ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM)]],
+    [[kid(1)], [ch("p1", "jan-4h", "prod-4h", JAN.slice(0, 1)), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), PM)]],
+    [[kid(1)], [ch("p1", "jan-2h", "prod-2h", ["2027-01-04", "2027-01-04"], AM)]],
+    [[kid(1)], [ch("ghost", "jan-4h", "prod-4h", JAN)]],
+    [[kid(1), kid(2)], [ch("p1", "jan-4h", "prod-4h", JAN)]], // p2 has no course and not excluded
+    [[kid(1)], [ch("p1", "jan-2h", "prod-2h", JAN)]], // missing block
+    [[adult], [ch("p2", "carving", "prod-carv", JAN.slice(0, 1), AM)]],
+    [[adult], [ch("p2", "adult", "prod-adult", ["2027-01-06"], AM)]],
+  ];
+  for (const [ps, cs] of cases) await assert.rejects(flow.reserve(opts, ps, cs), /invalid_selection/);
+  assert.equal(of("reserve").length, 0);
+  // Same child, AM and PM of different 2h courses on the same day: allowed (no overlap).
+  await flow.reserve(opts, [kid(1)], [ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), PM)]);
+  assert.throws(() => buildReserveRequest([kid(1), kid(2)], [ch("p1", "jan-4h", "prod-4h", JAN)], "k"), /participant_without_selection/);
+});
+
+test("explicitly excluded participant is left out of reserve AND complete consistently", async () => {
+  const { client, of } = mock();
+  const opts = await client.options("a", "b");
+  const flow = new FamilyBookingFlow(client, { genKey: gen });
+  const ps = [kid(1), { ...kid(2), excluded: true }];
+  await flow.reserve(opts, ps, [ch("p1", "jan-4h", "prod-4h", JAN)]);
+  await flow.complete(CUSTOMER, ps);
+  assert.deepEqual(of("reserve")[0].reservation.participants.map((p) => p.ref), ["p1"]);
+  assert.deepEqual(of("complete")[0].participants.map((p) => p.ref), ["p1"]);
+});
+
+test("25 people over two non-overlapping periods (50 selections): one reserve, one total, invoice exactly once", async () => {
+  const { client, of } = mock();
   const opts = await client.options("2026-12-01", "2027-04-30");
-  const people = Array.from({ length: 25 }, (_, i) => kid(i, i % 2 ? "red" : "blue"));
-  const choices: FamilyGroupChoice[] = people.flatMap((p, i) => [
-    { participant_ref: p.ref, period_key: i % 2 ? "red-2h" : "kids-2h", product_id: i % 2 ? "prod-red" : "prod-2h", dates: dates.slice(0, 2), block: "10:00" },
-    { participant_ref: p.ref, period_key: i % 2 ? "red-2h" : "kids-2h", product_id: i % 2 ? "prod-red" : "prod-2h", dates: dates.slice(2, 5), block: "13:30" },
+  const people = Array.from({ length: 25 }, (_, i) => kid(i));
+  const choices = people.flatMap((p, i) => [
+    ch(p.ref, "jan-2h", "prod-2h", JAN.slice(0, 2), i % 2 ? PM : AM),
+    ch(p.ref, "feb-2h", "prod-2h", FEB.slice(0, 3), i % 2 ? AM : PM),
   ]);
-  assert.ok(choices.length > 40);
-  const flow = new FamilyBookingFlow(client, gen);
+  assert.equal(choices.length, 50);
+  const flow = new FamilyBookingFlow(client, { genKey: gen });
+  assert.deepEqual(flow.validate(opts, people, choices), []);
   const r = await flow.reserve(opts, people, choices);
   assert.equal(r.total_amount, 1234);
   const inv1 = await flow.complete(CUSTOMER, people);
   const inv2 = await flow.complete(CUSTOMER, people);
-  assert.equal(inv1, inv2);
-  assert.equal(calls.filter((c) => c.action === "reserve").length, 1);
-  assert.equal(calls.filter((c) => c.action === "complete").length, 1);
-  const res = calls.find((c) => c.action === "reserve") as any;
+  assert.deepEqual(inv1, inv2);
+  assert.equal(of("reserve").length, 1);
+  assert.equal(of("complete").length, 1);
+  const res: ReserveRequest = of("reserve")[0];
   assert.equal(res.reservation.selections.length, 50);
-  assert.ok(!("total_amount" in res.reservation) && !JSON.stringify(res).includes("price")); // no client amount
+  assert.equal(res.reservation.participants.length, 25);
+  assert.ok(!JSON.stringify(res).match(/price|total|amount/)); // no client amount
+  assert.equal(of("complete")[0].participants.length, 25);
 });
 
-test("no group capacity gate: overflow group course still reservable", async () => {
+test("no group capacity gate: sold-out flags ignored, 30 kids reservable", async () => {
   const { client } = mock();
-  const opts = (await client.options("a", "b")).map((o) => ({ ...o, free_instructors: 0, sold_out: true } as CourseOption));
+  const opts = (await client.options("a", "b")).map((o) => ({ ...o, free_instructors: 0, sold_out: true }));
   const people = Array.from({ length: 30 }, (_, i) => kid(i));
-  const flow = new FamilyBookingFlow(client, gen);
-  await flow.reserve(opts, people, people.map((p) => ({ participant_ref: p.ref, period_key: "kids-4h", product_id: "prod-4h", dates })));
+  const flow = new FamilyBookingFlow(client, { genKey: gen });
+  await flow.reserve(opts, people, people.map((p) => ch(p.ref, "jan-4h", "prod-4h", JAN)));
   assert.ok(flow.reservation);
 });
 
-test("idempotency: identical retry reuses key, changed payload new key + cancel old hold", async () => {
-  const { client, calls } = mock({ reserve: (_b, n) => n === 1 ? { status: 502, json: null } : { status: 200, json: { status: "provisional", ticket_id: `T${n}`, ticket_number: "x", reservation_token: `tok${n}`, reservation_expires_at: "z", total_amount: 100, currency: "CHF" } } });
+test("back then unchanged continue: old hold cancelled, NEW key, new hold", async () => {
+  const { client, of } = mock();
   const opts = await client.options("a", "b");
-  const flow = new FamilyBookingFlow(client, gen);
-  const p = [kid(1)];
-  const c: FamilyGroupChoice[] = [{ participant_ref: "p1", period_key: "kids-2h", product_id: "prod-2h", dates: dates.slice(0, 1), block: "10:00" }];
-  await assert.rejects(flow.reserve(opts, p, c));
-  assert.equal(flow.reservation, null); // never pretend success
-  await flow.reserve(opts, p, c);
-  const keys = calls.filter((x) => x.action === "reserve").map((x: any) => x.reservation.idempotency_key);
+  const flow = new FamilyBookingFlow(client, { genKey: gen });
+  const c = [ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM)];
+  await flow.reserve(opts, [kid(1)], c);
+  await flow.abandon(); // user goes back
+  assert.equal(flow.reservation, null);
+  await flow.reserve(opts, [kid(1)], c); // unchanged
+  const keys = of("reserve").map((x) => x.reservation.idempotency_key);
+  assert.equal(keys.length, 2);
+  assert.notEqual(keys[0], keys[1]);
+  assert.deepEqual(of("cancel").map((x) => x.reservation_token), ["tok1"]);
+  assert.equal(flow.reservation?.reservation_token, "tok2");
+});
+
+test("changed payload: cancels old hold and uses a new key; identical payload reuses hold", async () => {
+  const { client, of } = mock();
+  const opts = await client.options("a", "b");
+  const flow = new FamilyBookingFlow(client, { genKey: gen });
+  const c = ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM);
+  await flow.reserve(opts, [kid(1)], [c]);
+  await flow.reserve(opts, [kid(1)], [c]);
+  assert.equal(of("reserve").length, 1);
+  await flow.reserve(opts, [kid(1)], [{ ...c, dates: JAN.slice(0, 2) }]);
+  const keys = of("reserve").map((x) => x.reservation.idempotency_key);
+  assert.notEqual(keys[0], keys[1]);
+  assert.equal(of("cancel").length, 1);
+});
+
+test("cancellation failure is not treated as cancelled", async () => {
+  const { client, of } = mock({ cancel: () => ({ status: 500, json: null }) });
+  const opts = await client.options("a", "b");
+  const flow = new FamilyBookingFlow(client, { genKey: gen });
+  const c = ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM);
+  await flow.reserve(opts, [kid(1)], [c]);
+  const key = flow.idempotencyKey;
+  await assert.rejects(flow.abandon(), (e: unknown) => e instanceof CourseBookingError && e.message === "cancel_failed");
+  assert.equal(flow.reservation?.reservation_token, "tok1");
+  assert.equal(flow.idempotencyKey, key);
+  await assert.rejects(flow.reserve(opts, [kid(1)], [{ ...c, dates: JAN.slice(0, 2) }]), /cancel_failed/);
+  assert.equal(of("reserve").length, 1); // no second booking while first hold is alive
+  const net = mock({ cancel: () => { throw new Error("timeout"); } });
+  const f2 = new FamilyBookingFlow(net.client, { genKey: gen });
+  await f2.reserve(opts, [kid(1)], [c]);
+  await assert.rejects(f2.abandon());
+  assert.ok(f2.reservation);
+});
+
+test("reserve network timeout keeps recovery identity: identical retry same key, changed payload blocked", async () => {
+  const { client, of } = mock({ reserve: (_b, n) => { if (n === 1) throw new Error("timeout"); return okReserve(n); } });
+  const opts = await client.options("a", "b");
+  const store = memoryStore();
+  const flow = new FamilyBookingFlow(client, { genKey: gen, store });
+  const c = ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM);
+  await assert.rejects(flow.reserve(opts, [kid(1)], [c]));
+  assert.equal(flow.reservation, null);
+  assert.equal(flow.reservePending, true);
+  await assert.rejects(flow.reserve(opts, [kid(1)], [{ ...c, block: PM }]), /reserve_pending_retry/);
+  const reloaded = new FamilyBookingFlow(client, { genKey: gen, store }); // reload
+  await reloaded.reserve(opts, [kid(1)], [c]);
+  const keys = of("reserve").map((x) => x.reservation.idempotency_key);
+  assert.equal(keys.length, 2);
   assert.equal(keys[0], keys[1]);
-  await flow.reserve(opts, p, c); // same payload, no new call
-  assert.equal(calls.filter((x) => x.action === "reserve").length, 2);
-  // back/edit: change dates
-  await flow.reserve(opts, p, [{ ...c[0], dates: dates.slice(0, 2) }]);
-  const after = calls.filter((x) => x.action === "reserve").map((x: any) => x.reservation.idempotency_key);
-  assert.notEqual(after[2], after[1]);
-  const cancel = calls.find((x) => x.action === "cancel") as any;
-  assert.equal(cancel.reservation_token, "tok2");
+  // definitive 4xx (e.g. private unavailable) does not block editing
+  const rej = mock({ reserve: (_b, n) => n === 1 ? { status: 409, json: { status: "error", code: "private_unavailable" } } : okReserve(n) });
+  const f2 = new FamilyBookingFlow(rej.client, { genKey: gen });
+  await assert.rejects(f2.reserve(opts, [kid(1)], [c]), (e: unknown) => e instanceof CourseBookingError && e.status === 409);
+  await assert.rejects(f2.complete(CUSTOMER, [kid(1)]), /no_reservation/);
+  await f2.reserve(opts, [kid(1)], [{ ...c, block: PM }]);
+  assert.equal(rej.of("complete").length, 0);
 });
 
-test("validation before reserve: missing DOB/level, wrong block, missing tier, Carving", async () => {
-  const { client, calls } = mock();
+test("lost completion response + retry and reload: same ticket/token, invoice once, no re-reserve/cancel", async () => {
+  const { client, of } = mock({ complete: (_b, n) => { if (n === 1) throw new Error("connection reset"); return okComplete; } });
   const opts = await client.options("a", "b");
-  const flow = new FamilyBookingFlow(client, gen);
-  await assert.rejects(flow.reserve(opts, [{ ...kid(1), birth_date: "" }], [{ participant_ref: "p1", period_key: "kids-4h", product_id: "prod-4h", dates }]));
-  await assert.rejects(flow.reserve(opts, [kid(1)], [{ participant_ref: "p1", period_key: "kids-2h", product_id: "prod-2h", dates }])); // no block
-  await assert.rejects(flow.reserve(opts, [kid(1)], [{ participant_ref: "p1", period_key: "kids-2h", product_id: "prod-2h", dates, block: "11:00" }]));
-  const adult = { ...kid(2), birth_date: "1980-01-01" };
-  await assert.rejects(flow.reserve(opts, [adult], [{ participant_ref: "p2", period_key: "carving", product_id: "prod-carv", dates: dates.slice(0, 1), block: "10:00" }]));
-  await assert.rejects(flow.reserve(opts, [adult], [{ participant_ref: "p2", period_key: "adult", product_id: "prod-adult", dates: ["2027-01-06"], block: "10:00" }])); // cancelled date
-  assert.equal(calls.filter((c) => c.action === "reserve").length, 0);
-});
-
-test("private unavailable / API error: no invoice, error surfaced", async () => {
-  const { client, calls } = mock({ reserve: () => ({ status: 409, json: { status: "error", code: "private_unavailable" } }) });
-  const opts = await client.options("a", "b");
-  const flow = new FamilyBookingFlow(client, gen);
-  await assert.rejects(flow.reserve(opts, [kid(1)], [{ participant_ref: "p1", period_key: "kids-4h", product_id: "prod-4h", dates }]), (e: any) => e.status === 409);
-  await assert.rejects(flow.complete(CUSTOMER, [kid(1)]), /no_reservation/);
-  assert.equal(calls.filter((c) => c.action === "complete").length, 0);
-});
-
-test("complete error leaves no invoice; abandon cancels hold; no cancel after invoice", async () => {
-  const { client, calls } = mock({ complete: (_b, n) => n === 1 ? { status: 500, json: null } : { status: 200, json: { success: true, status: "confirmed", invoice_number: "R1", total_amount: 1234 } } });
-  const opts = await client.options("a", "b");
-  const flow = new FamilyBookingFlow(client, gen);
-  const c: FamilyGroupChoice[] = [{ participant_ref: "p1", period_key: "kids-4h", product_id: "prod-4h", dates }];
+  const store = memoryStore();
+  const flow = new FamilyBookingFlow(client, { genKey: gen, store });
+  const c = [ch("p1", "jan-4h", "prod-4h", JAN)];
   await flow.reserve(opts, [kid(1)], c);
   await assert.rejects(flow.complete(CUSTOMER, [kid(1)]));
   assert.equal(flow.invoice, null);
-  await flow.complete(CUSTOMER, [kid(1)]);
-  await flow.abandon();
-  assert.equal(calls.filter((x) => x.action === "cancel").length, 0);
+  assert.equal(flow.completionPending, true);
+  await assert.rejects(flow.abandon(), /completion_pending/);
+  await assert.rejects(flow.reserve(opts, [kid(1)], c), /completion_pending/);
+  const reloaded = new FamilyBookingFlow(client, { genKey: gen, store });
+  assert.equal(reloaded.completionPending, true);
+  const inv = await reloaded.complete(CUSTOMER, [kid(1)]);
+  assert.equal(inv.invoice_number, "R-2027-1");
+  const sent = of("complete");
+  assert.equal(sent.length, 2);
+  assert.deepEqual(sent.map((x) => [x.ticket_id, x.reservation_token]), [["T1", "tok1"], ["T1", "tok1"]]);
+  assert.equal(of("reserve").length, 1);
+  assert.equal(of("cancel").length, 0);
+  await reloaded.complete(CUSTOMER, [kid(1)]);
+  assert.equal(of("complete").length, 2);
+  await reloaded.abandon();
+  assert.equal(of("cancel").length, 0);
+});
+
+test("options errors fail closed", async () => {
+  await assert.rejects(mock({ options: () => ({ status: 503, json: null }) }).client.options("a", "b"));
+  await assert.rejects(mock({ options: () => { throw new Error("net"); } }).client.options("a", "b"));
 });
