@@ -1,4 +1,5 @@
 // Server proxy for YETI `course-booking` (issue #36). NOT DEPLOYED until the core API is live.
+// Contract v1 (bc-2627-website-v1): schema in ./schema.ts, tested by schema_test.ts.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { Action, forward } from './schema.ts';
 import { callYeti, SAFE_ERROR } from '../_shared/yeti.ts';

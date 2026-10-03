@@ -16,7 +16,7 @@ import type { CourseOption, Discipline } from "@/lib/courseBooking/contract";
 import { createCourseBookingClient, CourseBookingError, FAMILY_BOOKING_ENABLED } from "@/lib/courseBooking/client";
 import { FamilyBookingFlow, sessionStore } from "@/lib/courseBooking/flow";
 import {
-  activeDates, blockIdsOnDate, eligibleOptions, includedParticipants, previewPrice, requiresBlock,
+  activeDates, blockIdsOnDate, deliveryNotice, eligibleOptions, includedParticipants, previewPrice, requiresBlock,
   type FamilyGroupChoice, type FamilyParticipant,
 } from "@/lib/courseBooking/logic";
 
@@ -49,6 +49,7 @@ export default function FamilienBuchung() {
 function errorText(e: unknown): string[] {
   if (e && typeof e === "object" && "errors" in e && Array.isArray((e as { errors: unknown }).errors)) return (e as { errors: string[] }).errors;
   if (e instanceof CourseBookingError) {
+    if (e.released) return ["Die Reservierung ist abgelaufen oder wurde freigegeben. Bitte die Auswahl erneut reservieren."];
     if (e.message === "cancel_failed") return ["Die bisherige Reservierung konnte nicht aufgehoben werden. Bitte erneut versuchen."];
     if (e.unknownOutcome) return ["Keine Antwort vom Buchungssystem. Bitte mit derselben Auswahl erneut versuchen."];
     if (e.status === 409) return ["Mindestens eine Auswahl ist nicht mehr verfügbar. Bitte anpassen."];
@@ -247,7 +248,7 @@ function FamilyBookingInner() {
                 <div key={k}><Label>{CUSTOMER_LABELS[k]}</Label><Input value={customer[k]} maxLength={255} disabled={flow.completionPending} onChange={(e) => setCustomer({ ...customer, [k]: e.target.value })} /></div>
               ))}
             </div>
-            <p className="text-sm text-muted-foreground">Zahlung per Rechnung. Bestätigung und Rechnung erhältst du von der Skischule per E-Mail.</p>
+            <p className="text-sm text-muted-foreground">Zahlung per Rechnung. Bestätigung und Rechnung verschickt die Skischule per E-Mail.</p>
             <div className="flex justify-between"><Button variant="outline" disabled={busy || flow.completionPending} onClick={backToEdit}>Auswahl ändern</Button>
               <Button className={cta} disabled={busy || Object.values(customer).some((v) => !v.trim())} onClick={finish}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{flow.completionPending ? "Status abgleichen" : "Verbindlich buchen"}</Button></div>
           </CardContent></Card>
@@ -256,8 +257,8 @@ function FamilyBookingInner() {
         {flow.invoice && (
           <Card><CardContent className="p-6 space-y-2">
             <p className="text-xl font-semibold">Buchung abgeschlossen</p>
-            <p>Rechnungsnummer: <strong>{flow.invoice.invoice_number}</strong> · Betrag CHF {flow.invoice.total_amount.toFixed(2)}</p>
-            <p className="text-sm text-muted-foreground">Bestätigung und Rechnung schickt dir die Skischule per E-Mail.</p>
+            <p>Rechnungsnummer: <strong>{flow.invoice.invoice_number}</strong> · Betrag {flow.invoice.currency} {flow.invoice.total_amount.toFixed(2)}</p>
+            {(() => { const n = deliveryNotice(flow.invoice.delivery); return <p className={n.ok ? "text-sm text-muted-foreground" : "rounded-md border border-destructive p-3 text-sm"}>{n.text}</p>; })()}
             <Button onClick={() => { flow.reset(); navigate("/"); }}>Zur Startseite</Button>
           </CardContent></Card>
         )}
