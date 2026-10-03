@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import FamilyPrivateSection from "@/components/booking/FamilyPrivateSection";
+import {
+  availabilityKey, parseAvailability, parsePrivateCatalog, type FamilyPrivateChoice, type PrivateContext,
+} from "@/lib/courseBooking/private";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,13 +71,42 @@ function FamilyBookingInner() {
   const [loadError, setLoadError] = useState(false);
   const [participants, setParticipants] = useState<FamilyParticipant[]>(saved?.participants ?? [newPerson()]);
   const [choices, setChoices] = useState<FamilyGroupChoice[]>(saved?.choices ?? []);
+  const [privateChoices, setPrivateChoices] = useState<FamilyPrivateChoice[]>(saved?.privateChoices ?? []);
+  const [privateCtx, setPrivateCtx] = useState<PrivateContext | null>(null);
+  const [privateSourceError, setPrivateSourceError] = useState(false);
+  const [failedKeys, setFailedKeys] = useState<Set<string>>(new Set());
+  const requested = useRef(new Set<string>());
   const [customer, setCustomer] = useState<Customer>(saved?.customer ?? emptyCustomer);
   const [errors, setErrors] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
 
-  useEffect(() => { sessionStorage.setItem(STORE, JSON.stringify({ participants, choices, customer })); }, [participants, choices, customer]);
+  useEffect(() => { sessionStorage.setItem(STORE, JSON.stringify({ participants, choices, privateChoices, customer })); }, [participants, choices, privateChoices, customer]);
+  useEffect(() => {
+    supabase.functions.invoke("yeti-products", { method: "GET" })
+      .then(({ data, error }) => { if (error) throw error; setPrivateCtx({ products: parsePrivateCatalog(data), availability: {} }); })
+      .catch(() => setPrivateSourceError(true));
+  }, []);
+  const requestAvailability = useCallback((productId: string, persons: number, duration: number, date: string) => {
+    const key = availabilityKey(productId, persons, duration);
+    const reqKey = `${key}|${date}`;
+    const product = privateCtx?.products.find((p) => p.id === productId);
+    if (!product || requested.current.has(reqKey)) return;
+    requested.current.add(reqKey);
+    supabase.functions.invoke("yeti-availability", {
+      body: { product_id: productId, product_type: "private", sport: product.discipline, from: date, to: date, duration_minutes: duration, participant_count: persons },
+    }).then(({ data, error }) => {
+      if (error) throw error;
+      const days = parseAvailability(data).filter((d) => d.date === date);
+      setFailedKeys((f) => { const n = new Set(f); n.delete(reqKey); return n; });
+      setPrivateCtx((c) => c && { ...c, availability: { ...c.availability, [key]: [...(c.availability[key] ?? []).filter((d) => d.date !== date), ...days] } });
+    }).catch(() => {
+      requested.current.delete(reqKey);
+      setFailedKeys((f) => new Set(f).add(reqKey));
+      setPrivateCtx((c) => c && { ...c, availability: { ...c.availability, [key]: (c.availability[key] ?? []).filter((d) => d.date !== date) } });
+    });
+  }, [privateCtx?.products]);
   useEffect(() => { client.options(SEASON.from, SEASON.to).then(setOptions).catch(() => setLoadError(true)); }, [client]);
   useEffect(() => {
     const leave = () => { void flow.abandon(true).catch(() => undefined); };
@@ -85,6 +119,7 @@ function FamilyBookingInner() {
     setParticipants((ps) => ps.map((p) => (p.ref === ref ? { ...p, ...patch } : p)));
     if (patch.birth_date !== undefined || patch.discipline || patch.skill_level !== undefined || patch.excluded) {
       setChoices((cs) => cs.filter((c) => c.participant_ref !== ref));
+      setPrivateChoices((cs) => cs.map((c) => ({ ...c, participant_refs: c.participant_refs.filter((r) => r !== ref) })));
     }
   };
   const optOf = (c: FamilyGroupChoice) => options?.find((o) => o.period_key === c.period_key && o.product_id === c.product_id);
@@ -94,7 +129,8 @@ function FamilyBookingInner() {
     setErrors([]); setBusy(true);
     try { await fn(); onOk?.(); } catch (e) { setErrors(errorText(e)); } finally { setBusy(false); rerender(); }
   };
-  const reserve = () => run(() => flow.reserve(options ?? [], participants, choices), () => setStep(3));
+  const allChoices = [...choices, ...privateChoices];
+  const reserve = () => run(() => flow.reserve(options ?? [], participants, allChoices, privateCtx ?? undefined), () => setStep(3));
   const backToEdit = () => run(() => flow.abandon(), () => setStep(2));
   const finish = () => run(() => flow.complete(customer, participants), () => sessionStorage.removeItem(STORE));
 
@@ -128,7 +164,7 @@ function FamilyBookingInner() {
                 </div>
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!p.excluded} onCheckedChange={(v) => updP(p.ref, { excluded: !!v })} />Diesmal nicht buchen</label>
-                  <Button variant="ghost" size="sm" disabled={participants.length < 2} onClick={() => { setParticipants((ps) => ps.filter((x) => x.ref !== p.ref)); setChoices((cs) => cs.filter((c) => c.participant_ref !== p.ref)); }}><Trash2 className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" disabled={participants.length < 2} onClick={() => { setParticipants((ps) => ps.filter((x) => x.ref !== p.ref)); setChoices((cs) => cs.filter((c) => c.participant_ref !== p.ref)); setPrivateChoices((cs) => cs.map((c) => ({ ...c, participant_refs: c.participant_refs.filter((r) => r !== p.ref) }))); }}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
             ))}
@@ -177,9 +213,10 @@ function FamilyBookingInner() {
                 </div>
               );
             })}
-            <p className="text-xs text-muted-foreground">Privatunterricht ist in dieser Familienbuchung noch nicht verfügbar.</p>
+            <FamilyPrivateSection ctx={privateCtx} sourceError={privateSourceError} participants={included} choices={privateChoices}
+              onChange={setPrivateChoices} requestAvailability={requestAvailability} failedKeys={failedKeys} />
             <div className="flex justify-between"><Button variant="outline" onClick={() => setStep(1)}>Zurück</Button>
-              <Button className={cta} disabled={busy || !choices.length} onClick={reserve}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Reservieren & prüfen</Button></div>
+              <Button className={cta} disabled={busy || !allChoices.length} onClick={reserve}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Reservieren & prüfen</Button></div>
           </CardContent></Card>
         )}
 
@@ -195,6 +232,14 @@ function FamilyBookingInner() {
                   })}</ul>
                 </div>
               ))}
+              {privateChoices.length > 0 && (
+                <div>
+                  <p className="font-semibold">Privatunterricht</p>
+                  <ul className="ml-4 list-disc">{privateChoices.map((c, i) => (
+                    <li key={i}>{privateCtx?.products.find((p) => p.id === c.product_id)?.name}: {c.participant_refs.map((r) => participants.find((p) => p.ref === r)?.first_name).join(", ")} · {[...c.items].sort((a, b) => (a.date + a.time_start).localeCompare(b.date + b.time_start)).map((it) => `${fmt(it.date)} ${it.time_start}–${it.time_end}`).join(", ")}</li>
+                  ))}</ul>
+                </div>
+              )}
             </div>
             <p className="rounded-md bg-blush/40 p-3">Gesamtbetrag (verbindlich von YETI): <strong>{flow.reservation.currency} {flow.reservation.total_amount.toFixed(2)}</strong> · reserviert bis {new Date(flow.reservation.reservation_expires_at).toLocaleTimeString("de-CH")}</p>
             <div className="grid gap-3 sm:grid-cols-2">
