@@ -14,8 +14,8 @@ const AM = "10:00-12:00";
 const JAN = ["2027-01-04", "2027-01-05"];
 const groupOpt: CourseOption = {
   period_key: "jan-2h", course_id: "c", course_name: "Gruppenkurs Ski Kinder", course_type: "group", discipline: "ski", skill_level_id: "blue",
-  age_min: 4, age_max: 12, teaching_dates: JAN, cancelled_dates: [],
-  instances: JAN.flatMap((d) => [{ instance_id: `${d}a`, date: d, time_start: "10:00", time_end: "12:00" }, { instance_id: `${d}b`, date: d, time_start: "14:00", time_end: "16:00" }]),
+  age_min: 4, age_max: 12, dates: JAN, cancelled_dates: [],
+  block_dates: { [AM]: JAN, "14:00-16:00": JAN }, block_mode: "choose_one",
   product_id: "prod-2h", product_name: "2h", duration_minutes: 120, blocks: [AM, "14:00-16:00"],
   tiers: [1, 2].map((n) => ({ day_count: n, price: 60 * n, source_tariff_id: `t${n}` })), bookable: true,
 };
@@ -39,7 +39,7 @@ const CTX = ctxWith({
 });
 
 type Resp = { status: number; json: unknown };
-const okReserve = (n: number): Resp => ({ status: 200, json: { status: "provisional", ticket_id: `T${n}`, ticket_number: `T-${n}`, reservation_token: `tok${n}`, reservation_expires_at: "2027-01-01T00:15:00Z", total_amount: 590, currency: "CHF" } });
+const okReserve = (n: number): Resp => ({ status: 200, json: { success: true, status: "held", ticket_id: `T${n}`, ticket_number: `T-${n}`, reservation_token: `tok${n}`, reservation_expires_at: "2027-01-01T00:15:00Z", total_amount: 590, currency: "CHF" } });
 function mock(over: Partial<Record<CourseBookingAction["action"], (b: CourseBookingAction, n: number) => Resp>> = {}) {
   const calls: CourseBookingAction[] = []; const n: Record<string, number> = {};
   const t: Transport = async (b) => {
