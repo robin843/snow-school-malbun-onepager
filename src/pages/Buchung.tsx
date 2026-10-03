@@ -67,6 +67,30 @@ const PRIVATE_TIME_MATRIX: Record<string, string[]> = {
 const PRIVATE_START_TIMES = Object.keys(PRIVATE_TIME_MATRIX);
 
 const LANGUAGES = ["Deutsch", "Englisch", "Französisch", "Italienisch"] as const;
+const SKI_LEVELS = [
+  "Weiss nicht",
+  "Swiss Snow Kids Village",
+  "Blue League – Blue Prince/Princess",
+  "Blue League – Blue King/Queen",
+  "Blue League – Blue Star",
+  "Red League – Red Prince/Princess",
+  "Red League – Red King/Queen",
+  "Red League – Red Star",
+  "Swiss Snow Academy – Academy Rookie",
+  "Swiss Snow Academy – Freestyle",
+  "Swiss Snow Academy – Freeride",
+  "Swiss Snow Academy – Race",
+];
+const SNOWBOARD_LEVELS = [
+  "Weiss nicht",
+  "Swiss Snow Kids Village",
+  "Blue League",
+  "Red Academy – Freestyle",
+  "Red Academy – Turns",
+  "Swiss Snow Academy – Freestyle",
+  "Swiss Snow Academy – Freeride",
+  "Swiss Snow Academy – Turns",
+];
 
 const minutesBetweenTimes = (start: string, end: string) => {
   const [sh, sm] = start.split(":").map(Number);
