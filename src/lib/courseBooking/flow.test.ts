@@ -13,20 +13,18 @@ const AM = "10:00-12:00";
 const PM = "14:00-16:00";
 const JAN = ["2027-01-04", "2027-01-05", "2027-01-06", "2027-01-07", "2027-01-08"];
 const FEB = ["2027-02-08", "2027-02-09", "2027-02-10", "2027-02-11", "2027-02-12"];
-const inst = (ds: string[], blocks: string[]) => ds.flatMap((d) => blocks.map((b, i) => {
-  const [s, e] = b.split("-"); return { instance_id: `${d}-${i}`, date: d, time_start: s, time_end: e };
-}));
+const bd = (ds: string[], blocks: string[]) => Object.fromEntries(blocks.map((b) => [b, [...ds]]));
 const tiers = [1, 2, 3, 4, 5].map((n) => ({ day_count: n, price: 60 * n, source_tariff_id: `t${n}` }));
 const base = (o: Partial<CourseOption>): CourseOption => ({
   period_key: "p", course_id: "c", course_name: "Gruppenkurs Ski Kinder", course_type: "group", discipline: "ski", skill_level_id: "blue",
-  age_min: 4, age_max: 12, teaching_dates: JAN, cancelled_dates: [], instances: inst(JAN, [AM, PM]),
+  age_min: 4, age_max: 12, dates: JAN, cancelled_dates: [], block_dates: bd(JAN, [AM, PM]), block_mode: "choose_one",
   product_id: "prod-2h", product_name: "2h", duration_minutes: 120, blocks: [AM, PM], tiers, bookable: true, ...o,
 });
 const OPTIONS: CourseOption[] = [
   base({ period_key: "jan-2h", product_id: "prod-2h" }),
-  base({ period_key: "feb-2h", product_id: "prod-2h", teaching_dates: FEB, instances: inst(FEB, [AM, PM]) }),
-  base({ period_key: "jan-4h", product_id: "prod-4h", duration_minutes: 240 }),
-  base({ period_key: "jan-4h-broken", product_id: "prod-4hb", duration_minutes: 240, instances: [...inst(JAN.slice(0, 4), [AM, PM]), ...inst(JAN.slice(4), [AM])] }),
+  base({ period_key: "feb-2h", product_id: "prod-2h", dates: FEB, block_dates: bd(FEB, [AM, PM]) }),
+  base({ period_key: "jan-4h", product_id: "prod-4h", duration_minutes: 240, block_mode: "all" }),
+  base({ period_key: "jan-4h-broken", product_id: "prod-4hb", duration_minutes: 240, block_mode: "all", block_dates: { [AM]: JAN, [PM]: JAN.slice(0, 4) } }),
   base({ period_key: "red-2h", product_id: "prod-red", skill_level_id: "red" }),
   base({ period_key: "adult", product_id: "prod-adult", age_min: 16, age_max: null, skill_level_id: null, cancelled_dates: ["2027-01-06"] }),
   base({ period_key: "board", product_id: "prod-board", discipline: "snowboard", skill_level_id: null, age_min: 8 }),
@@ -37,8 +35,8 @@ const OPTIONS: CourseOption[] = [
 
 type Resp = { status: number; json: unknown };
 type Handler = (b: CourseBookingAction, n: number) => Resp | Promise<Resp>;
-const okReserve = (n: number): Resp => ({ status: 200, json: { status: "provisional", ticket_id: `T${n}`, ticket_number: `T-2027-${n}`, reservation_token: `tok${n}`, reservation_expires_at: "2027-01-01T00:15:00Z", total_amount: 1234, currency: "CHF", quote: {} } });
-const okComplete: Resp = { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-2027-1", total_amount: 1234, delivery: {} } };
+const okReserve = (n: number): Resp => ({ status: 200, json: { success: true, status: "held", ticket_id: `T${n}`, ticket_number: `T-2027-${n}`, reservation_token: `tok${n}`, reservation_expires_at: "2027-01-01T00:15:00Z", total_amount: 1234, currency: "CHF", quote: {} } });
+const okComplete: Resp = { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-2027-1", total_amount: 1234, currency: "CHF", delivery: { booking_confirmation: "sent", invoice: "sent" } } };
 
 function mock(overrides: Partial<Record<CourseBookingAction["action"], Handler>> = {}) {
   const calls: CourseBookingAction[] = [];
@@ -47,10 +45,10 @@ function mock(overrides: Partial<Record<CourseBookingAction["action"], Handler>>
     calls.push(structuredClone(b));
     counts[b.action] = (counts[b.action] ?? 0) + 1;
     const o = overrides[b.action]; if (o) return o(b, counts[b.action]);
-    if (b.action === "options") return { status: 200, json: { status: "success", options: OPTIONS, informational: [] } };
+    if (b.action === "options") return { status: 200, json: { success: true, status: "ok", contract_version: "bc-2627-website-v1", options: OPTIONS, informational: [] } };
     if (b.action === "reserve") return okReserve(counts.reserve);
     if (b.action === "complete") return okComplete;
-    return { status: 200, json: { success: true } };
+    return { status: 200, json: { success: true, status: "released", already_released: false } };
   };
   const of = <A extends CourseBookingAction["action"]>(a: A) => calls.filter((c): c is Extract<CourseBookingAction, { action: A }> => c.action === a);
   return { calls, of, client: createCourseBookingClient(t) };
@@ -66,8 +64,8 @@ test("block must be the exact contract id ('10:00-12:00'), start time alone is r
   assert.equal(validateChoice(opt("jan-2h"), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 2), PM), kid(1)), null);
   assert.notEqual(validateChoice(opt("jan-2h"), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 2), "10:00"), kid(1)), null);
   assert.notEqual(validateChoice(opt("jan-2h"), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 2), "13:30-15:30"), kid(1)), null);
-  const req = buildReserveRequest([kid(1)], [ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM)], "k");
-  assert.deepEqual(req.reservation.selections[0], { kind: "group", participant_ref: "p1", period_key: "jan-2h", product_id: "prod-2h", dates: ["2027-01-04"], block: AM });
+  const req = buildReserveRequest([kid(1)], [ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM)], "k", OPTIONS);
+  assert.deepEqual(req.reservation.selections[0], { kind: "group", participant_ref: "p1", period_key: "jan-2h", product_id: "prod-2h", dates: ["2027-01-04"], blocks: [AM] });
 });
 
 test("full 4h: no block, both real blocks required on every selected day", () => {
@@ -90,12 +88,12 @@ test("strict parsing: dates, nested option fields, reserve/complete envelopes", 
   assert.equal(isValidISODate("2027-02-28"), true);
   const bad = [
     { ...base({ period_key: "b1" }), blocks: 2 },
-    base({ period_key: "b2", teaching_dates: ["2027-02-31"] }),
+    base({ period_key: "b2", dates: ["2027-02-31"] }),
     base({ period_key: "b3", tiers: [{ day_count: 1, price: 0, source_tariff_id: "x" }] }),
-    base({ period_key: "b4", instances: [{ instance_id: "i", date: "2027-01-04", time_start: "12:00", time_end: "10:00" }] }),
+    base({ period_key: "b4", blocks: ["12:00-10:00"], block_dates: {} }),
     base({ period_key: "b5", blocks: ["10:00"] }),
   ];
-  assert.deepEqual(parseOptions({ status: "success", options: [...bad, base({ period_key: "good" })] }).map((o) => o.period_key), ["good"]);
+  assert.deepEqual(parseOptions({ success: true, status: "ok", contract_version: "bc-2627-website-v1", options: [...bad, base({ period_key: "good" })] }).map((o) => o.period_key), ["good"]);
   assert.throws(() => parseOptions({ status: "error", options: [] }));
   const r = (okReserve(1).json as Record<string, unknown>);
   assert.ok(parseReserve(r));
@@ -140,7 +138,7 @@ test("validation before reserve: names, duplicates, overlaps, unknown refs, sile
   assert.equal(of("reserve").length, 0);
   // Same child, AM and PM of different 2h courses on the same day: allowed (no overlap).
   await flow.reserve(opts, [kid(1)], [ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), AM), ch("p1", "jan-2h", "prod-2h", JAN.slice(0, 1), PM)]);
-  assert.throws(() => buildReserveRequest([kid(1), kid(2)], [ch("p1", "jan-4h", "prod-4h", JAN)], "k"), /participant_without_selection/);
+  assert.throws(() => buildReserveRequest([kid(1), kid(2)], [ch("p1", "jan-4h", "prod-4h", JAN)], "k", OPTIONS), /participant_without_selection/);
 });
 
 test("explicitly excluded participant is left out of reserve AND complete consistently", async () => {

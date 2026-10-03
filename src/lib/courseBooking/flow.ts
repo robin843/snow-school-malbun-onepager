@@ -55,7 +55,7 @@ export class FamilyBookingFlow {
     if (this.s.invoice || this.s.completeAttempted) throw new Error("completion_pending");
     const errs = this.validate(options, participants, choices, privateCtx);
     if (errs.length) throw Object.assign(new Error("invalid_selection"), { errors: errs });
-    const draft = buildReserveRequest(participants, choices, "");
+    const draft = buildReserveRequest(participants, choices, "", options);
     const fp = fingerprint(draft);
     if (this.s.reservation && this.s.fp === fp) return this.s.reservation;
     if (this.s.reservePending && this.s.fp !== fp) throw new Error("reserve_pending_retry");
@@ -69,7 +69,8 @@ export class FamilyBookingFlow {
       this.s.reservePending = false;
     } catch (e) {
       // Definitive rejection (4xx / malformed 200): nothing held, payload may change. Unknown outcome: keep pending.
-      if (e instanceof CourseBookingError && !e.unknownOutcome) this.s.reservePending = false;
+      if (e instanceof CourseBookingError && e.released) this.s = empty(); // next user retry gets a NEW key
+      else if (e instanceof CourseBookingError && !e.unknownOutcome) this.s.reservePending = false;
       this.persist();
       throw e;
     }
@@ -83,14 +84,21 @@ export class FamilyBookingFlow {
     if (!this.s.reservation) throw new Error("no_reservation");
     this.s.completeAttempted = true;
     this.persist();
-    const invoice = await this.client.complete({
+    let invoice: CompleteResponse;
+    try {
+      invoice = await this.client.complete({
       ticket_id: this.s.reservation.ticket_id,
       reservation_token: this.s.reservation.reservation_token,
       payment_method: "invoice",
       customer,
       participants: includedParticipants(participants).map(({ ref, first_name, last_name, birth_date, discipline, skill_level }) =>
         ({ ref, first_name: first_name.trim(), last_name: last_name.trim(), birth_date, discipline, skill_level })),
-    });
+      });
+    } catch (e) {
+      // Hold released/expired before completion: nothing booked; drop the identity so the next attempt re-reserves with a NEW key.
+      if (e instanceof CourseBookingError && e.released) { this.s = empty(); this.persist(); }
+      throw e;
+    }
     this.s = { ...empty(), invoice };
     this.persist();
     return invoice;
@@ -104,7 +112,8 @@ export class FamilyBookingFlow {
     try {
       await this.client.cancel(r.ticket_id, r.reservation_token, keepalive);
     } catch (e) {
-      throw e instanceof CourseBookingError ? e : new CourseBookingError("cancel_failed");
+      if (!(e instanceof CourseBookingError && e.released)) throw e instanceof CourseBookingError ? e : new CourseBookingError("cancel_failed");
+      // already released server-side: same end state as a confirmed cancel
     }
     this.s = empty(); // fresh key even for an unchanged payload
     this.persist();

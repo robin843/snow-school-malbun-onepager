@@ -14,8 +14,8 @@ const AM = "10:00-12:00";
 const JAN = ["2027-01-04", "2027-01-05"];
 const groupOpt: CourseOption = {
   period_key: "jan-2h", course_id: "c", course_name: "Gruppenkurs Ski Kinder", course_type: "group", discipline: "ski", skill_level_id: "blue",
-  age_min: 4, age_max: 12, teaching_dates: JAN, cancelled_dates: [],
-  instances: JAN.flatMap((d) => [{ instance_id: `${d}a`, date: d, time_start: "10:00", time_end: "12:00" }, { instance_id: `${d}b`, date: d, time_start: "14:00", time_end: "16:00" }]),
+  age_min: 4, age_max: 12, dates: JAN, cancelled_dates: [],
+  block_dates: { [AM]: JAN, "14:00-16:00": JAN }, block_mode: "choose_one",
   product_id: "prod-2h", product_name: "2h", duration_minutes: 120, blocks: [AM, "14:00-16:00"],
   tiers: [1, 2].map((n) => ({ day_count: n, price: 60 * n, source_tariff_id: `t${n}` })), bookable: true,
 };
@@ -39,15 +39,15 @@ const CTX = ctxWith({
 });
 
 type Resp = { status: number; json: unknown };
-const okReserve = (n: number): Resp => ({ status: 200, json: { status: "provisional", ticket_id: `T${n}`, ticket_number: `T-${n}`, reservation_token: `tok${n}`, reservation_expires_at: "2027-01-01T00:15:00Z", total_amount: 590, currency: "CHF" } });
+const okReserve = (n: number): Resp => ({ status: 200, json: { success: true, status: "held", ticket_id: `T${n}`, ticket_number: `T-${n}`, reservation_token: `tok${n}`, reservation_expires_at: "2027-01-01T00:15:00Z", total_amount: 590, currency: "CHF" } });
 function mock(over: Partial<Record<CourseBookingAction["action"], (b: CourseBookingAction, n: number) => Resp>> = {}) {
   const calls: CourseBookingAction[] = []; const n: Record<string, number> = {};
   const t: Transport = async (b) => {
     calls.push(structuredClone(b)); n[b.action] = (n[b.action] ?? 0) + 1;
     const o = over[b.action]; if (o) return o(b, n[b.action]);
     if (b.action === "reserve") return okReserve(n.reserve);
-    if (b.action === "complete") return { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-1", total_amount: 590 } };
-    return { status: 200, json: { success: true } };
+    if (b.action === "complete") return { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-1", total_amount: 590, currency: "CHF" } };
+    return { status: 200, json: { success: true, status: "released", already_released: false } };
   };
   const of = <A extends CourseBookingAction["action"]>(a: A) => calls.filter((c): c is Extract<CourseBookingAction, { action: A }> => c.action === a);
   return { of, client: createCourseBookingClient(t) };
@@ -180,7 +180,7 @@ test("409 race on private slot: no reservation/invoice, edit allowed, new key; d
 
 test("back/edit mixed booking: cancels hold, fresh key; lost complete response retried after reload with same ticket/token", async () => {
   const store = memoryStore();
-  const m = mock({ complete: (_b, n) => { if (n === 1) throw new Error("reset"); return { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-9", total_amount: 590 } }; } });
+  const m = mock({ complete: (_b, n) => { if (n === 1) throw new Error("reset"); return { status: 200, json: { success: true, status: "confirmed", invoice_number: "R-9", total_amount: 590, currency: "CHF" } }; } });
   const people = [kid(1), kid(2)];
   const choices: FamilyChoice[] = [grp("p1", JAN, AM), priv(["p1", "p2"], [["2027-01-04", "14:00", "16:00"]])];
   const flow = new FamilyBookingFlow(m.client, { genKey: gen, store });
