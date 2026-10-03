@@ -1,6 +1,8 @@
 import type {
-  CourseInstance, CourseOption, CourseTier, CompleteResponse, Discipline, GroupSelection, ReserveRequest, ReserveResponse,
+  CourseInstance, CourseOption, CourseTier, CompleteResponse, Discipline, GroupSelection, PrivateSelection, ReserveRequest, ReserveResponse,
 } from "./contract.ts";
+import { privateIntervals, validatePrivateChoice, type FamilyPrivateChoice, type PrivateContext } from "./private.ts";
+export type { FamilyPrivateChoice, PrivateContext } from "./private.ts";
 
 /** Group courses have NO capacity gate (owner decision); only source/active/date/age/level/price checks. Server is authority. */
 
@@ -10,8 +12,13 @@ export interface FamilyParticipant {
   excluded?: boolean;
 }
 export interface FamilyGroupChoice {
+  kind?: "group";
   participant_ref: string; period_key: string; product_id: string; dates: string[]; block?: string;
 }
+
+export type FamilyChoice = FamilyGroupChoice | FamilyPrivateChoice;
+export const isPrivate = (c: FamilyChoice): c is FamilyPrivateChoice => c.kind === "private";
+export const choiceRefs = (c: FamilyChoice) => (isPrivate(c) ? c.participant_refs : [c.participant_ref]);
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
@@ -134,7 +141,9 @@ export function validateParticipant(p: FamilyParticipant): string | null {
 }
 
 /** Full client-side gate before reserve. Returns human-readable errors (empty = ok). */
-export function validateFamily(options: CourseOption[], participants: FamilyParticipant[], choices: FamilyGroupChoice[]): string[] {
+export function validateFamily(
+  options: CourseOption[], participants: FamilyParticipant[], choices: FamilyChoice[], privateCtx?: PrivateContext,
+): string[] {
   const errs: string[] = [];
   const refs = new Set<string>();
   for (const p of participants) {
@@ -146,20 +155,28 @@ export function validateFamily(options: CourseOption[], participants: FamilyPart
   for (const p of included) {
     const label = `${p.first_name} ${p.last_name}`.trim() || p.ref;
     const e = validateParticipant(p); if (e) errs.push(`${label}: ${e}`);
-    if (!choices.some((c) => c.participant_ref === p.ref)) errs.push(`${label}: kein Kurs gewählt (oder «nicht buchen» markieren)`);
+    if (!choices.some((c) => choiceRefs(c).includes(p.ref))) errs.push(`${label}: kein Kurs gewählt (oder «nicht buchen» markieren)`);
   }
   const occupied = new Map<string, { date: string; s: number; e: number }[]>();
+  const occupy = (ref: string, label: string, next: { date: string; s: number; e: number }[]) => {
+    const mine = occupied.get(ref) ?? [];
+    if (next.some((a) => mine.some((b) => a.date === b.date && a.s < b.e && b.s < a.e))) errs.push(`${label}: Kurse überschneiden sich`);
+    occupied.set(ref, [...mine, ...next]);
+  };
   for (const c of choices) {
+    if (isPrivate(c)) {
+      const e = validatePrivateChoice(c, participants, privateCtx);
+      if (e) { errs.push(`Privatunterricht: ${e}`); continue; }
+      for (const r of c.participant_refs) occupy(r, participants.find((p) => p.ref === r)!.first_name, privateIntervals(c));
+      continue;
+    }
     const p = participants.find((x) => x.ref === c.participant_ref);
     if (!p) { errs.push(`${c.participant_ref}: unbekannte Person`); continue; }
     if (p.excluded) { errs.push(`${p.first_name}: ist als «nicht buchen» markiert, hat aber einen Kurs`); continue; }
     const o = options.find((x) => x.period_key === c.period_key && x.product_id === c.product_id);
     const e = validateChoice(o, c, p);
     if (e) { errs.push(`${p.first_name}: ${e}`); continue; }
-    const mine = occupied.get(p.ref) ?? [];
-    const next = intervals(o!, c);
-    if (next.some((a) => mine.some((b) => a.date === b.date && a.s < b.e && b.s < a.e))) errs.push(`${p.first_name}: Kurse überschneiden sich`);
-    occupied.set(p.ref, [...mine, ...next]);
+    occupy(p.ref, p.first_name, intervals(o!, c));
   }
   return errs;
 }
@@ -167,19 +184,25 @@ export function validateFamily(options: CourseOption[], participants: FamilyPart
 export const includedParticipants = (ps: FamilyParticipant[]) => ps.filter((p) => !p.excluded);
 
 /** Requires a valid family (see validateFamily); never silently drops a listed participant. */
-export function buildReserveRequest(participants: FamilyParticipant[], choices: FamilyGroupChoice[], idempotencyKey: string): ReserveRequest {
+export function buildReserveRequest(participants: FamilyParticipant[], choices: FamilyChoice[], idempotencyKey: string): ReserveRequest {
   const included = includedParticipants(participants);
-  const missing = included.filter((p) => !choices.some((c) => c.participant_ref === p.ref));
+  const missing = included.filter((p) => !choices.some((c) => choiceRefs(c).includes(p.ref)));
   if (missing.length) throw new Error("participant_without_selection");
   return {
     reservation: {
       idempotency_key: idempotencyKey,
       source: "website",
       participants: included.map(({ ref, birth_date, discipline, skill_level }) => ({ ref, birth_date, discipline, skill_level })),
-      selections: choices.map((c): GroupSelection => ({
-        kind: "group", participant_ref: c.participant_ref, period_key: c.period_key, product_id: c.product_id,
-        dates: [...c.dates].sort(), ...(c.block ? { block: c.block } : {}),
-      })),
+      selections: choices.map((c): GroupSelection | PrivateSelection => isPrivate(c)
+        ? {
+          kind: "private", participant_refs: [...c.participant_refs], product_id: c.product_id,
+          items: [...c.items].sort((a, b) => (a.date + a.time_start).localeCompare(b.date + b.time_start))
+            .map(({ date, time_start, time_end }) => ({ date, time_start, time_end })),
+        }
+        : {
+          kind: "group", participant_ref: c.participant_ref, period_key: c.period_key, product_id: c.product_id,
+          dates: [...c.dates].sort(), ...(c.block ? { block: c.block } : {}),
+        }),
     },
   };
 }

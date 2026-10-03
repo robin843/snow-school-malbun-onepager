@@ -3,7 +3,7 @@ import type { CourseBookingClient } from "./client.ts";
 import { CourseBookingError } from "./client.ts";
 import {
   buildReserveRequest, fingerprint, includedParticipants, validateFamily,
-  type FamilyGroupChoice, type FamilyParticipant,
+  type FamilyChoice, type FamilyParticipant, type PrivateContext,
 } from "./logic.ts";
 
 /** Recovery identity, persisted (tab-scoped) so retry/reload never creates a blind second booking. */
@@ -46,14 +46,14 @@ export class FamilyBookingFlow {
   get reservePending() { return this.s.reservePending; }
   private persist() { this.store.save(this.s); }
 
-  validate(options: CourseOption[], participants: FamilyParticipant[], choices: FamilyGroupChoice[]) {
-    return validateFamily(options, participants, choices);
+  validate(options: CourseOption[], participants: FamilyParticipant[], choices: FamilyChoice[], privateCtx?: PrivateContext) {
+    return validateFamily(options, participants, choices, privateCtx);
   }
 
   /** Identical payload reuses key (safe retry after network loss); changed payload cancels the old hold first. */
-  async reserve(options: CourseOption[], participants: FamilyParticipant[], choices: FamilyGroupChoice[]) {
+  async reserve(options: CourseOption[], participants: FamilyParticipant[], choices: FamilyChoice[], privateCtx?: PrivateContext) {
     if (this.s.invoice || this.s.completeAttempted) throw new Error("completion_pending");
-    const errs = this.validate(options, participants, choices);
+    const errs = this.validate(options, participants, choices, privateCtx);
     if (errs.length) throw Object.assign(new Error("invalid_selection"), { errors: errs });
     const draft = buildReserveRequest(participants, choices, "");
     const fp = fingerprint(draft);
