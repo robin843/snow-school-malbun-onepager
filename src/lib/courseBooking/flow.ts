@@ -11,8 +11,10 @@ export class FamilyBookingFlow {
   invoice: CompleteResponse | null = null;
   private reservedFp: string | null = null;
   private keys: IdempotencyKeeper;
+  private client: CourseBookingClient;
 
-  constructor(private client: CourseBookingClient, genKey?: () => string) {
+  constructor(client: CourseBookingClient, genKey?: () => string) {
+    this.client = client;
     this.keys = new IdempotencyKeeper(genKey);
   }
 
@@ -45,8 +47,6 @@ export class FamilyBookingFlow {
   async complete(customer: CompleteRequest["customer"], participants: FamilyParticipant[]) {
     if (this.invoice) return this.invoice; // never a second invoice
     if (!this.reservation) throw new Error("no_reservation");
-    const req = buildReserveRequest(participants, [], "");
-    void req;
     this.invoice = await this.client.complete({
       ticket_id: this.reservation.ticket_id,
       reservation_token: this.reservation.reservation_token,

@@ -117,7 +117,8 @@ export function fingerprint(req: ReserveRequest): string {
 /** Same payload → same key (safe retry); changed payload → fresh key. */
 export class IdempotencyKeeper {
   private last: { fp: string; key: string } | null = null;
-  constructor(private gen: () => string = () => crypto.randomUUID()) {}
+  private gen: () => string;
+  constructor(gen: () => string = () => crypto.randomUUID()) { this.gen = gen; }
   keyFor(fp: string): string {
     if (this.last?.fp === fp) return this.last.key;
     this.last = { fp, key: this.gen() };
