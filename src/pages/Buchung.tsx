@@ -67,6 +67,30 @@ const PRIVATE_TIME_MATRIX: Record<string, string[]> = {
 const PRIVATE_START_TIMES = Object.keys(PRIVATE_TIME_MATRIX);
 
 const LANGUAGES = ["Deutsch", "Englisch", "Französisch", "Italienisch"] as const;
+const SKI_LEVELS = [
+  "Weiss nicht",
+  "Swiss Snow Kids Village",
+  "Blue League – Blue Prince/Princess",
+  "Blue League – Blue King/Queen",
+  "Blue League – Blue Star",
+  "Red League – Red Prince/Princess",
+  "Red League – Red King/Queen",
+  "Red League – Red Star",
+  "Swiss Snow Academy – Academy Rookie",
+  "Swiss Snow Academy – Freestyle",
+  "Swiss Snow Academy – Freeride",
+  "Swiss Snow Academy – Race",
+];
+const SNOWBOARD_LEVELS = [
+  "Weiss nicht",
+  "Swiss Snow Kids Village",
+  "Blue League",
+  "Red Academy – Freestyle",
+  "Red Academy – Turns",
+  "Swiss Snow Academy – Freestyle",
+  "Swiss Snow Academy – Freeride",
+  "Swiss Snow Academy – Turns",
+];
 
 const minutesBetweenTimes = (start: string, end: string) => {
   const [sh, sm] = start.split(":").map(Number);
@@ -274,6 +298,8 @@ const Buchung = () => {
     { date: "", start_time: "09:00", end_time: "12:00" },
   ]);
   const [language, setLanguage] = useState<string>("Deutsch");
+  const [courseLevel, setCourseLevel] = useState<string>("");
+  useEffect(() => { setCourseLevel(""); }, [sport]);
   const [notes, setNotes] = useState("");
 
   const durationMinutes = useMemo(() => {
@@ -984,6 +1010,19 @@ const Buchung = () => {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Level</Label>
+                      <Select value={courseLevel} onValueChange={setCourseLevel}>
+                        <SelectTrigger><SelectValue placeholder="Level wählen (optional)" /></SelectTrigger>
+                        <SelectContent>
+                          {(sport === "snowboard" ? SNOWBOARD_LEVELS : SKI_LEVELS).map((l) => (
+                            <SelectItem key={l} value={l}>{l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Unsicher? Wähle «Weiss nicht» – wir teilen dich vor Ort ein.</p>
                     </div>
 
                     <div className="space-y-2">
