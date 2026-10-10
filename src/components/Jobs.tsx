@@ -87,8 +87,8 @@ const Jobs = () => {
           </Card>
 
           <div className="text-center pt-8">
-            <Button size="lg" className="font-bold text-lg px-10 py-6 bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-lg">
-              Noch Fragen / Bewerben
+            <Button asChild size="lg" className="font-bold text-lg px-10 py-6 bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-lg">
+              <a href="mailto:info@schneesportschule.li?subject=Bewerbung%20Schneesportschule%20Malbun">Noch Fragen / Bewerben</a>
             </Button>
           </div>
         </div>
