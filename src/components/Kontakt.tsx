@@ -9,7 +9,7 @@ const Kontakt = () => {
         <div className="text-center mb-12 animate-fade-in">
           <BrushHeading tone="ice" className="mb-4 rotate-1">Kontakt & Standort</BrushHeading>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Wir freuen uns auf Ihre Anfrage
+            Wir freuen uns auf deine Anfrage
           </p>
         </div>
 
