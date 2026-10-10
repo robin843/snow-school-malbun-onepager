@@ -20,7 +20,7 @@ const Footer = () => {
               <h3 className="font-bold text-lg">Schneesportschule Malbun</h3>
             </div>
             <p className="text-primary-foreground/80 text-sm">
-              Ihre traditionsreiche Skischule in Liechtenstein seit vielen Jahren.
+              Deine traditionsreiche Skischule in Liechtenstein seit vielen Jahren.
             </p>
           </div>
 
