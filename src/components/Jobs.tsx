@@ -64,12 +64,12 @@ const Jobs = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blush to-blush/70 text-blush-foreground border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
+          <Card className="bg-gradient-to-br from-ice-blue to-ice-blue/70 text-ice-blue-foreground border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
             <CardHeader className="pb-4">
               <CardTitle className="text-2xl md:text-3xl">Kinderbetreuer/in auf Ski (Teilzeit)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-blush-foreground/90 leading-relaxed">
+              <p className="text-ice-blue-foreground/90 leading-relaxed">
                 Du bist flexibel, gerne draussen und hast Grundkenntnisse im Skifahren. Der Umgang mit Menschen, besonders Kindern, macht dir Freude. Du sprichst gut Deutsch und bist bereit, an einem internen Ausbildungskurs teilzunehmen.
               </p>
             </CardContent>
