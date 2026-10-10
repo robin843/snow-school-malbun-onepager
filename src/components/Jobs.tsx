@@ -75,16 +75,6 @@ const Jobs = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blush to-blush/70 text-blush-foreground border-0 shadow-xl overflow-hidden rounded-lg max-w-md mx-auto md:max-w-none w-full text-center md:text-left">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-2xl md:text-3xl">Büroangestellte/r (Voll- und/oder Teilzeit)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-blush-foreground/90 leading-relaxed">
-                Du hast eine kaufmännische Ausbildung oder vergleichbare Erfahrung und arbeitest strukturiert sowie selbständig. Mit MS-Office kennst du dich aus, sprichst Deutsch und Englisch und hast Freude am Kundenkontakt. Teamarbeit liegt dir - idealerweise bist du für mehrere Saisons verfügbar.
-              </p>
-            </CardContent>
-          </Card>
 
           <div className="text-center pt-8">
             <Button asChild size="lg" className="font-bold text-lg px-10 py-6 bg-pastel-yellow text-pastel-yellow-foreground hover:bg-pastel-yellow/90 shadow-lg">
