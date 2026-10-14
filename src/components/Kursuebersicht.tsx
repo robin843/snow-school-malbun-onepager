@@ -53,6 +53,42 @@ type Course = {
 /** Windel-Wedelkurs: maximal 3 Tage – YETI-Stufen darüber werden nicht angezeigt. */
 const WINDEL_MAX_DAYS = 3;
 
+/** Owner-supplied display information; never used for booking eligibility or pricing. */
+const courseInformation: Record<string, { subtitle: string; audience: string; schedule: string; time: string; title?: string }> = {
+  "6edc13ea-63a2-5d4c-b22e-54f43370e800": {
+    subtitle: "Halbtages-Gruppenkurs", audience: "Kinder 2–4 Jahre",
+    schedule: "Montag bis Mittwoch", time: "10:00–12:00 Uhr",
+  },
+  "e25c5f7c-939a-54d5-b355-102ad585dd54": {
+    subtitle: "Halbtages-Gruppenkurs", audience: "Kinder 2–4 Jahre",
+    schedule: "3 definierte Samstage hintereinander", time: "10:00–12:00 Uhr",
+  },
+  "8fe2a11e-362d-4f05-8964-87d6b214fc3e": {
+    subtitle: "Halbtages-Gruppenkurs", audience: "Erwachsene Frauen",
+    schedule: "Jeden Sonntag", time: "14:00–16:00 Uhr",
+  },
+  "53d2f0d3-9509-4e59-a78d-67d80beecb74": {
+    subtitle: "Halbtages-Gruppenkurs", audience: "Erwachsene",
+    schedule: "Jeden Mittwoch", time: "14:00–16:00 Uhr",
+  },
+  "3646f155-8a66-53e3-b512-749f3a42c1ae": {
+    subtitle: "Individualunterricht", audience: "Kinder und Erwachsene",
+    schedule: "Täglich", time: "Diverse Zeiträume",
+  },
+  "0e8e8669-d8f4-5b19-8e6d-36ff588fdee1": {
+    subtitle: "Individualunterricht", audience: "Kinder und Erwachsene",
+    schedule: "Täglich", time: "Diverse Zeiträume",
+  },
+  "ab4e4941-02fe-58b7-9ec8-d9b773a1d870": {
+    title: "Gruppenkurs Snowboard Anfänger", subtitle: "Halbtages-Gruppenkurs",
+    audience: "Kinder und Erwachsene", schedule: "Montag bis Freitag", time: "14:00–16:00 Uhr",
+  },
+  "f8a69024-478a-5c9d-bfaa-5e9cb8170c0b": {
+    title: "Samstagskurs Snowboard Anfänger", subtitle: "Halbtages-Gruppenkurs",
+    audience: "Kinder und Erwachsene", schedule: "5 definierte Samstage hintereinander", time: "14:00–16:00 Uhr",
+  },
+};
+
 const cardIcon = (key: YetiProduct["icon_key"]): React.ReactNode => {
   const icons = { user: User, users: Users, baby: Baby, calendar: Calendar,
     snowflake: Snowflake, trophy: Trophy, sparkles: Sparkles };
@@ -65,8 +101,9 @@ const metaIcon = (key: YetiProduct["meta"][number]["icon"]): React.ReactNode => 
   return <Icon className="w-4 h-4" />;
 };
 
-/** Presentation only: labels, prices and UUIDs are supplied by YETI. */
+/** Presentation only: offers, prices and UUIDs are supplied by YETI. */
 const productToCourse = (p: YetiProduct): Course => {
+  const information = courseInformation[p.id];
   const tariffs: TariffRow[] = p.type === "private"
     ? p.private_rates.length
       ? p.private_rates.filter((r) => r.persons === 1 && r.duration_minutes <= 120).sort((a, b) => a.duration_minutes - b.duration_minutes).map((r) => ({
@@ -88,13 +125,18 @@ const productToCourse = (p: YetiProduct): Course => {
           chf: String(p.price), currency: p.currency }] : [];
   return {
     id: p.id,
-    title: p.title,
-    subtitle: p.subtitle,
+    title: information?.title ?? p.title,
+    subtitle: information?.subtitle ?? p.subtitle,
     discipline: p.discipline,
     audiences: p.audience === "kids" ? ["kids"] : p.audience === "adults" ? ["adults"] : ["kids", "adults"],
     icon: cardIcon(p.icon_key),
     flag: p.badge ?? undefined,
-    meta: p.meta.map((m) => ({ icon: metaIcon(m.icon), label: m.label })),
+    meta: information ? [
+      { icon: metaIcon("users"), label: information.audience },
+      { icon: metaIcon("calendar"), label: information.schedule },
+      { icon: metaIcon("clock"), label: information.time },
+      ...p.meta.filter((m) => m.icon === "map").map((m) => ({ icon: metaIcon(m.icon), label: m.label })),
+    ] : p.meta.map((m) => ({ icon: metaIcon(m.icon), label: m.label })),
     requirement: p.requirement ?? undefined,
     tariffs: tariffs.length ? tariffs : undefined,
     notes: p.notes,
@@ -153,11 +195,11 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
       </CardHeader>
 
       <CardContent className="p-6 flex flex-col flex-1 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 justify-items-center sm:justify-items-start">
+        <div className="grid grid-cols-1 gap-2 min-h-[6rem] content-start justify-items-center sm:justify-items-start">
           {course.meta.map((m, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm text-foreground text-center sm:text-left">
-              <span className="text-primary flex-shrink-0">{m.icon}</span>
-              <span className="font-medium">{m.label}</span>
+            <div key={i} className="flex items-start gap-2 max-w-full text-sm text-foreground text-center sm:text-left">
+              <span className="text-primary flex-shrink-0 mt-0.5">{m.icon}</span>
+              <span className="font-medium min-w-0 break-words">{m.label}</span>
             </div>
           ))}
         </div>
