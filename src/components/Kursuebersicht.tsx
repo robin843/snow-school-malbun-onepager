@@ -446,43 +446,6 @@ const Kursuebersicht = () => {
           </div>
         )}
 
-        {/* Info / Treffpunkte */}
-        <div className="max-w-6xl mx-auto mt-16">
-          <Card className="bg-card/80 backdrop-blur-xl border-2 border-primary/20 shadow-xl overflow-hidden rounded-lg">
-            <CardHeader className="bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                  <MapPin className="w-6 h-6 text-foreground" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-black">Treffpunkte & Hinweise</CardTitle>
-                  <p className="text-sm text-muted-foreground">Alles Wichtige für deinen Kursstart</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 md:p-8 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                {products.flatMap((p) => p.meta.filter((m) => m.icon === "map")
-                  .map((m) => ({ t: p.name, v: m.label }))).map((it, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-lg bg-muted/40 border border-border hover:border-primary/40 transition-colors"
-                  >
-                    <h4 className="font-bold text-foreground mb-1">{it.t}</h4>
-                    <p className="text-sm text-muted-foreground">{it.v}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 rounded-lg bg-ice-blue/45 border border-ice-blue text-sm text-muted-foreground flex items-start gap-2">
-                <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>
-                  <strong className="text-foreground">Hinweis:</strong> Kursdetails und Preise stammen direkt aus
-                  den erfassten Produkten der aktuellen YETI-Saison.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Swiss Snow League Levels */}
         <div id="levels" className="max-w-7xl mx-auto mt-16">
