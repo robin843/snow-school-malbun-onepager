@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +105,8 @@ const FlagBadge = ({ flag }: { flag: Flag }) => (
 
 const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => {
   const [expanded, setExpanded] = useState(false);
+  const [timesOpen, setTimesOpen] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const allTariffs = course.tariffs ?? [];
   const isPrivate = course.type === "private";
   const shownTariffs = allTariffs.slice(
@@ -113,8 +115,23 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
       ? privateFurtherTariffCount(allTariffs.length, expanded)
       : visibleTariffCount(allTariffs.length, expanded),
   );
+
+  // Keyboard: while the time/tariff section is open, Escape closes it just like
+  // clicking its own control. The listener is scoped to this card only and is
+  // removed the moment the section closes.
+  useEffect(() => {
+    if (!timesOpen) return;
+    const card = cardRef.current;
+    if (!card) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTimesOpen(false);
+    };
+    card.addEventListener("keydown", onKeyDown);
+    return () => card.removeEventListener("keydown", onKeyDown);
+  }, [timesOpen]);
+
   return (
-  <div data-product-id={course.id} className="group relative animate-fade-in h-full">
+  <div ref={cardRef} data-product-id={course.id} className="group relative animate-fade-in h-full">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
     <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl rounded-lg">
       <CardHeader className={`relative px-5 py-4 min-h-[6.5rem] justify-center bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
@@ -172,7 +189,11 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
         )}
 
         {course.type === "private" && (
-          <details className="group/info rounded-lg border border-border/60 bg-muted/30 text-sm">
+          <details
+            open={timesOpen}
+            onToggle={(event) => setTimesOpen(event.currentTarget.open)}
+            className="group/info rounded-lg border border-border/60 bg-muted/30 text-sm"
+          >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-primary">
               <span className="flex items-center gap-2"><Clock className="w-4 h-4" aria-hidden="true" />{course.privateTariffs ? "Alle Zeiten & Tarife" : PRIVATE_LESSON_INFO.heading}</span>
               <span aria-hidden="true" className="transition-transform group-open/info:rotate-180">▾</span>
