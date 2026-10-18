@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { useYetiProducts, type YetiProduct } from "@/hooks/useYetiProducts";
 import { productCardData } from "@/lib/productCardData";
 import { PRIVATE_LESSON_INFO } from "@/lib/privateLessonInfo";
+import { tariffToggleVisible, visibleTariffCount } from "@/lib/tariffDisplay";
 
 type Discipline = "ski" | "snowboard" | "other";
 type Audience = "kids" | "adults";
@@ -97,13 +98,10 @@ const FlagBadge = ({ flag }: { flag: Flag }) => (
   </span>
 );
 
-const VISIBLE_TARIFFS = 2;
-
 const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => {
   const [expanded, setExpanded] = useState(false);
   const allTariffs = course.tariffs ?? [];
-  const shownTariffs = expanded ? allTariffs : allTariffs.slice(0, VISIBLE_TARIFFS);
-  const hiddenCount = allTariffs.length - VISIBLE_TARIFFS;
+  const shownTariffs = allTariffs.slice(0, visibleTariffCount(allTariffs.length, expanded));
   return (
   <div data-product-id={course.id} className="group relative animate-fade-in h-full">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
@@ -179,7 +177,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
               </div>
               </div>
             ))}
-            {hiddenCount > 0 && (
+            {tariffToggleVisible(allTariffs.length) && (
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
