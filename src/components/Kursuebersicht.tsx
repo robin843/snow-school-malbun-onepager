@@ -117,7 +117,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
   <div data-product-id={course.id} className="group relative animate-fade-in h-full">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
     <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl rounded-lg">
-      <CardHeader className={`relative px-5 py-4 bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
+      <CardHeader className={`relative px-5 py-4 min-h-[6.5rem] justify-center bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
         {course.flag && (
           <div className="absolute top-4 right-4">
             <FlagBadge flag={course.flag} />
