@@ -330,7 +330,7 @@ const Buchung = () => {
   }, [availableProducts, productId, requestedProductId]);
 
   const salesSchedule = legacyCourseMode(productType, selectedProduct);
-  const courseMode: CourseMode = salesSchedule ?? "week";
+  const courseMode = useMemo<CourseMode>(() => salesSchedule ?? "week", [salesSchedule]);
 
   // Verfügbarkeitszeitraum: angezeigter Monat (+ Puffer für Kurswochen).
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
