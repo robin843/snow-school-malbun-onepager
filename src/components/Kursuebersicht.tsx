@@ -20,6 +20,7 @@ import BrushHeading from "@/components/BrushHeading";
 import { useNavigate } from "react-router-dom";
 import { useYetiProducts, type YetiProduct } from "@/hooks/useYetiProducts";
 import { productCardData } from "@/lib/productCardData";
+import { PRIVATE_LESSON_INFO } from "@/lib/privateLessonInfo";
 
 type Discipline = "ski" | "snowboard" | "other";
 type Audience = "kids" | "adults";
@@ -188,6 +189,27 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
               </button>
             )}
           </div>
+        )}
+
+
+        {course.type === "private" && (
+          <details className="group/info rounded-lg border border-border/60 bg-muted/30 text-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-primary">
+              <span className="flex items-center gap-2"><Clock className="w-4 h-4" aria-hidden="true" />{PRIVATE_LESSON_INFO.heading}</span>
+              <span aria-hidden="true" className="transition-transform group-open/info:rotate-180">▾</span>
+            </summary>
+            <div className="space-y-2 px-3 pb-3 text-xs text-foreground">
+              {[PRIVATE_LESSON_INFO.single, PRIVATE_LESSON_INFO.double].map((g) => (
+                <div key={g.label}>
+                  <div className="font-bold">{g.label}</div>
+                  <div className="text-muted-foreground">{g.windows.join(" · ")} Uhr</div>
+                </div>
+              ))}
+              <ul className="space-y-1 pt-1 border-t border-border/60">
+                {PRIVATE_LESSON_INFO.notes.map((n) => <li key={n} className="text-muted-foreground">{n}</li>)}
+              </ul>
+            </div>
+          </details>
         )}
 
         {course.notes && course.notes.length > 0 && (
