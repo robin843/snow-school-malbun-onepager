@@ -61,6 +61,55 @@ test("legacy wizard cannot authorize group schedules from any product name", () 
   assert.equal(legacyCourseMode("private", { type: "private" }), "private");
   assert.equal(legacyCourseMode("private", product), null);
 });
+const offering: NonNullable<YetiProduct["public_offering"]> = {
+  schedule_kind: "weekly", weekdays: [3], dates: ["2026-12-23"],
+  time_blocks: [{ start: "14:00", end: "16:00" }],
+};
+test("public offering preserves custom schedule text and actual time", () => {
+  const data = productCardData({ ...product, public_offering: { ...offering, display_schedule_text: "Immer mittwochs" } });
+  assert.deepEqual(data.meta.slice(0, 2), [
+    { icon: "calendar", label: "Immer mittwochs" }, { icon: "clock", label: "14:00–16:00 Uhr" },
+  ]);
+});
+test("weekly Wednesday fallback never displays concrete dates", () => {
+  const data = productCardData({ ...product, public_offering: { ...offering, display_schedule_text: "  " } });
+  assert.equal(data.meta.find((m) => m.icon === "calendar")?.label, "Immer mittwochs");
+  assert.equal(productCardData({ ...product, public_offering: { ...offering, weekdays: [0, 8] } }).meta.some((m) => m.icon === "calendar"), false);
+});
+test("defined dates use only valid supplied exact dates in source order", () => {
+  const data = productCardData({ ...product, public_offering: { schedule_kind: "dates", dates: ["2026-12-26", "2027-01-02"] } });
+  assert.equal(data.meta.find((m) => m.icon === "calendar")?.label, "26.12.2026 / 02.01.2027");
+  assert.equal(productCardData({ ...product, public_offering: { schedule_kind: "dates", dates: ["2026-02-30"] } }).meta.some((m) => m.icon === "calendar"), false);
+});
+test("two blocks remain one clock row without multiplying exact day tiers", () => {
+  const data = productCardData({ ...product, public_offering: { ...offering, time_blocks: [
+    { start: "10:00", end: "12:00" }, { start: "14:00", end: "16:00" },
+  ] }, meta: [{ icon: "clock", label: "120 Minuten" }, { icon: "clock", label: "Dauer" }] });
+  assert.deepEqual(data.meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "10:00–12:00 / 14:00–16:00 Uhr" }]);
+  assert.deepEqual(data.tariffs, productCardData(product).tariffs);
+});
+test("absent offering preserves previous cards exactly", () => {
+  assert.deepEqual(productCardData({ ...product, public_offering: null }), productCardData(product));
+  assert.deepEqual(productCardData({ ...product, public_offering: { schedule_kind: "weekly" } }), productCardData(product));
+});
+test("free text stays literal text, not interpreted HTML", () => {
+  const label = '<img src=x onerror="alert(1)">Immer mittwochs';
+  const data = productCardData({ ...product, public_offering: { ...offering, display_schedule_text: label } });
+  assert.equal(data.meta.find((m) => m.icon === "calendar")?.label, label);
+});
+test("invalid time blocks cannot invent or partially display a time", () => {
+  for (const blocks of [[{ start: "25:00", end: "26:00" }], [{ start: "16:00", end: "14:00" }],
+    [{ start: "10:00", end: "12:00" }, { start: "bad", end: "16:00" }]]) {
+    const data = productCardData({ ...product, public_offering: { ...offering, time_blocks: blocks } });
+    assert.deepEqual(data.meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "120 Minuten" }]);
+  }
+});
+test("public display schedule never enables booking or legacy group authorization", () => {
+  const p = { ...product, public_offering: offering };
+  assert.equal(productCardData(p).bookable, false);
+  assert.equal(isOnlineBookable(p), false);
+  assert.equal(legacyCourseMode("group", p), null);
+});
 test("removed UUID table and name schedule rules cannot regress in production sources", () => {
   const cards = readFileSync(new URL("../components/Kursuebersicht.tsx", import.meta.url), "utf8");
   const booking = readFileSync(new URL("../pages/Buchung.tsx", import.meta.url), "utf8");
