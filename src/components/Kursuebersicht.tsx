@@ -205,6 +205,54 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
           </details>
         )}
 
+        {allTariffs.length > 0 && (
+          <div className={`space-y-1.5 pt-1 ${isPrivate ? "" : "min-h-[10.5rem]"}`}>
+            {shownTariffs.map((t, i) => (
+              <div key={i}>
+              {t.group && t.group !== shownTariffs[i - 1]?.group && (
+                <div className={`text-xs font-black uppercase tracking-wider text-foreground/80 pb-1 ${i > 0 ? "mt-4 pt-3 border-t-2 border-dashed border-border" : ""}`}>
+                  {t.group}
+                </div>
+              )}
+              <div
+                className={`relative flex justify-between items-center gap-3 p-2.5 pl-3 rounded-lg border transition-colors ${
+                  t.flag
+                    ? "bg-accent/5 border-accent/40 border-l-4 border-l-accent"
+                    : "bg-muted/40 border-border/50 hover:bg-muted/60"
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">{t.label}</span>
+                    {t.flag && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-accent/20 text-accent-foreground/90 ring-1 ring-accent/40">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        Tipp
+                      </span>
+                    )}
+                  </div>
+                  {t.sub && <div className="text-xs text-muted-foreground">{t.sub}</div>}
+                </div>
+                <div className="text-base font-black text-primary flex-shrink-0">{t.currency} {t.chf}.-</div>
+              </div>
+              </div>
+            ))}
+            {(isPrivate || tariffToggleVisible(allTariffs.length)) && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="w-full text-xs font-bold text-primary hover:underline pt-1"
+              >
+                {expanded
+                  ? "Weniger anzeigen"
+                  : isPrivate
+                    ? "Weitere Dauertarife anzeigen"
+                    : `Alle ${allTariffs.length} Tarife anzeigen`}
+              </button>
+            )}
+          </div>
+        )}
+
         {course.notes && course.notes.length > 0 && (
           <ul className="space-y-1 pt-2 border-t border-border">
             {course.notes.map((n, i) => (
