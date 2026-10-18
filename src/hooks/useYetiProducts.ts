@@ -15,6 +15,16 @@ export interface YetiPublicOffering {
   dates?: string[] | null;
   time_blocks?: { start: string; end: string }[] | null;
   display_schedule_text?: string | null;
+  series?: YetiOfferingSeries[] | null;
+}
+
+export interface YetiOfferingSeries {
+  sequence: number;
+  label?: string | null;
+  start_date: string;
+  end_date: string;
+  max_selected_days?: number | null;
+  dates?: string[] | null;
 }
 
 export interface YetiProduct {
