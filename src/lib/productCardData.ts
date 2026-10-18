@@ -118,8 +118,22 @@ export function productCardData(p: YetiProduct) {
     title: text(p.title) ? p.title : text(p.name) ? p.name : "",
     subtitle: text(p.subtitle) ? p.subtitle : "",
     meta, tariffs,
+    lunchInfo: isFullDayGroup(p) ? LUNCH_INFO : null,
     bookable: p.online_bookable === true,
   };
+}
+
+/** Display-only add-on note (Ivo, 2026-10-18); never part of a tariff or checkout. */
+export const LUNCH_INFO = "Mittagessen & Betreuung · CHF 30.– pro Person und Tag · optional buchbar";
+
+/** Full day = group product whose Core time_blocks hold a valid morning block and a separate afternoon block. */
+export function isFullDayGroup(p: Pick<YetiProduct, "type" | "public_offering">): boolean {
+  if (typeof p.type !== "string" || !p.type.startsWith("group")) return false;
+  const blocks = p.public_offering?.time_blocks;
+  if (!Array.isArray(blocks) || blocks.length !== 2) return false;
+  const [a, b] = blocks;
+  if (!a || !b || ![a.start, a.end, b.start, b.end].every(clockTime)) return false;
+  return a.start < a.end && a.end < b.start && b.start < b.end && a.end <= "12:30" && b.start >= "12:30";
 }
 
 /** Legacy group wizard has no authoritative product-level sales schedule contract yet. */

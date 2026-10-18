@@ -52,6 +52,7 @@ type Course = {
   privateTariffs?: PrivateTariffView | null;
   currency?: string;
   notes?: string[];
+  lunchInfo?: string | null;
   bookable: boolean;
   type: "private" | "group" | "other";
 };
@@ -85,6 +86,7 @@ const productToCourse = (p: YetiProduct): Course => {
     privateTariffs: p.type === "private" ? privateTariffView(p) : null,
     currency: p.currency,
     notes: p.notes,
+    lunchInfo: data.lunchInfo,
     bookable: data.bookable,
     type: p.type === "private" ? "private" : p.type.startsWith("group") ? "group" : "other",
   };
@@ -162,6 +164,13 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
             </div>
           ))}
         </div>
+
+        {course.lunchInfo && (
+          <div data-lunch-info className="flex items-start gap-2 p-3 rounded-lg bg-accent/15 border border-accent/40 text-xs font-semibold text-foreground">
+            <Info className="w-4 h-4 text-foreground/70 mt-0.5 flex-shrink-0" />
+            <span>{course.lunchInfo}</span>
+          </div>
+        )}
 
         {course.requirement && (
           <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/10 border border-secondary/30">

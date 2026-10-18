@@ -146,3 +146,13 @@ test("malformed or unordered series fall back safely without inventing dates", (
     assert.equal(cal({ ...product, public_offering: { ...satOffering, series: bad as never } })[0].label, "Immer samstags");
   }
 });
+test("lunch note only for group products with Core morning + afternoon blocks", () => {
+  const full = { ...product, public_offering: { ...offering, time_blocks: [{ start: "10:00", end: "12:00" }, { start: "14:00", end: "16:00" }] } };
+  assert.equal(productCardData(full).lunchInfo, "Mittagessen & Betreuung · CHF 30.– pro Person und Tag · optional buchbar");
+  assert.deepEqual(productCardData(full).tariffs, productCardData(product).tariffs);
+  assert.equal(productCardData(full).bookable, false);
+  assert.equal(productCardData({ ...full, type: "private" }).lunchInfo, null);
+  assert.equal(productCardData({ ...product, name: "Ganztageskurs", public_offering: offering }).lunchInfo, null);
+  assert.equal(productCardData({ ...product, duration_minutes: 240 }).lunchInfo, null);
+  assert.equal(productCardData({ ...full, public_offering: { ...offering, time_blocks: [{ start: "14:00", end: "16:00" }, { start: "16:30", end: "18:00" }] } }).lunchInfo, null);
+});
