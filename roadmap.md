@@ -1,5 +1,5 @@
 # Onepager product cleanup
 
-- [ ] Remove product overrides and local tariff limits; preserve card design and editorial content.
-- [ ] Accept informational availability policy; prevent name-derived booking authorization.
-- [ ] Verify targeted regressions and desktop/mobile rendering; report revision and release limits.
+- [x] Remove product overrides and local tariff limits; preserve card design and editorial content.
+- [x] Accept informational availability policy; prevent name-derived booking authorization.
+- [x] Verify 41 targeted regressions, clean lint/typecheck/build and desktop/mobile rendering; no publication or Edge deployment. Legacy group bookings await a Core product-level schedule contract.
