@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { useYetiProducts, type YetiProduct } from "@/hooks/useYetiProducts";
 import { productCardData } from "@/lib/productCardData";
 import { PRIVATE_LESSON_INFO } from "@/lib/privateLessonInfo";
-import { tariffToggleVisible, visibleTariffCount } from "@/lib/tariffDisplay";
+import { privateFurtherTariffCount, tariffToggleVisible, visibleTariffCount } from "@/lib/tariffDisplay";
 import { privateTariffView, type PrivateTariffView } from "@/lib/privateTimeTariffs";
 
 type Discipline = "ski" | "snowboard" | "other";
@@ -106,7 +106,13 @@ const FlagBadge = ({ flag }: { flag: Flag }) => (
 const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => {
   const [expanded, setExpanded] = useState(false);
   const allTariffs = course.tariffs ?? [];
-  const shownTariffs = allTariffs.slice(0, visibleTariffCount(allTariffs.length, expanded));
+  const isPrivate = course.type === "private";
+  const shownTariffs = allTariffs.slice(
+    0,
+    isPrivate
+      ? privateFurtherTariffCount(allTariffs.length, expanded)
+      : visibleTariffCount(allTariffs.length, expanded),
+  );
   return (
   <div data-product-id={course.id} className="group relative animate-fade-in h-full">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
