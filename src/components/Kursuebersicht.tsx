@@ -136,7 +136,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
         </div>
       </CardHeader>
 
-      <CardContent className="p-6 flex flex-col flex-1 space-y-4">
+      <CardContent className="p-6 flex flex-col flex-1 gap-4">
         <div className="grid grid-cols-1 gap-2 min-h-[6rem] content-start justify-items-center sm:justify-items-start">
           {course.meta.map((m, i) => (
             <div key={i} className="flex items-start gap-2 max-w-full text-sm text-foreground text-center sm:text-left">
