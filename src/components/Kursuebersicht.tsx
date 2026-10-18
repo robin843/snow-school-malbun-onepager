@@ -117,21 +117,21 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
   <div data-product-id={course.id} className="group relative animate-fade-in h-full">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
     <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl rounded-lg">
-      <CardHeader className={`relative p-6 min-h-[11rem] justify-center bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
+      <CardHeader className={`relative px-5 py-4 min-h-[6.5rem] justify-center bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
         {course.flag && (
           <div className="absolute top-4 right-4">
             <FlagBadge flag={course.flag} />
           </div>
         )}
-        <div className={`flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left ${course.flag ? "sm:pr-20" : ""}`}>
-          <div className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-foreground/10 flex-shrink-0">
+        <div className={`flex flex-col items-center text-center gap-3 sm:flex-row sm:items-center sm:text-left ${course.flag ? "sm:pr-20" : ""}`}>
+          <div className="w-11 h-11 bg-white/60 backdrop-blur-md rounded-lg flex items-center justify-center ring-2 ring-foreground/10 flex-shrink-0">
             {course.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg md:text-xl font-black text-foreground leading-snug min-h-[3.5rem] flex items-center justify-center text-center sm:justify-start sm:text-left break-words hyphens-auto" lang="de">
+            <CardTitle className="text-lg md:text-xl font-black text-foreground leading-snug break-words hyphens-auto" lang="de">
               <span className="min-w-0">{course.title}</span>
             </CardTitle>
-            <p className="text-foreground/75 text-sm font-medium mt-1">{course.subtitle}</p>
+            <p className="text-foreground/75 text-xs md:text-sm font-medium mt-0.5">{course.subtitle}</p>
           </div>
         </div>
       </CardHeader>
