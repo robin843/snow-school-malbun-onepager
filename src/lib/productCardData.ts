@@ -10,6 +10,31 @@ export interface ProductTariff {
 const positive = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n > 0;
 const text = (s: unknown): s is string => typeof s === "string" && s.trim().length > 0;
 
+const weekdays = ["montags", "dienstags", "mittwochs", "donnerstags", "freitags", "samstags", "sonntags"];
+const clockTime = (s: unknown): s is string => typeof s === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+const exactDate = (s: unknown): s is string => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
+  && Number.isFinite(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
+
+function offeringMetadata(offering: YetiProduct["public_offering"]): YetiProduct["meta"] {
+  if (!offering || typeof offering !== "object") return [];
+  let schedule = text(offering.display_schedule_text) ? offering.display_schedule_text.trim() : "";
+  if (!schedule && offering.schedule_kind === "weekly") {
+    const days = offering.weekdays;
+    if (Array.isArray(days) && days.length > 0 && days.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)) {
+      schedule = `Immer ${[...new Set(days)].map((d) => weekdays[d - 1]).join(" / ")}`;
+    }
+  } else if (!schedule && Array.isArray(offering.dates) && offering.dates.length > 0 && offering.dates.every(exactDate)) {
+    schedule = offering.dates.map((d) => d.split("-").reverse().join(".")).join(" / ");
+  }
+  const rows: YetiProduct["meta"] = schedule ? [{ icon: "calendar", label: schedule }] : [];
+  const blocks = offering.time_blocks;
+  if (Array.isArray(blocks) && blocks.length >= 1 && blocks.length <= 2
+    && blocks.every((b) => b && clockTime(b.start) && clockTime(b.end) && b.start < b.end)) {
+    rows.push({ icon: "clock", label: `${blocks.map((b) => `${b.start}–${b.end}`).join(" / ")} Uhr` });
+  }
+  return rows;
+}
+
 /** Factual card data only: no product-name interpretation, local catalog or price calculation. */
 export function productCardData(p: YetiProduct) {
   const tariffs: ProductTariff[] = !text(p.currency) ? [] : p.type === "private"
@@ -30,6 +55,18 @@ export function productCardData(p: YetiProduct) {
 
   const meta: YetiProduct["meta"] = (Array.isArray(p.meta) ? p.meta : [])
     .filter((m) => m && ["calendar", "clock", "users", "map"].includes(m.icon) && text(m.label));
+  const offeringRows = offeringMetadata(p.public_offering);
+  // Replace existing rows of the same kind, including duration, instead of duplicating them.
+  for (const row of offeringRows) {
+    const index = meta.findIndex((m) => m.icon === row.icon);
+    if (index < 0) meta.push(row);
+    else {
+      meta.splice(index, 1, row);
+      for (let i = meta.length - 1; i > index; i--) {
+        if (meta[i].icon === row.icon) meta.splice(i, 1);
+      }
+    }
+  }
   const audience = p.audience === "kids" ? "Kinder" : p.audience === "adults" ? "Erwachsene" : p.audience === "mixed" ? "Kinder und Erwachsene" : "";
   const validAge = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
   const min = validAge(p.min_age) ? p.min_age : null;

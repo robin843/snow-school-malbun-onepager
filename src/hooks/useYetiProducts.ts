@@ -8,6 +8,15 @@ export interface YetiPriceTier {
   cumulative_price: number;
 }
 
+/** Public display information only; never authorizes a booking. */
+export interface YetiPublicOffering {
+  schedule_kind: string;
+  weekdays?: number[] | null;
+  dates?: string[] | null;
+  time_blocks?: { start: string; end: string }[] | null;
+  display_schedule_text?: string | null;
+}
+
 export interface YetiProduct {
   id: string;
   name: string;
@@ -33,6 +42,7 @@ export interface YetiProduct {
   online_bookable: boolean;
   /** Informational only; never overrides online_bookable. */
   availability_policy?: "private_check" | "group_season";
+  public_offering?: YetiPublicOffering | null;
 }
 
 let catalogRequest: Promise<YetiProduct[]> | null = null;
