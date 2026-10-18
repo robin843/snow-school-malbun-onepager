@@ -31,6 +31,8 @@ export interface YetiProduct {
   currency: string;
   sort_order: number;
   online_bookable: boolean;
+  /** Informational only; never overrides online_bookable. */
+  availability_policy?: "private_check" | "group_season";
 }
 
 let catalogRequest: Promise<YetiProduct[]> | null = null;

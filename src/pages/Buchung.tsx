@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AGB_VERSION, PRIVACY_VERSION } from "@/config/legal";
 import Sponsoren from "@/components/Sponsoren";
 import { useYetiProducts, computeProductTotal, type YetiProduct } from "@/hooks/useYetiProducts";
+import { legacyCourseMode } from "@/lib/productCardData";
 import { useYetiAvailability, dayHasCapacity, type YetiDay } from "@/hooks/useYetiAvailability";
 
 
@@ -138,14 +139,8 @@ const productFromPrice = (list: YetiProduct[]) => {
 };
 
 
-/** Kursregeln: Privatkurs (frei), Gruppenkurs Mo–Fr als Block, Samstagskurs nur Samstage. */
+/** Legacy date rendering only. Group reservation is blocked until Core supplies schedule_kind. */
 type CourseMode = "private" | "week" | "saturday";
-
-const courseModeFor = (productType: ProductType, product?: YetiProduct): CourseMode => {
-  if (productType === "private") return "private";
-  if (product && /samstag/i.test(product.name)) return "saturday";
-  return "week";
-};
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const isISODate = (value: string) => {
@@ -334,7 +329,8 @@ const Buchung = () => {
     setProductId(availableProducts[0].id);
   }, [availableProducts, productId, requestedProductId]);
 
-  const courseMode = courseModeFor(productType, selectedProduct);
+  const salesSchedule = legacyCourseMode(productType, selectedProduct);
+  const courseMode = useMemo<CourseMode>(() => salesSchedule ?? "week", [salesSchedule]);
 
   // Verfügbarkeitszeitraum: angezeigter Monat (+ Puffer für Kurswochen).
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
@@ -600,6 +596,10 @@ const Buchung = () => {
   const validateStep1 = () => {
     if (!selectedProduct?.online_bookable) {
       toast({ title: "Kurs nicht buchbar", description: "Bitte einen aktuell online buchbaren YETI-Kurs auswählen.", variant: "destructive" });
+      return false;
+    }
+    if (!salesSchedule) {
+      toast({ title: "Produkt noch nicht buchbar", description: "Für dieses Produkt ist noch kein verbindlicher Buchungszeitplan verfügbar.", variant: "destructive" });
       return false;
     }
     if (total <= 0) {

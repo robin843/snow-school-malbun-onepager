@@ -19,6 +19,7 @@ import {
 import BrushHeading from "@/components/BrushHeading";
 import { useNavigate } from "react-router-dom";
 import { useYetiProducts, type YetiProduct } from "@/hooks/useYetiProducts";
+import { productCardData } from "@/lib/productCardData";
 
 type Discipline = "ski" | "snowboard" | "other";
 type Audience = "kids" | "adults";
@@ -50,45 +51,6 @@ type Course = {
   type: "private" | "group" | "other";
 };
 
-/** Windel-Wedelkurs: maximal 3 Tage – YETI-Stufen darüber werden nicht angezeigt. */
-const WINDEL_MAX_DAYS = 3;
-
-/** Owner-supplied display information; never used for booking eligibility or pricing. */
-const courseInformation: Record<string, { subtitle: string; audience: string; schedule: string; time: string; title?: string }> = {
-  "6edc13ea-63a2-5d4c-b22e-54f43370e800": {
-    subtitle: "Halbtages-Gruppenkurs", audience: "Kinder 2–4 Jahre",
-    schedule: "Montag bis Mittwoch", time: "10:00–12:00 Uhr",
-  },
-  "e25c5f7c-939a-54d5-b355-102ad585dd54": {
-    subtitle: "Halbtages-Gruppenkurs", audience: "Kinder 2–4 Jahre",
-    schedule: "3 definierte Samstage hintereinander", time: "10:00–12:00 Uhr",
-  },
-  "8fe2a11e-362d-4f05-8964-87d6b214fc3e": {
-    subtitle: "Halbtages-Gruppenkurs", audience: "Erwachsene Frauen",
-    schedule: "Jeden Sonntag", time: "14:00–16:00 Uhr",
-  },
-  "53d2f0d3-9509-4e59-a78d-67d80beecb74": {
-    subtitle: "Halbtages-Gruppenkurs", audience: "Erwachsene",
-    schedule: "Jeden Mittwoch", time: "14:00–16:00 Uhr",
-  },
-  "3646f155-8a66-53e3-b512-749f3a42c1ae": {
-    subtitle: "Individualunterricht", audience: "Kinder und Erwachsene",
-    schedule: "Täglich", time: "Diverse Zeiträume",
-  },
-  "0e8e8669-d8f4-5b19-8e6d-36ff588fdee1": {
-    subtitle: "Individualunterricht", audience: "Kinder und Erwachsene",
-    schedule: "Täglich", time: "Diverse Zeiträume",
-  },
-  "ab4e4941-02fe-58b7-9ec8-d9b773a1d870": {
-    title: "Gruppenkurs Snowboard Anfänger", subtitle: "Halbtages-Gruppenkurs",
-    audience: "Kinder und Erwachsene", schedule: "Montag bis Freitag", time: "14:00–16:00 Uhr",
-  },
-  "f8a69024-478a-5c9d-bfaa-5e9cb8170c0b": {
-    title: "Samstagskurs Snowboard Anfänger", subtitle: "Halbtages-Gruppenkurs",
-    audience: "Kinder und Erwachsene", schedule: "5 definierte Samstage hintereinander", time: "14:00–16:00 Uhr",
-  },
-};
-
 const cardIcon = (key: YetiProduct["icon_key"]): React.ReactNode => {
   const icons = { user: User, users: Users, baby: Baby, calendar: Calendar,
     snowflake: Snowflake, trophy: Trophy, sparkles: Sparkles };
@@ -103,44 +65,20 @@ const metaIcon = (key: YetiProduct["meta"][number]["icon"]): React.ReactNode => 
 
 /** Presentation only: offers, prices and UUIDs are supplied by YETI. */
 const productToCourse = (p: YetiProduct): Course => {
-  const information = courseInformation[p.id];
-  const tariffs: TariffRow[] = p.type === "private"
-    ? p.private_rates.length
-      ? p.private_rates.filter((r) => r.persons === 1 && r.duration_minutes <= 120).sort((a, b) => a.duration_minutes - b.duration_minutes).map((r) => ({
-          label: `${r.duration_minutes / 60} ${r.duration_minutes === 60 ? "Stunde" : "Stunden"} · 1 Person`,
-          group: r.duration_minutes <= 60 ? "Einzellektion (1 Std.)" : r.duration_minutes <= 120 ? "Doppellektion (2 Std.)" : `${r.duration_minutes / 60} Stunden`,
-          chf: String(r.price), currency: p.currency,
-        }))
-      : p.price > 0 ? [{ label: p.duration_minutes ? `${p.duration_minutes} Minuten` : "Produktpreis",
-          chf: String(p.price), currency: p.currency }] : []
-    : p.pricing_type === "tiered"
-      ? p.price_tiers
-          // Windel-Wedelkurs wird maximal 3 Tage angeboten – höhere YETI-Stufen bleiben unberücksichtigt.
-          .filter((r) => !/windel/i.test(p.title) || r.day_count <= WINDEL_MAX_DAYS)
-          .map((r) => ({
-          label: `${r.day_count} ${r.day_count === 1 ? "Tag" : "Tage"} · 1 Person`,
-          chf: String(r.cumulative_price), currency: p.currency,
-        }))
-      : p.price > 0 ? [{ label: p.duration_minutes ? `${p.duration_minutes} Minuten` : "Preis",
-          chf: String(p.price), currency: p.currency }] : [];
+  const data = productCardData(p);
   return {
-    id: p.id,
-    title: information?.title ?? p.title,
-    subtitle: information?.subtitle ?? p.subtitle,
+    id: data.id,
+    title: data.title,
+    subtitle: data.subtitle,
     discipline: p.discipline,
     audiences: p.audience === "kids" ? ["kids"] : p.audience === "adults" ? ["adults"] : ["kids", "adults"],
     icon: cardIcon(p.icon_key),
     flag: p.badge ?? undefined,
-    meta: information ? [
-      { icon: metaIcon("users"), label: information.audience },
-      { icon: metaIcon("calendar"), label: information.schedule },
-      { icon: metaIcon("clock"), label: information.time },
-      ...p.meta.filter((m) => m.icon === "map").map((m) => ({ icon: metaIcon(m.icon), label: m.label })),
-    ] : p.meta.map((m) => ({ icon: metaIcon(m.icon), label: m.label })),
+    meta: data.meta.map((m) => ({ icon: metaIcon(m.icon), label: m.label })),
     requirement: p.requirement ?? undefined,
-    tariffs: tariffs.length ? tariffs : undefined,
+    tariffs: data.tariffs.length ? data.tariffs : undefined,
     notes: p.notes,
-    bookable: p.online_bookable,
+    bookable: data.bookable,
     type: p.type === "private" ? "private" : p.type.startsWith("group") ? "group" : "other",
   };
 };
@@ -162,17 +100,11 @@ const VISIBLE_TARIFFS = 2;
 
 const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void }) => {
   const [expanded, setExpanded] = useState(false);
-  // Zeitangaben (z. B. "2h", "4 Std.") aus dem Titel entfernen – die Zeit wird im Buchungsformular gewählt.
-  const titleMain = course.title
-    .replace(/\s*[(\[]?\s*\d+(?:[.,]\d+)?\s*(?:h|std\.?|stunden?)\s*[)\]]?(?=\s|$|[-–,])/gi, "")
-    .replace(/\s*[-–,]\s*$/, "")
-    .replace(/\s{2,}/g, " ")
-    .trim() || course.title;
   const allTariffs = course.tariffs ?? [];
   const shownTariffs = expanded ? allTariffs : allTariffs.slice(0, VISIBLE_TARIFFS);
   const hiddenCount = allTariffs.length - VISIBLE_TARIFFS;
   return (
-  <div className="group relative animate-fade-in h-full">
+  <div data-product-id={course.id} className="group relative animate-fade-in h-full">
     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-lg opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
     <Card className="relative h-full flex flex-col bg-card/90 backdrop-blur-xl border-2 border-border hover:border-primary/40 transition-all duration-500 overflow-hidden shadow-xl rounded-lg">
       <CardHeader className={`relative p-6 min-h-[11rem] justify-center bg-gradient-to-br ${groupHeaderMap[course.discipline]}`}>
@@ -187,7 +119,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
           </div>
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg md:text-xl font-black text-foreground leading-snug min-h-[3.5rem] flex items-center justify-center text-center sm:justify-start sm:text-left break-words hyphens-auto" lang="de">
-              <span className="min-w-0">{titleMain}</span>
+              <span className="min-w-0">{course.title}</span>
             </CardTitle>
             <p className="text-foreground/75 text-sm font-medium mt-1">{course.subtitle}</p>
           </div>
