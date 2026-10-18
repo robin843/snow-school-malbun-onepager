@@ -233,7 +233,7 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
                 </div>
               ))}
               <ul className="space-y-1 pt-1 border-t border-border/60">
-                {PRIVATE_LESSON_INFO.notes
+                {(PRIVATE_LESSON_INFO.notes as readonly string[] as string[])
                   .filter((n) => !(course.privateTariffs?.footnotes.length && n.startsWith("Zusätzliche Personen")))
                   .concat(course.privateTariffs?.footnotes ?? [])
                   .map((n) => <li key={n} className="text-muted-foreground">{n}</li>)}
