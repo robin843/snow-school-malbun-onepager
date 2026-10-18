@@ -19,15 +19,15 @@ const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
   const showImage = Boolean(instructor.portrait_url) && !imageFailed;
 
   return (
-    <Card className="overflow-hidden rounded-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <div className="aspect-[3/4] bg-gradient-to-br from-ice-blue to-blush flex items-center justify-center">
+    <Card className="h-full flex flex-col overflow-hidden rounded-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      <div className="relative aspect-[3/4] flex-shrink-0 overflow-hidden bg-gradient-to-br from-ice-blue to-blush flex items-center justify-center">
         {showImage ? (
           <img
             src={instructor.portrait_url}
             alt={`Portrait von ${instructor.display_name}`}
             loading="lazy"
             onError={() => setImageFailed(true)}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div className="w-24 h-24 rounded-full bg-primary/30 flex items-center justify-center text-4xl font-bold text-primary">
@@ -35,17 +35,16 @@ const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
           </div>
         )}
       </div>
-      <div className="bg-ice-blue p-4 text-center">
+      <div className="bg-ice-blue p-4 text-center flex-1 flex flex-col">
         <p className="font-bold text-ice-blue-foreground text-lg truncate">
           {instructor.display_name}
         </p>
-        {instructor.role_label && (
-          <p className="text-ice-blue-foreground/90 text-sm line-clamp-2">
-            {instructor.role_label}
-          </p>
-        )}
+        {/* Reserved two-line role slot keeps descriptions aligned across the row. */}
+        <p lang="de" className="text-ice-blue-foreground/90 text-sm leading-5 h-10 line-clamp-2 break-words hyphens-auto">
+          {instructor.role_label}
+        </p>
         {instructor.teaser && (
-          <p className="text-ice-blue-foreground/80 text-xs mt-2 line-clamp-3">
+          <p className="text-ice-blue-foreground/80 text-xs leading-4 mt-2 line-clamp-3">
             {instructor.teaser}
           </p>
         )}
