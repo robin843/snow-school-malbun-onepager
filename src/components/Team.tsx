@@ -20,14 +20,14 @@ const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
 
   return (
     <Card className="h-full flex flex-col overflow-hidden rounded-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <div className="aspect-[3/4] flex-shrink-0 bg-gradient-to-br from-ice-blue to-blush flex items-center justify-center">
+      <div className="relative aspect-[3/4] flex-shrink-0 overflow-hidden bg-gradient-to-br from-ice-blue to-blush flex items-center justify-center">
         {showImage ? (
           <img
             src={instructor.portrait_url}
             alt={`Portrait von ${instructor.display_name}`}
             loading="lazy"
             onError={() => setImageFailed(true)}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div className="w-24 h-24 rounded-full bg-primary/30 flex items-center justify-center text-4xl font-bold text-primary">
