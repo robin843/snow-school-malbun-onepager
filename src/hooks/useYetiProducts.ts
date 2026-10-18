@@ -53,6 +53,9 @@ export interface YetiProduct {
   /** Informational only; never overrides online_bookable. */
   availability_policy?: "private_check" | "group_season";
   public_offering?: YetiPublicOffering | null;
+  /** Optional, display-only (pending Core contract); validated in privateTimeTariffs.ts. */
+  public_private_time_tariffs?: unknown;
+  public_private_price_conditions?: unknown;
 }
 
 let catalogRequest: Promise<YetiProduct[]> | null = null;
