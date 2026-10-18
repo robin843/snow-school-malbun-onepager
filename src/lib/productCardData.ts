@@ -18,9 +18,9 @@ const exactDate = (s: unknown): s is string => typeof s === "string" && /^\d{4}-
 
 const dmy = (d: string) => d.split("-").reverse().join(".");
 
-/** All-or-nothing: any malformed or unordered series falls back to the previous display. */
-function seriesLabel(series: unknown): string {
-  if (!Array.isArray(series) || series.length === 0) return "";
+/** All-or-nothing: any malformed or unordered series falls back to the previous display. One line per series. */
+function seriesLines(series: unknown): string[] {
+  if (!Array.isArray(series) || series.length === 0) return [];
   let prevSeq = -Infinity, prevEnd = "";
   const valid = series.every((s) => {
     if (!s || typeof s !== "object") return false;
@@ -32,35 +32,33 @@ function seriesLabel(series: unknown): string {
     prevSeq = sequence as number; prevEnd = end_date;
     return true;
   });
-  if (!valid) return "";
+  if (!valid) return [];
   const list = series as NonNullable<NonNullable<YetiProduct["public_offering"]>["series"]>;
-  const parts = list.map((s, i) => {
+  return list.map((s, i) => {
+    const name = text(s.label) ? s.label.trim() : `Kurs ${i + 1}`;
+    if (s.start_date === s.end_date) return `${name}: ${dmy(s.start_date)}`;
     const sameYear = s.start_date.slice(0, 4) === s.end_date.slice(0, 4);
     const start = sameYear ? dmy(s.start_date).slice(0, 6) : dmy(s.start_date);
-    const name = text(s.label) ? s.label.trim() : `Kurs ${i + 1}`;
     return `${name}: ${start}–${dmy(s.end_date)}`;
   });
-  const counts = list.map((s) => (Array.isArray(s.dates) ? s.dates.length : 0));
-  const maxes = list.map((s) => s.max_selected_days ?? 0);
-  if (counts.every((c) => c > 0 && c === counts[0]) && maxes.every((m) => m > 0 && m === maxes[0] && m <= counts[0])) {
-    parts.push(maxes[0] < counts[0] ? `je ${counts[0]} Termine, 1–${maxes[0]} wählbar` : `je ${counts[0]} Termine`);
-  }
-  return parts.join(" · ");
 }
 
-function offeringMetadata(offering: YetiProduct["public_offering"]): YetiProduct["meta"] {
+function offeringMetadata(offering: YetiProduct["public_offering"], dayBookable: boolean): YetiProduct["meta"] {
   if (!offering || typeof offering !== "object") return [];
-  let schedule = seriesLabel(offering.series);
-  if (!schedule && text(offering.display_schedule_text)) schedule = offering.display_schedule_text.trim();
-  if (!schedule && offering.schedule_kind === "weekly") {
+  const lines = seriesLines(offering.series);
+  let schedule = "";
+  if (lines.length === 0 && text(offering.display_schedule_text)) schedule = offering.display_schedule_text.trim();
+  if (lines.length === 0 && !schedule && offering.schedule_kind === "weekly") {
     const days = offering.weekdays;
     if (Array.isArray(days) && days.length > 0 && days.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)) {
       schedule = `Immer ${[...new Set(days)].map((d) => weekdays[d - 1]).join(" / ")}`;
     }
-  } else if (!schedule && Array.isArray(offering.dates) && offering.dates.length > 0 && offering.dates.every(exactDate)) {
+  } else if (lines.length === 0 && !schedule && Array.isArray(offering.dates) && offering.dates.length > 0 && offering.dates.every(exactDate)) {
     schedule = offering.dates.map((d) => d.split("-").reverse().join(".")).join(" / ");
   }
-  const rows: YetiProduct["meta"] = schedule ? [{ icon: "calendar", label: schedule }] : [];
+  const rows: YetiProduct["meta"] = lines.length > 0
+    ? [...lines, ...(dayBookable ? ["Auch tageweise buchbar"] : [])].map((label) => ({ icon: "calendar" as const, label }))
+    : schedule ? [{ icon: "calendar", label: schedule }] : [];
   const blocks = offering.time_blocks;
   if (Array.isArray(blocks) && blocks.length >= 1 && blocks.length <= 2
     && blocks.every((b) => b && clockTime(b.start) && clockTime(b.end) && b.start < b.end)) {
@@ -90,17 +88,18 @@ export function productCardData(p: YetiProduct) {
 
   const meta: YetiProduct["meta"] = (Array.isArray(p.meta) ? p.meta : [])
     .filter((m) => m && ["calendar", "clock", "users", "map"].includes(m.icon) && text(m.label));
-  const offeringRows = offeringMetadata(p.public_offering);
+  // A Core 1-day price tier is the only grounded signal for "Auch tageweise buchbar".
+  const dayBookable = p.pricing_type === "tiered" && Array.isArray(p.price_tiers)
+    && p.price_tiers.some((t) => t && t.day_count === 1 && positive(t.cumulative_price));
+  const offeringRows = offeringMetadata(p.public_offering, dayBookable);
   // Replace existing rows of the same kind, including duration, instead of duplicating them.
-  for (const row of offeringRows) {
-    const index = meta.findIndex((m) => m.icon === row.icon);
-    if (index < 0) meta.push(row);
-    else {
-      meta.splice(index, 1, row);
-      for (let i = meta.length - 1; i > index; i--) {
-        if (meta[i].icon === row.icon) meta.splice(i, 1);
-      }
-    }
+  for (const icon of new Set(offeringRows.map((r) => r.icon))) {
+    const rows = offeringRows.filter((r) => r.icon === icon);
+    const index = meta.findIndex((m) => m.icon === icon);
+    const kept = meta.filter((m) => m.icon !== icon);
+    const at = index < 0 ? kept.length : meta.slice(0, index).filter((m) => m.icon !== icon).length;
+    kept.splice(at, 0, ...rows);
+    meta.splice(0, meta.length, ...kept);
   }
   const audience = p.audience === "kids" ? "Kinder" : p.audience === "adults" ? "Erwachsene" : p.audience === "mixed" ? "Kinder und Erwachsene" : "";
   const validAge = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;

@@ -127,13 +127,17 @@ const satOffering = { schedule_kind: "weekly", weekdays: [6], display_schedule_t
 const cal = (p: YetiProduct) => productCardData(p).meta.filter((m) => m.icon === "calendar");
 test("two series replace generic weekday text and distinguish offered vs selectable days", () => {
   const p = { ...product, public_offering: { ...satOffering, series: [series1, series2] } };
-  assert.deepEqual(cal(p), [{ icon: "calendar", label: "Kurs 1: 09.01.–06.02.2027 · Kurs 2: 20.02.–20.03.2027 · je 5 Termine, 1–3 wählbar" }]);
+  assert.deepEqual(cal(p).map((m) => m.label), ["Kurs 1: 09.01.–06.02.2027", "Kurs 2: 20.02.–20.03.2027", "Auch tageweise buchbar"]);
   assert.deepEqual(productCardData(p).meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "10:00–12:00 Uhr" }]);
   assert.deepEqual(productCardData(p).tariffs, productCardData(product).tariffs);
   assert.equal(productCardData(p).bookable, false);
+  assert.equal(JSON.stringify(productCardData(p)).includes("wählbar"), false);
+  assert.equal(JSON.stringify(productCardData(p)).includes("obligatorisch"), false);
 });
-test("one series renders its range; no series keeps weekly text", () => {
-  assert.equal(cal({ ...product, public_offering: { ...satOffering, series: [series1] } })[0].label, "Kurs 1: 09.01.–06.02.2027 · je 5 Termine, 1–3 wählbar");
+test("one series renders its range; no series keeps weekly text; no 1-day tier means no day-wise claim", () => {
+  assert.deepEqual(cal({ ...product, public_offering: { ...satOffering, series: [series1] } }).map((m) => m.label), ["Kurs 1: 09.01.–06.02.2027", "Auch tageweise buchbar"]);
+  assert.deepEqual(cal({ ...product, price_tiers: [{ day_count: 5, cumulative_price: 347 }], public_offering: { ...satOffering, series: [series1] } }).map((m) => m.label), ["Kurs 1: 09.01.–06.02.2027"]);
+  assert.equal(cal({ ...product, public_offering: { ...satOffering, series: [{ ...series2, start_date: "2027-03-20", dates: ["2027-03-20"] }] } })[0].label, "Kurs 2: 20.03.2027");
   assert.equal(cal({ ...product, public_offering: { ...satOffering, series: [] } })[0].label, "Immer samstags");
 });
 test("malformed or unordered series fall back safely without inventing dates", () => {
