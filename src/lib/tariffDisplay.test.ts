@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { VISIBLE_TARIFFS, tariffToggleVisible, visibleTariffCount } from "./tariffDisplay.ts";
 
 const dayTiers = (n: number) =>
@@ -36,8 +37,7 @@ test("collapsing again returns to the first three rows", () => {
 });
 
 test("card uses the shared rule instead of a local two-row default", () => {
-  const card = new URL("../components/Kursuebersicht.tsx", import.meta.url);
-  const source = require("node:fs").readFileSync(card, "utf8") as string;
+  const source = readFileSync(new URL("../components/Kursuebersicht.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(source, /VISIBLE_TARIFFS\s*=\s*2/);
   assert.match(source, /tariffDisplay/);
 });
