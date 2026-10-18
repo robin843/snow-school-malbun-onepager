@@ -10,3 +10,10 @@ export const tariffToggleVisible = (total: number): boolean => total > VISIBLE_T
 /** Rows rendered for the current state; expansion never adds or hides a tariff. */
 export const visibleTariffCount = (total: number, expanded: boolean): number =>
   expanded ? total : Math.min(total, VISIBLE_TARIFFS);
+
+/**
+ * Private cards show the Core-derived 60/120-minute summary first; the long
+ * 3h–7h/person "Weitere Dauertarife" list stays fully collapsed until expanded.
+ */
+export const privateFurtherTariffCount = (total: number, expanded: boolean): number =>
+  expanded ? total : 0;
