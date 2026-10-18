@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isOnlineBookable } from "@/lib/publicProductPricing";
+import type { PublicPrivateTimeTariffs, PublicPrivateTariffRules } from "@/lib/privateTimeTariffs";
 export { computeProductTotal } from "@/lib/publicProductPricing";
 
 export interface YetiPriceTier {
@@ -53,9 +54,9 @@ export interface YetiProduct {
   /** Informational only; never overrides online_bookable. */
   availability_policy?: "private_check" | "group_season";
   public_offering?: YetiPublicOffering | null;
-  /** Optional, display-only (pending Core contract); validated in privateTimeTariffs.ts. */
-  public_private_time_tariffs?: unknown;
-  public_private_price_conditions?: unknown;
+  /** Optional, staff-verified, display-only (Core contract v1); validated in privateTimeTariffs.ts. */
+  public_private_time_tariffs?: PublicPrivateTimeTariffs | null;
+  public_private_tariff_rules?: PublicPrivateTariffRules | null;
 }
 
 let catalogRequest: Promise<YetiProduct[]> | null = null;

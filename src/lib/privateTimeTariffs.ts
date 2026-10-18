@@ -1,21 +1,33 @@
 /**
- * Display-only projection of Core's optional private time-window tariffs.
- * Assumed contract (pending Core): product.public_private_time_tariffs =
- *   [{ duration_minutes, start_time "HH:MM", end_time "HH:MM", amount_chf, is_office_exception }]
- * and optional product.public_private_price_conditions =
- *   { additional_person?: [{ duration_minutes, amount_chf }], daily_discount?: { min_lessons, percent } }.
- * Every number shown comes from these fields; nothing here authorizes or prices a booking.
+ * Display-only projection of Core's staff-verified private time-window tariffs (contract v1):
+ *   product.public_private_time_tariffs = { version: 1, purpose: "display_information_only", currency: "CHF",
+ *     base_persons: 1, windows: [{ start, end, duration_minutes, amount_chf, extra_person_chf,
+ *     classification: "standard" | "office_exception", window_kind: "exact" | "within" }] }
+ *   product.public_private_tariff_rules = { version: 1, extra_person_basis: "per_window",
+ *     discount: { percent, threshold, unit: "lessons" | "minutes", scope }, affects_operational_pricing: false }
+ * Every number shown comes from these fields; nothing here authorizes, quotes or prices a booking.
  */
-export interface PrivateTimeTariff {
+export interface PrivateTimeWindow {
+  start: string;
+  end: string;
   duration_minutes: number;
-  start_time: string;
-  end_time: string;
   amount_chf: number;
-  is_office_exception: boolean;
+  extra_person_chf?: number | null;
+  classification: "standard" | "office_exception";
+  window_kind: "exact" | "within";
 }
-export interface PrivatePriceConditions {
-  additional_person?: { duration_minutes: number; amount_chf: number }[] | null;
-  daily_discount?: { min_lessons: number; percent: number } | null;
+export interface PublicPrivateTimeTariffs {
+  version: 1;
+  purpose: "display_information_only";
+  currency: "CHF";
+  base_persons: 1;
+  windows: PrivateTimeWindow[];
+}
+export interface PublicPrivateTariffRules {
+  version: 1;
+  extra_person_basis: "per_window";
+  discount?: { percent: number; threshold: number; unit: "lessons" | "minutes"; scope?: string } | null;
+  affects_operational_pricing: false;
 }
 
 const clock = (s: unknown): s is string => typeof s === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
@@ -23,59 +35,83 @@ const mins = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3));
 const pos = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n > 0;
 const posInt = (n: unknown): n is number => pos(n) && Number.isInteger(n);
 
-export function validTimeTariffs(raw: unknown): PrivateTimeTariff[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter((t): t is PrivateTimeTariff => !!t && typeof t === "object"
-    && posInt(t.duration_minutes) && clock(t.start_time) && clock(t.end_time)
-    && mins(t.end_time) - mins(t.start_time) === t.duration_minutes
-    && pos(t.amount_chf) && typeof t.is_office_exception === "boolean")
-    .slice().sort((a, b) => a.duration_minutes - b.duration_minutes
-      || Number(a.is_office_exception) - Number(b.is_office_exception) || a.start_time.localeCompare(b.start_time));
+function validWindow(w: unknown): w is PrivateTimeWindow {
+  if (!w || typeof w !== "object") return false;
+  const x = w as Record<string, unknown>;
+  if (!clock(x.start) || !clock(x.end) || !posInt(x.duration_minutes) || !pos(x.amount_chf)) return false;
+  if (x.extra_person_chf != null && !pos(x.extra_person_chf)) return false;
+  const span = mins(x.end) - mins(x.start);
+  if (x.classification === "standard" && x.window_kind === "exact") return span === x.duration_minutes;
+  if (x.classification === "office_exception" && x.window_kind === "within") return span >= x.duration_minutes;
+  return false;
 }
 
-const range = (xs: number[]) => {
-  const lo = Math.min(...xs), hi = Math.max(...xs);
-  return lo === hi ? `CHF ${lo}` : `CHF ${lo}–${hi}`;
-};
+/** All-or-nothing: any contract mismatch yields [] so the UI falls back to "auf Anfrage". */
+export function validTimeWindows(raw: unknown): PrivateTimeWindow[] {
+  if (!raw || typeof raw !== "object") return [];
+  const c = raw as Record<string, unknown>;
+  if (c.version !== 1 || c.purpose !== "display_information_only" || c.currency !== "CHF" || c.base_persons !== 1) return [];
+  if (!Array.isArray(c.windows) || c.windows.length === 0 || !c.windows.every(validWindow)) return [];
+  return (c.windows as PrivateTimeWindow[]).slice().sort((a, b) =>
+    Number(a.classification === "office_exception") - Number(b.classification === "office_exception")
+    || a.duration_minutes - b.duration_minutes || a.start.localeCompare(b.start));
+}
+
+const durLabel = (m: number) => (m === 60 ? "eine Stunde" : `${m} Min.`);
 
 export interface PrivateTariffView {
   summary: { label: string; value: string }[];
-  groups: { label: string; rows: { time: string; chf: string }[] }[];
+  groups: { label: string; rows: { label: string; chf: string }[] }[];
   footnotes: string[];
 }
 
-/** Returns null when Core supplies no valid time tariffs (UI then shows "auf Anfrage"). */
-export function privateTariffView(p: { public_private_time_tariffs?: unknown; public_private_price_conditions?: unknown }): PrivateTariffView | null {
-  const all = validTimeTariffs(p.public_private_time_tariffs);
+export function privateTariffView(p: { public_private_time_tariffs?: unknown; public_private_tariff_rules?: unknown }): PrivateTariffView | null {
+  const all = validTimeWindows(p.public_private_time_tariffs);
   if (all.length === 0) return null;
-  const regular = all.filter((t) => !t.is_office_exception);
-  const office = all.filter((t) => t.is_office_exception);
-  const singles = regular.filter((t) => t.duration_minutes === 60).map((t) => t.amount_chf);
-  const doubles = regular.filter((t) => t.duration_minutes === 120).map((t) => t.amount_chf);
-  const summary = [];
+  const standard = all.filter((w) => w.classification === "standard");
+  const office = all.filter((w) => w.classification === "office_exception");
+  const amounts = (d: number) => standard.filter((w) => w.duration_minutes === d).map((w) => w.amount_chf);
+  const singles = amounts(60), doubles = amounts(120);
+  const summary: PrivateTariffView["summary"] = [];
   if (singles.length) summary.push({ label: "Einzellektion 60 Min.", value: `ab CHF ${Math.min(...singles)}` });
-  if (doubles.length) summary.push({ label: "Doppellektion 120 Min.", value: range(doubles) });
-  const row = (t: PrivateTimeTariff) => ({ time: `${t.start_time}–${t.end_time}`, chf: String(t.amount_chf) });
+  if (doubles.length) {
+    const lo = Math.min(...doubles), hi = Math.max(...doubles);
+    summary.push({ label: "Doppellektion 120 Min.", value: lo === hi ? `CHF ${lo}` : `CHF ${lo}–${hi}` });
+  }
+  const row = (w: PrivateTimeWindow) => ({ label: `${w.start}–${w.end} Uhr`, chf: String(w.amount_chf) });
+  // Office exceptions: one row per duration+amount listing all envelopes; never rendered as span-length lessons.
+  const officeRows = [...new Set(office.map((w) => `${w.duration_minutes}|${w.amount_chf}`))].map((key) => {
+    const [d, a] = key.split("|").map(Number);
+    const env = office.filter((w) => w.duration_minutes === d && w.amount_chf === a).map((w) => `${w.start}–${w.end}`);
+    return { label: `Innerhalb ${env.join(" / ")} Uhr, ${durLabel(d)}`, chf: String(a) };
+  });
   const groups = [
-    { label: "Einzellektionen (60 Min.)", rows: regular.filter((t) => t.duration_minutes === 60).map(row) },
-    { label: "Doppellektionen (120 Min.)", rows: regular.filter((t) => t.duration_minutes === 120).map(row) },
-    { label: "Weitere Zeitfenster", rows: regular.filter((t) => t.duration_minutes !== 60 && t.duration_minutes !== 120).map(row) },
-    { label: "Einzelstunde im Doppelstundenblock (nur nach Absprache mit dem Skischulbüro)", rows: office.map(row) },
+    { label: "Einzellektionen (60 Min.)", rows: standard.filter((w) => w.duration_minutes === 60).map(row) },
+    { label: "Doppellektionen (120 Min.)", rows: standard.filter((w) => w.duration_minutes === 120).map(row) },
+    { label: "Weitere Zeitfenster", rows: standard.filter((w) => w.duration_minutes !== 60 && w.duration_minutes !== 120).map(row) },
+    { label: "Ausnahme nach Absprache mit dem Skischulbüro", rows: officeRows },
   ].filter((g) => g.rows.length > 0);
-  return { summary, groups, footnotes: priceConditionNotes(p.public_private_price_conditions) };
+  return { summary, groups, footnotes: footnotes(standard, p.public_private_tariff_rules) };
 }
 
-export function priceConditionNotes(raw: unknown): string[] {
-  if (!raw || typeof raw !== "object") return [];
-  const c = raw as PrivatePriceConditions;
-  const notes: string[] = [];
-  const extra = Array.isArray(c.additional_person)
-    ? c.additional_person.filter((a) => a && posInt(a.duration_minutes) && pos(a.amount_chf))
-      .slice().sort((a, b) => a.duration_minutes - b.duration_minutes) : [];
-  if (extra.length) notes.push(`Zusatzperson ${extra.map((a) => `${a.duration_minutes} Min. CHF ${a.amount_chf}`).join(", ")}`);
-  const d = c.daily_discount;
-  if (d && posInt(d.min_lessons) && pos(d.percent) && d.percent < 100) notes.push(`ab ${d.min_lessons} Lektionen am Tag ${d.percent} % Rabatt`);
-  return notes.length ? [notes.join("; ")] : [];
+function footnotes(standard: PrivateTimeWindow[], rawRules: unknown): string[] {
+  const parts: string[] = [];
+  // One extra-person value per duration, only when every standard window of that duration agrees.
+  const extras = [...new Set(standard.map((w) => w.duration_minutes))].flatMap((d) => {
+    const vals = [...new Set(standard.filter((w) => w.duration_minutes === d).map((w) => w.extra_person_chf ?? null))];
+    return vals.length === 1 && pos(vals[0]) ? [`${d} Min. CHF ${vals[0]}`] : [];
+  });
+  if (extras.length) parts.push(`Zusatzperson ${extras.join(", ")}`);
+  const r = rawRules && typeof rawRules === "object" ? rawRules as Record<string, unknown> : null;
+  if (r && r.version === 1 && r.extra_person_basis === "per_window" && r.affects_operational_pricing === false
+    && r.discount && typeof r.discount === "object") {
+    const d = r.discount as Record<string, unknown>;
+    if (d.unit === "lessons" && posInt(d.threshold) && pos(d.percent) && (d.percent as number) < 100) {
+      const day = typeof d.scope === "string" && /day|tag/i.test(d.scope) ? " am Tag" : "";
+      parts.push(`ab ${d.threshold} Lektionen${day} ${d.percent} % Rabatt`);
+    }
+  }
+  return parts.length ? [parts.join("; ")] : [];
 }
 
 /** Generic 60/120-minute private_rates are time-dependent in reality and must not be shown as flat prices. */
