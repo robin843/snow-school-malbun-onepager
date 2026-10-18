@@ -118,4 +118,27 @@ test("removed UUID table and name schedule rules cannot regress in production so
   assert.equal(cards.includes("WINDEL_MAX_DAYS"), false);
   assert.equal(booking.includes("courseModeFor"), false);
   assert.equal(/\.test\((?:p|product)\.(?:name|title)\)/.test(cards + booking), false);
+});const sat = (s: string[]) => s;
+const series1 = { sequence: 1, label: "Kurs 1", start_date: "2027-01-09", end_date: "2027-02-06", max_selected_days: 3,
+  dates: sat(["2027-01-09", "2027-01-16", "2027-01-23", "2027-01-30", "2027-02-06"]) };
+const series2 = { sequence: 2, label: "Kurs 2", start_date: "2027-02-20", end_date: "2027-03-20", max_selected_days: 3,
+  dates: sat(["2027-02-20", "2027-02-27", "2027-03-06", "2027-03-13", "2027-03-20"]) };
+const satOffering = { schedule_kind: "weekly", weekdays: [6], display_schedule_text: "Immer samstags", time_blocks: [{ start: "10:00", end: "12:00" }] };
+const cal = (p: YetiProduct) => productCardData(p).meta.filter((m) => m.icon === "calendar");
+test("two series replace generic weekday text and distinguish offered vs selectable days", () => {
+  const p = { ...product, public_offering: { ...satOffering, series: [series1, series2] } };
+  assert.deepEqual(cal(p), [{ icon: "calendar", label: "Kurs 1: 09.01.–06.02.2027 · Kurs 2: 20.02.–20.03.2027 · je 5 Termine, 1–3 wählbar" }]);
+  assert.deepEqual(productCardData(p).meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "10:00–12:00 Uhr" }]);
+  assert.deepEqual(productCardData(p).tariffs, productCardData(product).tariffs);
+  assert.equal(productCardData(p).bookable, false);
+});
+test("one series renders its range; no series keeps weekly text", () => {
+  assert.equal(cal({ ...product, public_offering: { ...satOffering, series: [series1] } })[0].label, "Kurs 1: 09.01.–06.02.2027 · je 5 Termine, 1–3 wählbar");
+  assert.equal(cal({ ...product, public_offering: { ...satOffering, series: [] } })[0].label, "Immer samstags");
+});
+test("malformed or unordered series fall back safely without inventing dates", () => {
+  for (const bad of [[series2, series1], [{ ...series1, end_date: "2027-02-30" }], [{ ...series1, dates: ["2026-12-01"] }],
+    [{ ...series1, sequence: 1.5 }], [null], [series1, { ...series2, start_date: "2027-02-01" }]]) {
+    assert.equal(cal({ ...product, public_offering: { ...satOffering, series: bad as never } })[0].label, "Immer samstags");
+  }
 });

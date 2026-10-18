@@ -15,9 +15,42 @@ const clockTime = (s: unknown): s is string => typeof s === "string" && /^([01]\
 const exactDate = (s: unknown): s is string => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)
   && Number.isFinite(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
 
+const dmy = (d: string) => d.split("-").reverse().join(".");
+
+/** All-or-nothing: any malformed or unordered series falls back to the previous display. */
+function seriesLabel(series: unknown): string {
+  if (!Array.isArray(series) || series.length === 0) return "";
+  let prevSeq = -Infinity, prevEnd = "";
+  const valid = series.every((s) => {
+    if (!s || typeof s !== "object") return false;
+    const { sequence, start_date, end_date, dates, max_selected_days } = s as Record<string, unknown>;
+    if (!Number.isInteger(sequence) || (sequence as number) <= prevSeq) return false;
+    if (!exactDate(start_date) || !exactDate(end_date) || start_date > end_date || start_date <= prevEnd) return false;
+    if (dates != null && !(Array.isArray(dates) && dates.every((d) => exactDate(d) && d >= start_date && d <= end_date))) return false;
+    if (max_selected_days != null && !(Number.isInteger(max_selected_days) && (max_selected_days as number) > 0)) return false;
+    prevSeq = sequence as number; prevEnd = end_date;
+    return true;
+  });
+  if (!valid) return "";
+  const list = series as NonNullable<NonNullable<YetiProduct["public_offering"]>["series"]>;
+  const parts = list.map((s, i) => {
+    const sameYear = s.start_date.slice(0, 4) === s.end_date.slice(0, 4);
+    const start = sameYear ? dmy(s.start_date).slice(0, 6) : dmy(s.start_date);
+    const name = text(s.label) ? s.label.trim() : `Kurs ${i + 1}`;
+    return `${name}: ${start}–${dmy(s.end_date)}`;
+  });
+  const counts = list.map((s) => (Array.isArray(s.dates) ? s.dates.length : 0));
+  const maxes = list.map((s) => s.max_selected_days ?? 0);
+  if (counts.every((c) => c > 0 && c === counts[0]) && maxes.every((m) => m > 0 && m === maxes[0] && m <= counts[0])) {
+    parts.push(maxes[0] < counts[0] ? `je ${counts[0]} Termine, 1–${maxes[0]} wählbar` : `je ${counts[0]} Termine`);
+  }
+  return parts.join(" · ");
+}
+
 function offeringMetadata(offering: YetiProduct["public_offering"]): YetiProduct["meta"] {
   if (!offering || typeof offering !== "object") return [];
-  let schedule = text(offering.display_schedule_text) ? offering.display_schedule_text.trim() : "";
+  let schedule = seriesLabel(offering.series);
+  if (!schedule && text(offering.display_schedule_text)) schedule = offering.display_schedule_text.trim();
   if (!schedule && offering.schedule_kind === "weekly") {
     const days = offering.weekdays;
     if (Array.isArray(days) && days.length > 0 && days.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)) {
