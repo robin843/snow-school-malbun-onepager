@@ -40,7 +40,7 @@ const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
           {instructor.display_name}
         </p>
         {/* Reserved two-line role slot keeps descriptions aligned across the row. */}
-        <p className="text-ice-blue-foreground/90 text-sm leading-5 h-10 line-clamp-2">
+        <p lang="de" className="text-ice-blue-foreground/90 text-sm leading-5 h-10 line-clamp-2 break-words hyphens-auto">
           {instructor.role_label}
         </p>
         {instructor.teaser && (
