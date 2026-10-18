@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { useYetiProducts, type YetiProduct } from "@/hooks/useYetiProducts";
 import { productCardData } from "@/lib/productCardData";
 import { PRIVATE_LESSON_INFO } from "@/lib/privateLessonInfo";
+import { tariffToggleVisible, visibleTariffCount } from "@/lib/tariffDisplay";
 
 type Discipline = "ski" | "snowboard" | "other";
 type Audience = "kids" | "adults";
