@@ -22,6 +22,7 @@ import { useYetiProducts, type YetiProduct } from "@/hooks/useYetiProducts";
 import { productCardData } from "@/lib/productCardData";
 import { PRIVATE_LESSON_INFO } from "@/lib/privateLessonInfo";
 import { tariffToggleVisible, visibleTariffCount } from "@/lib/tariffDisplay";
+import { privateTariffView, type PrivateTariffView } from "@/lib/privateTimeTariffs";
 
 type Discipline = "ski" | "snowboard" | "other";
 type Audience = "kids" | "adults";
@@ -48,6 +49,8 @@ type Course = {
   meta: { icon: React.ReactNode; label: string }[];
   requirement?: string;
   tariffs?: TariffRow[];
+  privateTariffs?: PrivateTariffView | null;
+  currency?: string;
   notes?: string[];
   bookable: boolean;
   type: "private" | "group" | "other";
@@ -79,6 +82,8 @@ const productToCourse = (p: YetiProduct): Course => {
     meta: data.meta.map((m) => ({ icon: metaIcon(m.icon), label: m.label })),
     requirement: p.requirement ?? undefined,
     tariffs: data.tariffs.length ? data.tariffs : undefined,
+    privateTariffs: p.type === "private" ? privateTariffView(p) : null,
+    currency: p.currency,
     notes: p.notes,
     bookable: data.bookable,
     type: p.type === "private" ? "private" : p.type.startsWith("group") ? "group" : "other",
@@ -191,20 +196,47 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
 
 
         {course.type === "private" && (
+          <div className="space-y-1.5" data-testid="private-time-summary">
+            {course.privateTariffs ? course.privateTariffs.summary.map((s) => (
+              <div key={s.label} className="flex justify-between items-center gap-3 p-2.5 pl-3 rounded-lg border bg-muted/40 border-border/50">
+                <span className="text-sm font-semibold text-foreground">{s.label}</span>
+                <span className="text-base font-black text-primary flex-shrink-0">{s.value}.-</span>
+              </div>
+            )) : (
+              <p className="p-2.5 rounded-lg border border-border/50 bg-muted/40 text-sm font-semibold text-foreground">Preise nach Zeitfenster auf Anfrage</p>
+            )}
+          </div>
+        )}
+
+        {course.type === "private" && (
           <details className="group/info rounded-lg border border-border/60 bg-muted/30 text-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-xs font-bold text-primary">
-              <span className="flex items-center gap-2"><Clock className="w-4 h-4" aria-hidden="true" />{PRIVATE_LESSON_INFO.heading}</span>
+              <span className="flex items-center gap-2"><Clock className="w-4 h-4" aria-hidden="true" />{course.privateTariffs ? "Alle Zeiten & Tarife" : PRIVATE_LESSON_INFO.heading}</span>
               <span aria-hidden="true" className="transition-transform group-open/info:rotate-180">▾</span>
             </summary>
             <div className="space-y-2 px-3 pb-3 text-xs text-foreground">
-              {[PRIVATE_LESSON_INFO.single, PRIVATE_LESSON_INFO.double].map((g) => (
+              {course.privateTariffs ? course.privateTariffs.groups.map((g) => (
+                <div key={g.label}>
+                  <div className="font-bold">{g.label}</div>
+                  <ul>
+                    {g.rows.map((r) => (
+                      <li key={r.time} className="flex justify-between gap-3 text-muted-foreground">
+                        <span>{r.time} Uhr</span><span className="font-bold text-foreground">{course.currency} {r.chf}.-</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )) : [PRIVATE_LESSON_INFO.single, PRIVATE_LESSON_INFO.double].map((g) => (
                 <div key={g.label}>
                   <div className="font-bold">{g.label}</div>
                   <div className="text-muted-foreground">{g.windows.join(" · ")} Uhr</div>
                 </div>
               ))}
               <ul className="space-y-1 pt-1 border-t border-border/60">
-                {PRIVATE_LESSON_INFO.notes.map((n) => <li key={n} className="text-muted-foreground">{n}</li>)}
+                {(PRIVATE_LESSON_INFO.notes as readonly string[] as string[])
+                  .filter((n) => !(course.privateTariffs?.footnotes.length && n.startsWith("Zusätzliche Personen")))
+                  .concat(course.privateTariffs?.footnotes ?? [])
+                  .map((n) => <li key={n} className="text-muted-foreground">{n}</li>)}
               </ul>
             </div>
           </details>

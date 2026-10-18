@@ -1,4 +1,5 @@
 import type { YetiProduct } from "../hooks/useYetiProducts";
+import { isTimeDependentDuration } from "./privateTimeTariffs.ts";
 
 export interface ProductTariff {
   label: string;
@@ -73,11 +74,12 @@ export function productCardData(p: YetiProduct) {
   const tariffs: ProductTariff[] = !text(p.currency) ? [] : p.type === "private"
     ? (Array.isArray(p.private_rates) ? p.private_rates : [])
       .filter((r) => r && positive(r.duration_minutes) && Number.isInteger(r.duration_minutes)
+        && !isTimeDependentDuration(r.duration_minutes)
         && positive(r.persons) && Number.isInteger(r.persons) && positive(r.price))
-      .slice().sort((a, b) => a.persons - b.persons || a.duration_minutes - b.duration_minutes)
+      .slice().sort((a, b) => a.duration_minutes - b.duration_minutes || a.persons - b.persons)
       .map((r) => ({
-        label: `${r.duration_minutes / 60} ${r.duration_minutes === 60 ? "Stunde" : "Stunden"} · ${r.persons} ${r.persons === 1 ? "Person" : "Personen"}`,
-        group: r.duration_minutes === 60 ? "Einzellektion (1 Std.)" : r.duration_minutes === 120 ? "Doppellektion (2 Std.)" : `${r.duration_minutes} Minuten`,
+        label: `${r.duration_minutes / 60} Stunden · ${r.persons} ${r.persons === 1 ? "Person" : "Personen"}`,
+        group: "Weitere Dauertarife",
         chf: String(r.price), currency: p.currency,
       }))
     : p.pricing_type === "tiered"

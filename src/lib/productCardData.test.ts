@@ -46,7 +46,7 @@ test("private rates remain exact totals for all supplied duration/person combina
     { duration_minutes: 60, persons: 1, price: -1 },
   ] });
   assert.deepEqual(data.tariffs.map((t) => [t.label, t.chf, t.group]), [
-    ["1.5 Stunden · 1 Person", "117", "90 Minuten"], ["3 Stunden · 2 Personen", "301", "180 Minuten"],
+    ["1.5 Stunden · 1 Person", "117", "Weitere Dauertarife"], ["3 Stunden · 2 Personen", "301", "Weitere Dauertarife"],
   ]);
 });
 test("informational policy cannot activate a nonbookable product", () => {
