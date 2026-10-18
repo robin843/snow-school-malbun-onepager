@@ -220,8 +220,8 @@ const CourseCardView = ({ course, onBook }: { course: Course; onBook: () => void
                   <div className="font-bold">{g.label}</div>
                   <ul>
                     {g.rows.map((r) => (
-                      <li key={r.time} className="flex justify-between gap-3 text-muted-foreground">
-                        <span>{r.time} Uhr</span><span className="font-bold text-foreground">{course.currency} {r.chf}.-</span>
+                      <li key={r.label} className="flex justify-between gap-3 text-muted-foreground">
+                        <span>{r.label}</span><span className="font-bold text-foreground">{course.currency} {r.chf}.-</span>
                       </li>
                     ))}
                   </ul>
