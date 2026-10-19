@@ -18,7 +18,7 @@ export const TEAM_AVATAR_PATHS = {
  * Flip to true in the same commit that adds both files under `public/images/`.
  * While false, a card without a portrait renders the neutral initial.
  */
-export const COMIC_AVATARS_AVAILABLE = true;
+export const COMIC_AVATARS_AVAILABLE = true; // probe: assets missing
 
 export type TeamGender = "male" | "female";
 
