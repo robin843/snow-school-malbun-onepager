@@ -35,7 +35,7 @@ test("only positive finite exact source tiers are shown", () => {
 });
 test("metadata uses validated source values, never weekday or clock times from names", () => {
   const data = productCardData(product);
-  assert.deepEqual(data.meta, [{ icon: "users", label: "Kinder · 2–4 Jahre" }, { icon: "clock", label: "120 Minuten" }]);
+  assert.deepEqual(data.meta, [{ icon: "users", label: "Kinder · 2–4 Jahre" }, { icon: "clock", label: "115 Minuten" }]);
   const supplied = productCardData({ ...product, meta: [{ icon: "calendar", label: "Core calendar" }, { icon: "clock", label: "Core time" }] });
   assert.deepEqual(supplied.meta.slice(0, 2), [{ icon: "calendar", label: "Core calendar" }, { icon: "clock", label: "Core time" }]);
   assert.deepEqual(productCardData({ ...product, audience: null, min_age: null, max_age: null, duration_minutes: null, meta: [{ icon: "calendar", label: "" }] }).meta, []);
@@ -68,7 +68,7 @@ const offering: NonNullable<YetiProduct["public_offering"]> = {
 test("public offering preserves custom schedule text and actual time", () => {
   const data = productCardData({ ...product, public_offering: { ...offering, display_schedule_text: "Immer mittwochs" } });
   assert.deepEqual(data.meta.slice(0, 2), [
-    { icon: "calendar", label: "Immer mittwochs" }, { icon: "clock", label: "14:00–16:00 Uhr" },
+    { icon: "calendar", label: "Immer mittwochs" }, { icon: "clock", label: "14:00–16:00 Uhr · 115 Min. Unterricht" },
   ]);
 });
 test("weekly Wednesday fallback never displays concrete dates", () => {
@@ -84,8 +84,8 @@ test("defined dates use only valid supplied exact dates in source order", () => 
 test("two blocks remain one clock row without multiplying exact day tiers", () => {
   const data = productCardData({ ...product, public_offering: { ...offering, time_blocks: [
     { start: "10:00", end: "12:00" }, { start: "14:00", end: "16:00" },
-  ] }, meta: [{ icon: "clock", label: "120 Minuten" }, { icon: "clock", label: "Dauer" }] });
-  assert.deepEqual(data.meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "10:00–12:00 / 14:00–16:00 Uhr" }]);
+  ] }, meta: [{ icon: "clock", label: "115 Minuten" }, { icon: "clock", label: "Dauer" }] });
+  assert.deepEqual(data.meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "10:00–12:00 / 14:00–16:00 Uhr · 230 Min. Unterricht" }]);
   assert.deepEqual(data.tariffs, productCardData(product).tariffs);
 });
 test("absent offering preserves previous cards exactly", () => {
@@ -101,7 +101,7 @@ test("invalid time blocks cannot invent or partially display a time", () => {
   for (const blocks of [[{ start: "25:00", end: "26:00" }], [{ start: "16:00", end: "14:00" }],
     [{ start: "10:00", end: "12:00" }, { start: "bad", end: "16:00" }]]) {
     const data = productCardData({ ...product, public_offering: { ...offering, time_blocks: blocks } });
-    assert.deepEqual(data.meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "120 Minuten" }]);
+    assert.deepEqual(data.meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "115 Minuten" }]);
   }
 });
 test("public display schedule never enables booking or legacy group authorization", () => {
@@ -128,7 +128,7 @@ const cal = (p: YetiProduct) => productCardData(p).meta.filter((m) => m.icon ===
 test("two series replace generic weekday text and distinguish offered vs selectable days", () => {
   const p = { ...product, public_offering: { ...satOffering, series: [series1, series2] } };
   assert.deepEqual(cal(p).map((m) => m.label), ["Kurs 1: 09.01.–06.02.2027", "Kurs 2: 20.02.–20.03.2027", "Auch tageweise buchbar"]);
-  assert.deepEqual(productCardData(p).meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "10:00–12:00 Uhr" }]);
+  assert.deepEqual(productCardData(p).meta.filter((m) => m.icon === "clock"), [{ icon: "clock", label: "10:00–12:00 Uhr · 115 Min. Unterricht" }]);
   assert.deepEqual(productCardData(p).tariffs, productCardData(product).tariffs);
   assert.equal(productCardData(p).bookable, false);
   assert.equal(JSON.stringify(productCardData(p)).includes("wählbar"), false);
@@ -155,4 +155,22 @@ test("lunch note only for group products with Core morning + afternoon blocks", 
   assert.equal(productCardData({ ...product, name: "Ganztageskurs", public_offering: offering }).lunchInfo, null);
   assert.equal(productCardData({ ...product, duration_minutes: 240 }).lunchInfo, null);
   assert.equal(productCardData({ ...full, public_offering: { ...offering, time_blocks: [{ start: "14:00", end: "16:00" }, { start: "16:30", end: "18:00" }] } }).lunchInfo, null);
+});
+
+ test("group display uses per-block teaching total once and leaves source data/prices untouched", () => {
+  const p = { ...product, duration_minutes: 240, pricing_type: "fixed", public_offering: { ...offering,
+    time_blocks: [{ start: "10:00", end: "12:00" }, { start: "14:00", end: "16:00" }] } };
+  const before = JSON.stringify(p);
+  const data = productCardData(p);
+  assert.equal(data.teachingMinutes, 230);
+  assert.equal(data.tariffs[0].chf, "999");
+  assert.equal(JSON.stringify(p), before);
+  assert.equal(data.bookable, false);
+  assert.equal(productCardData({ ...product, duration_minutes: 60 }).teachingMinutes, 55);
+  assert.equal(productCardData({ ...product, duration_minutes: 115 }).teachingMinutes, 115);
+  assert.equal(productCardData({ ...product, public_offering: offering }).teachingMinutes, 115);
+});
+test("private tariff windows are alternatives, never summed like daily group blocks", () => {
+  assert.equal(productCardData({ ...product, type: "private", duration_minutes: 60,
+    public_offering: { ...offering, time_blocks: [{ start: "09:00", end: "10:00" }, { start: "12:00", end: "13:00" }] } }).teachingMinutes, 55);
 });
