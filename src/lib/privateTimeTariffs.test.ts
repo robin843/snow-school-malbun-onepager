@@ -42,23 +42,23 @@ test("no generic 2h CHF 170 or flat 60-min rows, with or without time tariffs", 
 });
 test("summary from Core array: ab CHF 75 and CHF 150–190", () => {
   assert.deepEqual(privateTariffView(full)!.summary, [
-    { label: "Einzellektion 60 Min.", value: "ab CHF 75" }, { label: "Doppellektion 120 Min.", value: "CHF 150–190" },
+    { label: "Einzellektion 55 Min.", value: "ab CHF 75" }, { label: "Doppellektion 115 Min.", value: "CHF 150–190" },
   ]);
 });
 test("sorted standard bands; office exception as one-hour envelope, never a 2h row", () => {
   const v = privateTariffView(full)!;
   assert.deepEqual(v.groups.map((g) => [g.label, g.rows.map((r) => `${r.label} ${r.chf}`)]), [
-    ["Einzellektionen (60 Min.)", ["09:00–10:00 Uhr 75", "12:00–13:00 Uhr 75", "13:00–14:00 Uhr 75"]],
-    ["Doppellektionen (120 Min.)", ["09:00–11:00 Uhr 160", "10:00–12:00 Uhr 190", "11:00–13:00 Uhr 160",
+    ["Einzellektionen (55 Min. Unterricht)", ["09:00–10:00 Uhr 75", "12:00–13:00 Uhr 75", "13:00–14:00 Uhr 75"]],
+    ["Doppellektionen (115 Min. Unterricht)", ["09:00–11:00 Uhr 160", "10:00–12:00 Uhr 190", "11:00–13:00 Uhr 160",
       "12:00–14:00 Uhr 150", "13:00–15:00 Uhr 160", "14:00–16:00 Uhr 190"]],
-    ["Ausnahme nach Absprache mit dem Skischulbüro", ["Innerhalb 10:00–12:00 / 14:00–16:00 Uhr, eine Stunde 85"]],
+    ["Ausnahme nach Absprache mit dem Skischulbüro", ["Innerhalb 10:00–12:00 / 14:00–16:00 Uhr, 55 Min. Unterricht 85"]],
   ]);
 });
 test("extra person per duration once, discount only when validated lessons rule", () => {
-  assert.deepEqual(privateTariffView(full)!.footnotes, ["Zusatzperson 60 Min. CHF 20, 120 Min. CHF 40; ab 4 Lektionen am Tag 10 % Rabatt"]);
+  assert.deepEqual(privateTariffView(full)!.footnotes, ["Zusatzperson 55 Min. CHF 20, 115 Min. CHF 40; ab 4 Lektionen am Tag 10 % Rabatt"]);
   for (const bad of [{ ...coreRules, discount: { ...coreRules.discount, unit: "minutes" } }, { ...coreRules, affects_operational_pricing: true },
     { ...coreRules, version: 2 }, null]) {
-    assert.deepEqual(privateTariffView({ ...full, public_private_tariff_rules: bad } as never)!.footnotes, ["Zusatzperson 60 Min. CHF 20, 120 Min. CHF 40"]);
+    assert.deepEqual(privateTariffView({ ...full, public_private_tariff_rules: bad } as never)!.footnotes, ["Zusatzperson 55 Min. CHF 20, 115 Min. CHF 40"]);
   }
 });
 test("invalid or absent envelope falls back to 'auf Anfrage' (null)", () => {

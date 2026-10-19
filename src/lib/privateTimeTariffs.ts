@@ -1,3 +1,5 @@
+import { effectiveTeachingMinutes } from "./teachingDuration.ts";
+
 /**
  * Display-only projection of Core's staff-verified private time-window tariffs (contract v1):
  *   product.public_private_time_tariffs = { version: 1, purpose: "display_information_only", currency: "CHF",
@@ -57,7 +59,7 @@ export function validTimeWindows(raw: unknown): PrivateTimeWindow[] {
     || a.duration_minutes - b.duration_minutes || a.start.localeCompare(b.start));
 }
 
-const durLabel = (m: number) => (m === 60 ? "eine Stunde" : `${m} Min.`);
+const durLabel = (m: number) => `${effectiveTeachingMinutes(m)} Min. Unterricht`;
 
 export interface PrivateTariffView {
   summary: { label: string; value: string }[];
@@ -73,10 +75,10 @@ export function privateTariffView(p: { public_private_time_tariffs?: unknown; pu
   const amounts = (d: number) => standard.filter((w) => w.duration_minutes === d).map((w) => w.amount_chf);
   const singles = amounts(60), doubles = amounts(120);
   const summary: PrivateTariffView["summary"] = [];
-  if (singles.length) summary.push({ label: "Einzellektion 60 Min.", value: `ab CHF ${Math.min(...singles)}` });
+  if (singles.length) summary.push({ label: "Einzellektion 55 Min.", value: `ab CHF ${Math.min(...singles)}` });
   if (doubles.length) {
     const lo = Math.min(...doubles), hi = Math.max(...doubles);
-    summary.push({ label: "Doppellektion 120 Min.", value: lo === hi ? `CHF ${lo}` : `CHF ${lo}–${hi}` });
+    summary.push({ label: "Doppellektion 115 Min.", value: lo === hi ? `CHF ${lo}` : `CHF ${lo}–${hi}` });
   }
   const row = (w: PrivateTimeWindow) => ({ label: `${w.start}–${w.end} Uhr`, chf: String(w.amount_chf) });
   // Office exceptions: one row per duration+amount listing all envelopes; never rendered as span-length lessons.
@@ -86,8 +88,8 @@ export function privateTariffView(p: { public_private_time_tariffs?: unknown; pu
     return { label: `Innerhalb ${env.join(" / ")} Uhr, ${durLabel(d)}`, chf: String(a) };
   });
   const groups = [
-    { label: "Einzellektionen (60 Min.)", rows: standard.filter((w) => w.duration_minutes === 60).map(row) },
-    { label: "Doppellektionen (120 Min.)", rows: standard.filter((w) => w.duration_minutes === 120).map(row) },
+    { label: "Einzellektionen (55 Min. Unterricht)", rows: standard.filter((w) => w.duration_minutes === 60).map(row) },
+    { label: "Doppellektionen (115 Min. Unterricht)", rows: standard.filter((w) => w.duration_minutes === 120).map(row) },
     { label: "Weitere Zeitfenster", rows: standard.filter((w) => w.duration_minutes !== 60 && w.duration_minutes !== 120).map(row) },
     { label: "Ausnahme nach Absprache mit dem Skischulbüro", rows: officeRows },
   ].filter((g) => g.rows.length > 0);
@@ -99,7 +101,7 @@ function footnotes(standard: PrivateTimeWindow[], rawRules: unknown): string[] {
   // One extra-person value per duration, only when every standard window of that duration agrees.
   const extras = [...new Set(standard.map((w) => w.duration_minutes))].flatMap((d) => {
     const vals = [...new Set(standard.filter((w) => w.duration_minutes === d).map((w) => w.extra_person_chf ?? null))];
-    return vals.length === 1 && pos(vals[0]) ? [`${d} Min. CHF ${vals[0]}`] : [];
+    return vals.length === 1 && pos(vals[0]) ? [`${effectiveTeachingMinutes(d)} Min. CHF ${vals[0]}`] : [];
   });
   if (extras.length) parts.push(`Zusatzperson ${extras.join(", ")}`);
   const r = rawRules && typeof rawRules === "object" ? rawRules as Record<string, unknown> : null;

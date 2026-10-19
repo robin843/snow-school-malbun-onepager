@@ -1,5 +1,6 @@
 import type { YetiProduct } from "../hooks/useYetiProducts";
 import { isTimeDependentDuration } from "./privateTimeTariffs.ts";
+import { effectiveDurationLabel, effectiveTeachingMinutes, teachingMinutesForBlocks } from "./teachingDuration.ts";
 
 export interface ProductTariff {
   label: string;
@@ -69,6 +70,9 @@ function offeringMetadata(offering: YetiProduct["public_offering"], dayBookable:
 
 /** Factual card data only: no product-name interpretation, local catalog or price calculation. */
 export function productCardData(p: YetiProduct) {
+  const blockMinutes = typeof p.type === "string" && p.type.startsWith("group")
+    ? teachingMinutesForBlocks(p.public_offering?.time_blocks) : null;
+  const teachingMinutes = blockMinutes ?? (positive(p.duration_minutes) ? effectiveTeachingMinutes(p.duration_minutes) : null);
   const tariffs: ProductTariff[] = !text(p.currency) ? [] : p.type === "private"
     ? (Array.isArray(p.private_rates) ? p.private_rates : [])
       .filter((r) => r && positive(r.duration_minutes) && Number.isInteger(r.duration_minutes)
@@ -84,14 +88,17 @@ export function productCardData(p: YetiProduct) {
       ? (Array.isArray(p.price_tiers) ? p.price_tiers : [])
         .filter((r) => r && positive(r.day_count) && Number.isInteger(r.day_count) && positive(r.cumulative_price))
         .map((r) => ({ label: `${r.day_count} ${r.day_count === 1 ? "Tag" : "Tage"} · 1 Person`, chf: String(r.cumulative_price), currency: p.currency }))
-      : positive(p.price) ? [{ label: positive(p.duration_minutes) ? `${p.duration_minutes} Minuten` : "Preis", chf: String(p.price), currency: p.currency }] : [];
+       : positive(p.price) ? [{ label: teachingMinutes !== null ? `${teachingMinutes} Minuten` : "Preis", chf: String(p.price), currency: p.currency }] : [];
 
   const meta: YetiProduct["meta"] = (Array.isArray(p.meta) ? p.meta : [])
-    .filter((m) => m && ["calendar", "clock", "users", "map"].includes(m.icon) && text(m.label));
+    .filter((m) => m && ["calendar", "clock", "users", "map"].includes(m.icon) && text(m.label))
+    .map((m) => ({ ...m, label: m.icon === "clock" ? effectiveDurationLabel(m.label, blockMinutes) : m.label }));
   // A Core 1-day price tier is the only grounded signal for "Auch tageweise buchbar".
   const dayBookable = p.pricing_type === "tiered" && Array.isArray(p.price_tiers)
     && p.price_tiers.some((t) => t && t.day_count === 1 && positive(t.cumulative_price));
-  const offeringRows = offeringMetadata(p.public_offering, dayBookable);
+  const offeringRows = offeringMetadata(p.public_offering, dayBookable).map((m) => ({
+    ...m, label: m.icon === "clock" && blockMinutes !== null ? `${m.label} · ${blockMinutes} Min. Unterricht` : m.label,
+  }));
   // Replace existing rows of the same kind, including duration, instead of duplicating them.
   for (const icon of new Set(offeringRows.map((r) => r.icon))) {
     const rows = offeringRows.filter((r) => r.icon === icon);
@@ -111,13 +118,13 @@ export function productCardData(p: YetiProduct) {
     meta.push({ icon: "users", label: [audience, ages].filter(Boolean).join(" · ") });
   }
   if (!meta.some((m) => m.icon === "clock") && positive(p.duration_minutes)) {
-    meta.push({ icon: "clock", label: `${p.duration_minutes} Minuten` });
+     meta.push({ icon: "clock", label: `${teachingMinutes} Minuten` });
   }
   return {
     id: p.id,
     title: text(p.title) ? p.title : text(p.name) ? p.name : "",
     subtitle: text(p.subtitle) ? p.subtitle : "",
-    meta, tariffs,
+     meta, tariffs, teachingMinutes,
     lunchInfo: isFullDayGroup(p) ? LUNCH_INFO : null,
     bookable: p.online_bookable === true,
   };
