@@ -13,18 +13,20 @@ import {
   useYetiPublicInstructors,
   type PublicInstructor,
 } from "@/hooks/useYetiPublicInstructors";
+import { resolveTeamImage } from "@/lib/teamAvatar";
 
 const InstructorCard = ({ instructor }: { instructor: PublicInstructor }) => {
   const [imageFailed, setImageFailed] = useState(false);
-  const showImage = Boolean(instructor.portrait_url) && !imageFailed;
+  const image = resolveTeamImage(instructor);
+  const showImage = image.kind !== "initial" && !imageFailed;
 
   return (
     <Card className="h-full flex flex-col overflow-hidden rounded-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
       <div className="relative aspect-[3/4] flex-shrink-0 overflow-hidden bg-gradient-to-br from-ice-blue to-blush flex items-center justify-center">
         {showImage ? (
           <img
-            src={instructor.portrait_url}
-            alt={`Portrait von ${instructor.display_name}`}
+            src={image.src}
+            alt={image.alt}
             loading="lazy"
             onError={() => setImageFailed(true)}
             className="absolute inset-0 w-full h-full object-cover"

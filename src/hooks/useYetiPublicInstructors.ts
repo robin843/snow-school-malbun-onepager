@@ -6,6 +6,11 @@ export interface PublicInstructor {
   role_label?: string;
   teaser?: string;
   portrait_url?: string;
+  /**
+   * Structured gender from the public feed. YETI does not publish such a field
+   * yet, so it stays absent and cards keep the neutral fallback.
+   */
+  gender?: string;
 }
 
 interface CacheEntry {
