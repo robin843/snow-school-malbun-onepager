@@ -4,8 +4,8 @@
  */
 export const PRIVATE_LESSON_INFO = {
   heading: "Unterrichtszeiten & Hinweise",
-  single: { label: "Einzellektionen (60 Min.)", windows: ["09:00–10:00", "12:00–13:00", "13:00–14:00"] },
-  double: { label: "Doppellektionen (120 Min.)", windows: ["10:00–12:00", "12:00–14:00", "14:00–16:00"] },
+   single: { label: "Einzellektionen (55 Min. Unterricht)", windows: ["09:00–10:00", "12:00–13:00", "13:00–14:00"] },
+   double: { label: "Doppellektionen (115 Min. Unterricht)", windows: ["10:00–12:00", "12:00–14:00", "14:00–16:00"] },
   notes: [
     "Einzelstunden innerhalb der Doppelstundenblöcke sind auf Anfrage beim Skischulbüro möglich.",
     "Andere Zeiten für Doppellektionen nach Absprache mit dem Skischulbüro.",
