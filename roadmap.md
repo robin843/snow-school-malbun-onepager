@@ -2,8 +2,8 @@
 
 # Effective teaching duration
 
-- [ ] Correct informative private/group minute labels only; preserve clocks, prices and booking rules.
-- [ ] Test single/two blocks and duplicate protection; verify desktop/mobile; do not publish.
+- [x] Correct informative private/group minute labels only; preserve clocks, prices and booking rules.
+- [x] 87 tests pass; actual 10-card catalog verified at 1280/390 px, including private details, Escape and refresh; automatic build OK; no publication or backend deployment.
 
 - [x] Remove product overrides and local tariff limits; preserve card design and editorial content.
 - [x] Accept informational availability policy; prevent name-derived booking authorization.
