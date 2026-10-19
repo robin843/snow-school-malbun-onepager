@@ -66,14 +66,17 @@ export const normalizeTeamGender = (value: unknown): TeamGender | null => {
   }
 };
 
-export const resolveTeamImage = (instructor: TeamAvatarInput): TeamImageSource => {
+export const resolveTeamImageWith = (
+  instructor: TeamAvatarInput,
+  avatarsAvailable: boolean,
+): TeamImageSource => {
   const portrait =
     typeof instructor.portrait_url === "string" ? instructor.portrait_url.trim() : "";
   if (portrait) {
     return { kind: "portrait", src: portrait, alt: `Portrait von ${instructor.display_name}` };
   }
 
-  const gender = COMIC_AVATARS_AVAILABLE ? normalizeTeamGender(instructor.gender) : null;
+  const gender = avatarsAvailable ? normalizeTeamGender(instructor.gender) : null;
   if (gender) {
     return {
       kind: "avatar",
@@ -84,3 +87,7 @@ export const resolveTeamImage = (instructor: TeamAvatarInput): TeamImageSource =
 
   return { kind: "initial", src: "", alt: "" };
 };
+
+/** The card-facing resolver: the asset gate decides whether avatars may load. */
+export const resolveTeamImage = (instructor: TeamAvatarInput): TeamImageSource =>
+  resolveTeamImageWith(instructor, COMIC_AVATARS_AVAILABLE);
